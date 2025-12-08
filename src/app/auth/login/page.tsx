@@ -9,27 +9,32 @@ import { saveAuthSession } from "@/lib/auth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Suspense } from "react";
 
-type AuthResponse = {
-  token: string;
-  userId: number;
-  name: string;
-  email: string;
-  role: string;
-  active: boolean;
-};
+function LoginPageInner() {
+  "use client";
 
-export default function LoginPage() {
+  type AuthResponse = {
+    token: string;
+    userId: number;
+    name: string;
+    email: string;
+    role: string;
+  };
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectFrom = searchParams.get("from") || "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const loginMutation = useMutation<AuthResponse>({
+  const fromCheckout = searchParams.get("from") === "checkout";
+  const timeout = searchParams.get("timeout") === "1";
+
+  const loginMutation = useMutation({
     mutationFn: async () => {
+      setErrorMsg(null);
       const res = await api.post<AuthResponse>("/auth/login", {
         email,
         password,
@@ -41,90 +46,105 @@ export default function LoginPage() {
         token: data.token,
         name: data.name,
         email: data.email,
-        role: data.role as AuthSession["role"],
+        role: data.role,
       };
 
-      saveAuthSession(session);
       setAuthToken(session.token);
+      saveAuthSession(session);
 
-      const isAdminOrEmployee =
-        session.role === "ADMIN" || session.role === "EMPLOYEE";
-
-      if (redirectFrom.startsWith("/admin") && isAdminOrEmployee) {
-        router.push(redirectFrom);
-      } else if (isAdminOrEmployee) {
-        router.push("/admin");
-      } else {
+      if (fromCheckout) {
         router.push("/account/orders");
+      } else {
+        if (session.role?.toUpperCase().includes("ADMIN")) {
+          router.push("/admin");
+        } else {
+          router.push("/account/orders");
+        }
       }
     },
-    onError: () => {
-      setErrorMsg("Credenciais inválidas. Tente novamente.");
+    onError: (error: any) => {
+      console.error("Erro ao fazer login:", error?.response?.data || error);
+      setErrorMsg("E-mail ou senha inválidos. Tente novamente.");
     },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErrorMsg(null);
+    if (!email || !password) {
+      setErrorMsg("Preencha e-mail e senha para continuar.");
+      return;
+    }
     loginMutation.mutate();
   }
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <Card className="w-full max-w-sm border-rose-100 bg-white/95 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-center text-sm font-semibold text-slate-800">
-            Entrar no ateliê
+    <div className="flex min-h-[calc(100vh-120px)] items-center justify-center bg-slate-50 px-4 py-8">
+      <Card className="w-full max-w-sm border-rose-50 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-center text-base text-slate-800">
+            Entrar na sua conta
           </CardTitle>
+          {fromCheckout && (
+            <p className="mt-1 text-center text-[11px] text-slate-500">
+              Faça login para acompanhar seus pedidos e agilizar próximas
+              compras.
+            </p>
+          )}
+          {timeout && (
+            <p className="mt-1 text-center text-[11px] text-amber-600">
+              Sua sessão expirou por inatividade. Faça login novamente.
+            </p>
+          )}
         </CardHeader>
-
-        <CardContent>
+        <CardContent className="space-y-3 text-xs">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-700">
+              <label htmlFor="email" className="text-[11px] font-medium">
                 E-mail
               </label>
               <Input
+                id="email"
                 type="email"
-                placeholder="seuemail@exemplo.com"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
+                placeholder="seuemail@exemplo.com"
                 className="h-9 text-xs"
+                required
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-700">
+              <label htmlFor="password" className="text-[11px] font-medium">
                 Senha
               </label>
               <Input
+                id="password"
                 type="password"
-                placeholder="••••••••"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
+                placeholder="Digite sua senha"
                 className="h-9 text-xs"
+                required
               />
             </div>
 
             {errorMsg && (
-              <p className="text-[11px] text-rose-500">{errorMsg}</p>
+              <p className="text-[11px] text-rose-600">{errorMsg}</p>
             )}
 
             <Button
               type="submit"
-              className="mt-2 w-full bg-rose-500 text-xs font-semibold hover:bg-rose-600"
+              className="mt-1 h-9 w-full bg-rose-600 text-[11px] font-semibold hover:bg-rose-700"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? "Entrando..." : "Entrar"}
             </Button>
           </form>
 
-          <div className="mt-4 border-t border-rose-100 pt-3 text-center">
-            <p className="text-[11px] text-slate-600">
-              Ainda não tem conta?
-            </p>
+          <div className="pt-2 text-center text-[11px] text-slate-500">
+            <p>Ainda não tem cadastro?</p>
             <Button
               variant="outline"
               size="sm"
@@ -137,5 +157,19 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-120px)] items-center justify-center text-xs text-slate-500">
+          Carregando página de login...
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }
