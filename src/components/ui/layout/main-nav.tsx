@@ -1,140 +1,144 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ShoppingBag, Scissors } from "lucide-react";
+import { Baby, Store, UserCircle2, ShoppingBag } from "lucide-react";
+import type { AuthSession } from "@/lib/auth";
+import {
+  getAuthSession,
+  clearAuthSession,
+  isAdmin,
+} from "@/lib/auth";
+import { getCartCount } from "@/lib/cart";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getAuthSession, clearAuthSession, isAdmin, AuthSession } from "@/lib/auth";
-import { setAuthToken } from "@/lib/api";
+
+const navItems = [
+  { href: "/", label: "Início" },
+  { href: "/products", label: "Produtos" },
+];
 
 export function MainNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<AuthSession | null>(null);
-
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/" && pathname?.startsWith(href));
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    const s = getAuthSession();
-    setSession(s);
-    if (s?.token) {
-      setAuthToken(s.token);
-    }
-  }, []);
+    setSession(getAuthSession());
+  }, [pathname]);
 
-  function handleLogout() {
+  useEffect(() => {
+    // atualiza badge da sacola quando a rota muda
+    if (typeof window === "undefined") return;
+    setCartCount(getCartCount());
+  }, [pathname]);
+
+  const handleLogout = () => {
     clearAuthSession();
-    setAuthToken(null);
-    setSession(null);
     router.push("/");
-  }
-
-  const initials = session?.name
-    ? session.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "";
+  };
 
   return (
-    <header className="border-b border-rose-100 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:py-4">
+    <header className="border-b border-rose-100 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
-            <Scissors className="h-5 w-5 text-rose-500" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100">
+            <Baby className="h-5 w-5 text-rose-500" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold tracking-wide text-rose-600">
+            <span className="text-sm font-semibold text-slate-900">
               Arte com Carinho
             </span>
-            <span className="text-xs text-slate-500">
-              Bordados & enxoval de bebê
+            <span className="text-[11px] text-rose-500">
+              Ateliê & enxoval bordado
             </span>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex">
-          <Link
-            href="/"
-            className={cn(
-              "transition hover:text-rose-600",
-              isActive("/") && "text-rose-600"
-            )}
-          >
-            Início
-          </Link>
-          <Link
-            href="/products"
-            className={cn(
-              "transition hover:text-rose-600",
-              isActive("/products") && "text-rose-600"
-            )}
-          >
-            Produtos
-          </Link>
-          {session && (
+        {/* Navegação grande */}
+        <nav className="hidden items-center gap-3 text-xs text-slate-600 sm:flex">
+          {navItems.map((item) => (
             <Link
-              href="/account/orders"
+              key={item.href}
+              href={item.href}
               className={cn(
-                "transition hover:text-rose-600",
-                isActive("/account") && "text-rose-600"
+                "rounded-full px-3 py-1 transition-colors",
+                pathname === item.href
+                  ? "bg-rose-100 font-semibold text-rose-700"
+                  : "text-slate-600 hover:bg-rose-50"
               )}
             >
-              Meus pedidos
+              {item.label}
             </Link>
+          ))}
+
+          {/* Painel admin */}
+          {isAdmin(session) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "flex items-center gap-1 border-rose-200 text-[11px] text-rose-600 hover:bg-rose-50",
+                pathname?.startsWith("/admin") &&
+                  "bg-rose-100 font-semibold text-rose-700"
+              )}
+              onClick={() => router.push("/admin")}
+            >
+              <Store className="h-3 w-3" />
+              Painel do Ateliê
+            </Button>
           )}
         </nav>
 
+        {/* Lado direito: sacola + usuário / login */}
         <div className="flex items-center gap-3">
-          <Link
-            href="/cart"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100"
+          {/* Sacola */}
+          <button
+            className={cn(
+              "relative flex h-8 w-8 items-center justify-center rounded-full border border-rose-100 bg-rose-50 hover:bg-rose-100",
+              pathname === "/cart" && "ring-2 ring-rose-300"
+            )}
+            onClick={() => router.push("/cart")}
           >
-            <ShoppingBag className="h-5 w-5" />
-          </Link>
+            <ShoppingBag className="h-4 w-4 text-rose-600" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
+          </button>
 
-          {/* Se não estiver logado → botão Entrar */}
-          {!session && (
-            <Link href="/auth/login">
-              <button className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-600">
-                <span>Entrar</span>
-              </button>
-            </Link>
-          )}
-
-          {/* Se estiver logado → bolinha com iniciais + menu simples */}
-          {session && (
+          {session ? (
             <div className="flex items-center gap-2">
-              {isAdmin(session) && (
-                <button
-                  onClick={() => router.push("/admin")}
-                  className="hidden rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 sm:inline-flex"
-                >
-                  Painel admin
-                </button>
-              )}
-
-              <div className="flex items-center gap-2 rounded-full border border-rose-100 bg-rose-50 px-2 py-1">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-xs font-semibold text-white">
-                  {initials}
-                </div>
-                <div className="hidden flex-col leading-tight sm:flex">
-                  <span className="text-[11px] font-semibold text-slate-800">
-                    {session.name}
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-[10px] text-rose-500 hover:underline"
-                  >
-                    Sair
-                  </button>
-                </div>
-              </div>
+              <button
+                className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-[11px] text-slate-700"
+                onClick={() => router.push("/account/orders")}
+              >
+                <UserCircle2 className="h-3 w-3 text-rose-500" />
+                <span className="max-w-[120px] truncate">
+                  {session.name}
+                </span>
+              </button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-rose-200 text-[10px] text-rose-600 hover:bg-rose-50"
+                onClick={handleLogout}
+              >
+                Sair
+              </Button>
             </div>
+          ) : (
+            <Button
+              size="sm"
+              className="bg-rose-500 text-[11px] font-semibold text-white hover:bg-rose-600"
+              onClick={() => router.push("/auth/login")}
+            >
+              Entrar
+            </Button>
           )}
         </div>
       </div>

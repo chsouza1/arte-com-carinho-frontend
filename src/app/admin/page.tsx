@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, setAuthToken } from "@/lib/api";
+import { api, applyAuthFromStorage } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -50,14 +50,8 @@ export default function AdminDashboardPage() {
 
   // 🔐 Garante que o token JWT esteja configurado no axios
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = localStorage.getItem("arte_token");
-    if (!token) {
-      router.push("/auth/login");
-      return;
-    }
-    setAuthToken(token);
-  }, [router]);
+    applyAuthFromStorage();
+  }, []);
 
   const {
     data: products,

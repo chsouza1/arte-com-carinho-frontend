@@ -19,20 +19,23 @@ type AuthResponse = {
   active: boolean;
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectFrom = searchParams.get("from") || "/";
+  const redirectTo = searchParams.get("redirectTo") || "/account/orders";
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const loginMutation = useMutation<AuthResponse>({
+  const registerMutation = useMutation<AuthResponse>({
     mutationFn: async () => {
-      const res = await api.post<AuthResponse>("/auth/login", {
+      const res = await api.post<AuthResponse>("/auth/register", {
+        name,
         email,
         password,
+        role: "CUSTOMER",
       });
       return res.data;
     },
@@ -47,26 +50,20 @@ export default function LoginPage() {
       saveAuthSession(session);
       setAuthToken(session.token);
 
-      const isAdminOrEmployee =
-        session.role === "ADMIN" || session.role === "EMPLOYEE";
-
-      if (redirectFrom.startsWith("/admin") && isAdminOrEmployee) {
-        router.push(redirectFrom);
-      } else if (isAdminOrEmployee) {
-        router.push("/admin");
-      } else {
-        router.push("/account/orders");
-      }
+      router.push(redirectTo);
     },
-    onError: () => {
-      setErrorMsg("Credenciais inválidas. Tente novamente.");
+    onError: (error: any) => {
+      console.error("Erro ao registrar:", error?.response?.data || error);
+      setErrorMsg(
+        "Não foi possível criar sua conta. Verifique os dados informados."
+      );
     },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
-    loginMutation.mutate();
+    registerMutation.mutate();
   }
 
   return (
@@ -74,12 +71,23 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm border-rose-100 bg-white/95 shadow-md">
         <CardHeader>
           <CardTitle className="text-center text-sm font-semibold text-slate-800">
-            Entrar no ateliê
+            Criar conta
           </CardTitle>
         </CardHeader>
-
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-slate-700">
+                Nome completo
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="h-9 text-xs"
+              />
+            </div>
+
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-slate-700">
                 E-mail
@@ -114,26 +122,22 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="mt-2 w-full bg-rose-500 text-xs font-semibold hover:bg-rose-600"
-              disabled={loginMutation.isPending}
+              className="mt-2 w-full bg-rose-500 text-xs font-semibold text-white hover:bg-rose-600"
+              disabled={registerMutation.isPending}
             >
-              {loginMutation.isPending ? "Entrando..." : "Entrar"}
+              {registerMutation.isPending ? "Criando conta..." : "Criar conta"}
             </Button>
-          </form>
 
-          <div className="mt-4 border-t border-rose-100 pt-3 text-center">
-            <p className="text-[11px] text-slate-600">
-              Ainda não tem conta?
-            </p>
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              className="mt-2 w-full border-rose-200 text-[11px] text-rose-600 hover:bg-rose-50"
-              onClick={() => router.push("/auth/register")}
+              className="mt-3 w-full border-rose-200 text-[11px]"
+              onClick={() => router.push("/auth/login")}
             >
-              Criar conta para acompanhar pedidos
+              Já tenho conta — entrar
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>

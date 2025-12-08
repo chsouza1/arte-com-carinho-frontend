@@ -105,6 +105,7 @@ export default function ProductsPage() {
         {visibleProducts.map((product) => (
           <article
             key={product.id}
+            id = {`product-${product.id}`}
             className="flex flex-col rounded-xl border border-rose-100 bg-white shadow-sm"
           >
             {/* Imagem (placeholder por enquanto) */}

@@ -3,6 +3,9 @@ import "./globals.css";
 import { ReactQueryProvider } from "@/lib/queryClient";
 import { MainNav } from "@/components/ui/layout/main-nav";
 import { SiteFooter } from "@/components/ui/layout/site-footer";
+import { SessionActivityWatcher } from "@/components/ui/session-activity-watcher";
+import { NotificationsProvider } from "@/components/ui/notifications";
+import { OrderStatusWatcher } from "@/components/ui/order-status-watcher";
 
 export const metadata: Metadata = {
   title: "Arte com Carinho",
@@ -18,6 +21,13 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className="min-h-screen bg-gradient-to-br from-[#FFF7F2] to-[#FFE4DC] text-slate-800">
         <ReactQueryProvider>
+        <SessionActivityWatcher />  
+        <NotificationsProvider>
+          <OrderStatusWatcher />
+          <MainNav />
+          <main className="min-h-[calc(100vh-120px)]">{children}</main>
+          <SiteFooter />
+      </NotificationsProvider>
           <div className="flex min-h-screen flex-col">
             <MainNav />
             <main className="flex-1">
@@ -25,7 +35,7 @@ export default function RootLayout({
                 {children}
               </div>
             </main>
-            <SiteFooter />
+            <SiteFooter /><SessionActivityWatcher />  
           </div>
         </ReactQueryProvider>
       </body>

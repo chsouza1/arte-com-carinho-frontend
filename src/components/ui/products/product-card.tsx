@@ -9,6 +9,7 @@ export type Product = {
   price: number;
   category: string;
   featured?: boolean;
+  images?: string[];
 };
 
 export function ProductCard({ product }: { product: Product }) {
@@ -17,12 +18,32 @@ export function ProductCard({ product }: { product: Product }) {
     currency: "BRL",
   });
 
-  return (
-    <Link href={`/products/${product.id}`}>
-      <Card className="group h-full cursor-pointer overflow-hidden border-rose-100 bg-white/90 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-        {/* Aqui depois entra uma imagem real do produto */}
-        <div className="h-40 bg-gradient-to-br from-rose-50 to-rose-100" />
 
+  const mainImage = product.images && product.images.length > 0
+  ? product.images[0]
+  : null;
+
+  return (
+    <Link href={`/products#product-${product.id}`}>
+      <Card className="group h-full cursor-pointer overflow-hidden border-rose-100 bg-white/90 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+        {/* <div className="h-40 bg-gradient-to-br from-rose-50 to-rose-100" /> */}
+
+        <CardContent className="p-3">
+          {mainImage ? (
+            <div className="mb-2 h-40 w-full overflow-hidden rounded-md bg-slate-100">
+              <img
+                src={mainImage}
+                alt={product.name}
+                className="h-full w-full object-cover transition group-hover:scale-105"
+              />
+            </div>
+          ) : (
+            <div className="mb-2 flex h-40 w-full items-center justify-center rounded-md bg-slate-100 text-[11px] text-slate-400">
+              Sem imagem
+            </div>
+          )}
+        </CardContent>
+        
         <CardContent className="space-y-2 p-4">
           <div className="flex items-start justify-between gap-2">
             <h3 className="line-clamp-2 text-sm font-semibold text-slate-800 group-hover:text-rose-600">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, setAuthToken } from "@/lib/api";
+import { api, applyAuthFromStorage } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -45,16 +45,9 @@ export default function AdminOrdersPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 🔐 Garante que só entra aqui quem tem token
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = localStorage.getItem("arte_token");
-    if (!token) {
-      router.push("/auth/login");
-      return;
-    }
-    setAuthToken(token);
-  }, [router]);
+    applyAuthFromStorage();
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "orders"],
@@ -79,28 +72,30 @@ export default function AdminOrdersPage() {
     });
   }, [data, search, statusFilter]);
 
-  // 🔁 Atualizar status
-  const updateStatusMutation = useMutation({
-    mutationFn: async (payload: { id: number; status: OrderStatus }) => {
-      // aqui depende de como teu controller está mapeado; ajusta se necessário
-      await api.put(`/orders/${payload.id}/status`, null, {
-        params: { newStatus: payload.status },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
-    },
-  });
+// Atualizar status
+const updateStatusMutation = useMutation({
+  mutationFn: async (payload: { id: number; status: OrderStatus }) => {
+    // backend: PATCH /api/orders/{id}/status?status=IN_PRODUCTION
+    await api.patch(`/orders/${payload.id}/status`, null, {
+      params: { status: payload.status },
+    });
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+  },
+});
 
-  // ❌ Cancelar pedido
-  const cancelOrderMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await api.post(`/orders/${id}/cancel`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
-    },
-  });
+
+  // Cancelar pedido
+const cancelOrderMutation = useMutation({
+  mutationFn: async (id: number) => {
+    // backend: DELETE /api/orders/{id}
+    await api.delete(`/orders/${id}`);
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+  },
+});
 
   function handleChangeStatus(order: Order, newStatus: OrderStatus) {
     if (order.status === "CANCELLED") return;
