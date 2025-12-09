@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
     data: products,
     isLoading: loadingProducts,
   } = useQuery({
-    queryKey: ["admin", "products"],
+    queryKey: ["admin", "dashboard-products"],
     queryFn: fetchProducts,
   });
 
@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
     data: orders,
     isLoading: loadingOrders,
   } = useQuery({
-    queryKey: ["admin", "orders"],
+    queryKey: ["admin", "dashboard-orders"],
     queryFn: fetchOrders,
   });
 
@@ -115,8 +115,8 @@ export default function AdminDashboardPage() {
     monthlyRevenue,
     recentOrders,
   } = useMemo(() => {
-    const prods = products ?? [];
-    const ords = orders ?? [];
+    const prods = Array.isArray(products) ? products : [];
+    const ords = Array.isArray(orders) ? orders : [];
 
     const totalProducts = prods.length;
 

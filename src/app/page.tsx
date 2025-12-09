@@ -23,10 +23,10 @@ export default function HomePage() {
           Arte com Carinho
         </span>
         <h1 className="max-w-2xl text-2xl font-semibold text-slate-900 sm:text-3xl">
-          ajustar
+          Ateliê & enxoval bordado
         </h1>
         <p className="max-w-2xl text-sm text-slate-600">
-          ajustar.
+          Bem-vindo ao ateliê Arte com Carinho! Explore nossa coleção exclusiva.
         </p>
       </section>
 

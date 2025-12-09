@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Baby, Store, UserCircle2, ShoppingBag } from "lucide-react";
+import { Store, UserCircle2, ShoppingBag } from "lucide-react";
 import type { AuthSession } from "@/lib/auth";
 import {
   getAuthSession,
@@ -13,7 +13,8 @@ import {
 import { getCartCount } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
+import Image from "next/image";
+ 
 const navItems = [
   { href: "/", label: "Início" },
   { href: "/products", label: "Produtos" },
@@ -43,11 +44,15 @@ export function MainNav() {
   return (
     <header className="border-b border-rose-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        {/* Logo */}
+        
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100">
-            <Baby className="h-5 w-5 text-rose-500" />
-          </div>
+          <Image 
+            src="/logo.jpg" 
+            alt="Arte com Carinho"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold text-slate-900">
               Arte com Carinho

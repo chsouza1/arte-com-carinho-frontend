@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const s = getSession();
     console.log("[ADMIN LAYOUT] sessão lida:", s);
 
-    // se não tiver sessão → login
+
     if (!s) {
       setStatus("blocked");
       const from = pathname || "/admin";
@@ -49,7 +49,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return;
     }
 
-    // se tiver sessão mas não for admin/employee → também manda pro login
+  
     if (!isAdmin(s)) {
       console.warn("[ADMIN LAYOUT] sessão não admin/employee, role=", s.role);
       setStatus("blocked");

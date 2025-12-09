@@ -21,22 +21,19 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className="min-h-screen bg-gradient-to-br from-[#FFF7F2] to-[#FFE4DC] text-slate-800">
         <ReactQueryProvider>
-        <SessionActivityWatcher />  
-        <NotificationsProvider>
-          <OrderStatusWatcher />
-          <MainNav />
-          <main className="min-h-[calc(100vh-120px)]">{children}</main>
-          <SiteFooter />
-      </NotificationsProvider>
-          <div className="flex min-h-screen flex-col">
-            <MainNav />
-            <main className="flex-1">
-              <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-10">
-                {children}
-              </div>
-            </main>
-            <SiteFooter /><SessionActivityWatcher />  
-          </div>
+          <NotificationsProvider>
+            <SessionActivityWatcher />
+            <OrderStatusWatcher />
+            <div className="flex min-h-screen flex-col">
+              <MainNav />
+              <main className="flex-1">
+                <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-10">
+                  {children}
+                </div>
+              </main>
+              <SiteFooter />
+            </div>
+          </NotificationsProvider>
         </ReactQueryProvider>
       </body>
     </html>
