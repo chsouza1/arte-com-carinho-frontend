@@ -118,7 +118,7 @@ export default function ProductsPage() {
             className="flex flex-col rounded-xl border border-rose-100 bg-white shadow-sm"
           >
             
-            mainImage(product) ? (
+          { mainImage(product) ? (
             <div className="h-32 w-full overflow-hidden rounded-t-xl bg-rose-50">
               <img
                 src={mainImage(product) as string}
@@ -131,6 +131,7 @@ export default function ProductsPage() {
                 Sem imagem
               </div>
             )
+          }
 
             <div className="flex flex-1 flex-col gap-2 p-3">
               <div className="space-y-1">
