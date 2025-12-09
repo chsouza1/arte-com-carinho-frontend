@@ -95,7 +95,6 @@ export default function AdminProductsPage() {
   .split("/n")
   .map((s) => s.trim())
   .filter((s) => s.length > 0);
-  // mutação de salvar (criar/editar)
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {

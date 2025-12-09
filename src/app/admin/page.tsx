@@ -32,18 +32,55 @@ type Order = {
 
 async function fetchProducts(): Promise<Product[]> {
   const res = await api.get("/products", {
-    params: { size: 200 }, // se sua API for paginada, ela vai usar esse param
+    params: { size: 200 },
   });
-  // se for paginado estilo Spring, vem em "content"; se não, é array direto
-  return res.data.content ?? res.data;
+
+  const data = res.data;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.content)) {
+    return data.content;
+  }
+
+  return [];
 }
 
 async function fetchOrders(): Promise<Order[]> {
   const res = await api.get("/orders", {
     params: { size: 200, sort: "orderDate,desc" },
   });
-  return res.data.content ?? res.data;
+
+  const data = res.data;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.content)) {
+    return data.content;
+  }
+
+  return [];
 }
+
+
+// async function fetchProducts(): Promise<Product[]> {
+//   const res = await api.get("/products", {
+//     params: { size: 200 }, // se sua API for paginada, ela vai usar esse param
+//   });
+//   
+//   return res.data.content ?? res.data;
+// }
+
+// async function fetchOrders(): Promise<Order[]> {
+//   const res = await api.get("/orders", {
+//     params: { size: 200, sort: "orderDate,desc" },
+//   });
+//   return res.data.content ?? res.data;
+// }
 
 export default function AdminDashboardPage() {
   const router = useRouter();

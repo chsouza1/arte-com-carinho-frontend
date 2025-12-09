@@ -42,6 +42,8 @@ async function fetchShopProducts(): Promise<PageResponse<Product>> {
   return res.data;
 }
 
+
+
 export default function ProductsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["shop", "products"],
@@ -71,6 +73,13 @@ export default function ProductsPage() {
 
     setJustAddedId(product.id);
     setTimeout(() => setJustAddedId(null), 1500);
+  }
+
+
+  const mainImage = (product: Product) => {
+    return product.images && product.images.length > 0
+      ? product.images[0]
+      : null;
   }
 
   return (
@@ -108,8 +117,20 @@ export default function ProductsPage() {
             id = {`product-${product.id}`}
             className="flex flex-col rounded-xl border border-rose-100 bg-white shadow-sm"
           >
-            {/* Imagem (placeholder por enquanto) */}
-            <div className="h-32 w-full rounded-t-xl bg-rose-50" />
+            
+            mainImage(product) ? (
+            <div className="h-32 w-full overflow-hidden rounded-t-xl bg-rose-50">
+              <img
+                src={mainImage(product) as string}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            ) : (
+              <div className="flex h-32 w-full items-center justify-center rounded-t-xl bg-rose-50 text-[11px] text-slate-400">
+                Sem imagem
+              </div>
+            )
 
             <div className="flex flex-1 flex-col gap-2 p-3">
               <div className="space-y-1">
