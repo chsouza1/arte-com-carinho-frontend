@@ -92,7 +92,7 @@ export default function AdminProductsPage() {
   const products = useMemo(() => data?.content ?? [], [data]);
 
   const imagesArray = form.imageUrls
-  .split("/n")
+  .split("\n")
   .map((s) => s.trim())
   .filter((s) => s.length > 0);
   const saveMutation = useMutation({

@@ -6,6 +6,9 @@ export function SiteFooter() {
         <p className="text-[11px]">
           Enxoval bordado sob medida • Toalhas, babadores e roupinhas de recém-nascido.
         </p>
+          <p className="text-[11px]">
+          <a href="https://github.com/chsouza1">Dev por Chsouza1</a>
+        </p>
       </div>
     </footer>
   );

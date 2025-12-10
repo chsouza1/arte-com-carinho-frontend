@@ -5,7 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { api, setAuthToken } from "@/lib/api";
 import { saveSession } from "@/lib/auth";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,12 +19,23 @@ type RegisterResponse = {
   userId: number;
   name: string;
   email: string;
-  role: string;
+  role: "ADMIN" | "CUSTOMER";
+};
+
+type ApiError = {
+  error?: string;
+  message?: string;
+  status?: number;
+  validationErrors?: Record<string, string>;
 };
 
 export function RegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // se não usar, pode apagar
+  const searchParams = useSearchParams();
+
+
+  const redirectParam = searchParams.get("redirect");
+  const fromCheckout = searchParams.get("from") === "checkout";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,11 +45,24 @@ export function RegisterForm() {
   const registerMutation = useMutation({
     mutationFn: async () => {
       setErrorMsg(null);
+
+      // Validação básica no front
+      if (!name.trim() || !email.trim() || !password.trim()) {
+        throw new Error("Preencha nome, e-mail e senha.");
+      }
+
+      if (password.length < 6) {
+        throw new Error("A senha deve ter pelo menos 6 caracteres.");
+      }
+
+    
       const res = await api.post<RegisterResponse>("/auth/register", {
         name,
         email,
         password,
+        role: "CUSTOMER",
       });
+
       return res.data;
     },
     onSuccess: (data) => {
@@ -47,76 +76,106 @@ export function RegisterForm() {
       setAuthToken(session.token);
       saveSession(session);
 
-      router.push("/account/orders");
+      // Ordem de prioridade do redirecionamento:
+      if (redirectParam) {
+        router.push(redirectParam);
+      } else if (fromCheckout) {
+        router.push("/account/orders");
+      } else if (session.role?.toUpperCase().includes("ADMIN")) {
+        router.push("/admin");
+      } else {
+        router.push("/account/orders");
+      }
     },
     onError: (error: any) => {
       console.error("Erro ao registrar:", error?.response?.data || error);
-      setErrorMsg("Não foi possível criar a conta. Verifique os dados.");
+
+      const apiError: ApiError | undefined = error?.response?.data;
+
+      
+      if (apiError?.validationErrors) {
+        const msgs = Object.values(apiError.validationErrors);
+        if (msgs.length > 0) {
+          setErrorMsg(msgs.join(" "));
+          return;
+        }
+      }
+
+      if (apiError?.message) {
+        setErrorMsg(apiError.message);
+        return;
+      }
+
+      if (error instanceof Error) {
+        setErrorMsg(error.message);
+        return;
+      }
+
+      setErrorMsg(
+        "Não foi possível criar a conta. Verifique os dados e tente novamente."
+      );
     },
   });
 
+  const isSubmitting = registerMutation.isPending;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name || !email || !password) {
-      setErrorMsg("Preencha todos os campos para continuar.");
-      return;
-    }
     registerMutation.mutate();
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-120px)] items-center justify-center bg-slate-50 px-4 py-8">
-      <Card className="w-full max-w-sm border-rose-50 shadow-sm">
+    <div className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-md border-rose-100 bg-white/90 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-center text-base text-slate-800">
-            Criar sua conta
+          <CardTitle className="text-center text-base font-semibold text-slate-800">
+            Criar conta na Arte com Carinho
           </CardTitle>
+          <p className="mt-1 text-center text-[11px] text-slate-500">
+            Preencha seus dados para acompanhar seus pedidos e personalizar
+            suas peças.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-3 text-xs">
+        <CardContent className="space-y-3">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label htmlFor="name" className="text-[11px] font-medium">
-                Nome
+              <label className="text-[11px] font-medium text-slate-700">
+                Nome completo
               </label>
               <Input
-                id="name"
+                className="h-9 text-xs"
+                placeholder="Ex.: Ana Souza"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Seu nome"
-                className="h-9 text-xs"
-                required
+                disabled={isSubmitting}
               />
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="email" className="text-[11px] font-medium">
+              <label className="text-[11px] font-medium text-slate-700">
                 E-mail
               </label>
               <Input
-                id="email"
                 type="email"
-                autoComplete="email"
+                className="h-9 text-xs"
+                placeholder="seuemail@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seuemail@exemplo.com"
-                className="h-9 text-xs"
-                required
+                disabled={isSubmitting}
               />
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="password" className="text-[11px] font-medium">
+              <label className="text-[11px] font-medium text-slate-700">
                 Senha
               </label>
               <Input
-                id="password"
                 type="password"
-                autoComplete="new-password"
+                className="h-9 text-xs"
+                placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Crie uma senha"
-                className="h-9 text-xs"
-                required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -126,20 +185,21 @@ export function RegisterForm() {
 
             <Button
               type="submit"
-              className="mt-1 h-9 w-full bg-rose-600 text-[11px] font-semibold hover:bg-rose-700"
-              disabled={registerMutation.isPending}
+              className="mt-2 h-9 w-full bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700"
+              disabled={isSubmitting}
             >
-              {registerMutation.isPending ? "Criando conta..." : "Criar conta"}
+              {isSubmitting ? "Criando conta..." : "Criar conta"}
             </Button>
           </form>
 
-          <div className="pt-2 text-center text-[11px] text-slate-500">
+          <div className="mt-3 border-t pt-3 text-center text-[11px] text-slate-600">
             <p>Já tem conta?</p>
             <Button
               variant="outline"
               size="sm"
               className="mt-2 w-full border-rose-200 text-[11px] text-rose-600 hover:bg-rose-50"
               onClick={() => router.push("/auth/login")}
+              disabled={isSubmitting}
             >
               Fazer login
             </Button>

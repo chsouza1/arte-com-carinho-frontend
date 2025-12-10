@@ -38,6 +38,7 @@ export function MainNav() {
 
   const handleLogout = () => {
     clearAuthSession();
+    window.location.reload();
     router.push("/");
   };
 
