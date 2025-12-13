@@ -43,6 +43,17 @@ type TopProduct = {
   totalRevenue: number;
 };
 
+type StatusPoint = {
+  status: string;
+  count: number;
+};
+
+async function fetchStatusDistribution(): Promise<StatusPoint[]> {
+  const res = await api.get("/orders/stats/status-distribution");
+  return res.data;
+}
+
+
 async function fetchSummary(start: string, end: string): Promise<SummaryStats> {
   const res = await api.get("/orders/stats/summary", {
     params: { start, end },
@@ -108,6 +119,12 @@ export function AdminReportsPageClient() {
     queryKey: ["reports", "topProducts", startDate, endDate],
     queryFn: () => fetchTopProducts(startDate, endDate),
   });
+
+  const { data: statusDistribution, isLoading: loadingStatus } = useQuery({
+    queryKey: ["reports", "status-distribution"],
+    queryFn: fetchStatusDistribution,
+  });
+
 
   const totalRevenueBRL = summary?.totalRevenue?.toLocaleString("pt-BR", {
     style: "currency",
@@ -227,7 +244,7 @@ export function AdminReportsPageClient() {
       </section>
 
       {/* Gráfico por mês e top produtos */}
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <Card className="border-rose-100 bg-white/90 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2">
@@ -288,7 +305,35 @@ export function AdminReportsPageClient() {
             )}
           </CardContent>
         </Card>
-
+        <Card className="border-rose-100 bg-white/90 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-rose-400" />
+              <CardTitle className="text-sm font-semibold text-slate-800">
+                Pedidos por status
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="h-64 pt-2">
+            {loadingStatus ? (
+              <Skeleton className="h-full w-full rounded-lg bg-rose-50" />
+            ) : statusDistribution && statusDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusDistribution}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="status" fontSize={11} tickLine={false} />
+                  <YAxis allowDecimals={false} fontSize={11} />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Ainda não há pedidos cadastrados.
+              </p>
+            )}
+          </CardContent>
+        </Card>
         <Card className="border-rose-100 bg-white/90 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2">

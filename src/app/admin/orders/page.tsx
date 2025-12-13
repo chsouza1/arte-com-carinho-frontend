@@ -255,6 +255,14 @@ const cancelOrderMutation = useMutation({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order.id}/pdf`, "_blank")}
+                    >
+                      PDF
+                  </Button>
                     <StatusActionButtons
                       order={order}
                       onChangeStatus={handleChangeStatus}

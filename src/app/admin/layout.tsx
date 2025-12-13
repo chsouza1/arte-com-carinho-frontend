@@ -25,6 +25,8 @@ const adminNavItems = [
   { href: "/admin/reports", label: "Relatórios" },
   { href: "/admin/stock", label: "Estoque" },
   { href: "/admin/stock/critical", label: "Estoque crítico" },
+  { href: "/admin/customers", label: "Clientes" },
+  { href: "/admin/production", label: "Produção" },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

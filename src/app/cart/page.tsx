@@ -91,6 +91,23 @@ export default function CartPage() {
     updateCart([]);
   }
 
+  async function fetchShippingQuote(toZip: string, items: any[]) {
+  const res = await api.post("/shipping/quote", {
+    toZip,
+    items: items.map((i) => ({
+      sku: i.sku,
+      qty: i.qty,
+      weight: i.weight,
+      width: i.width,
+      height: i.height,
+      length: i.length,
+      price: i.price,
+    })),
+  });
+  return res.data as { provider: string; service: string; price: number; days: number; rawId: string }[];
+}
+
+
   const checkoutMutation = useMutation<
     OrderDTO,
     any,
