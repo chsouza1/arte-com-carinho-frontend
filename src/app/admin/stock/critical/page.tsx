@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AlertTriangle, Search, Package, Sparkles, X } from "lucide-react";
 
 type ProductLine =
   | "TOWEL_BATH"
@@ -68,7 +69,7 @@ export default function CriticalStockPage() {
           p.name.toLowerCase().includes(term);
         return isCritical && matchesName;
       })
-      .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0)); // os mais graves primeiro
+      .sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0));
   }, [data, threshold, searchTerm]);
 
   const totalCritical = criticalProducts.length;
@@ -79,140 +80,215 @@ export default function CriticalStockPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 text-xs text-slate-500">
-        Carregando painel de estoque crítico...
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-rose-500 border-r-transparent mb-4"></div>
+            <p className="text-sm font-semibold text-neutral-600">
+              Carregando painel de estoque crítico...
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <Card className="border-rose-200 bg-rose-50/60">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-rose-800">
-            Painel de alerta de estoque
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 text-[11px] text-rose-900 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p>
-              Aqui aparecem apenas itens com estoque **crítico**, ou seja,
-              menor ou igual ao limite definido.
-            </p>
-            <p className="mt-1">
-              Use esse painel para planejar compra de toalhas lisas / base para
-              bordado.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <div className="flex items-center gap-2">
-              <span>Limite de alerta:</span>
-              <Input
-                type="number"
-                min={1}
-                className="h-7 w-16 border-rose-300 text-[11px]"
-                value={threshold}
-                onChange={(e) =>
-                  setThreshold(Math.max(1, Number(e.target.value) || 1))
-                }
-              />
-              <span>peças</span>
-            </div>
-            <div className="flex flex-wrap gap-3 text-[11px]">
-              <span>
-                Produtos críticos:{" "}
-                <strong>{totalCritical}</strong>
-              </span>
-              <span>
-                Total de unidades em nível crítico:{" "}
-                <strong>{totalUnitsCritical}</strong>
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <span>Lista de itens críticos</span>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="w-full sm:w-64">
-                <Input
-                  placeholder="Buscar por nome do produto..."
-                  className="h-8 text-[11px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header com alerta */}
+        <Card className="rounded-[2rem] border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100 border-b-2 border-amber-200 pb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="rounded-2xl bg-white p-3 shadow-lg">
+                <AlertTriangle size={28} className="text-amber-600" />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 border-rose-200 text-[11px] text-rose-600 hover:bg-rose-50"
-                onClick={() => {
-                  setSearchTerm("");
-                  setThreshold(5);
-                }}
-              >
-                Limpar filtros
-              </Button>
+              <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-amber-500/30">
+                <Sparkles size={14} className="animate-pulse" />
+                Alerta de estoque
+              </span>
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {criticalProducts.length === 0 ? (
-            <p className="text-[11px] text-slate-500">
-              Nenhum item está abaixo ou igual ao limite de alerta atual. 🎉
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-[11px]">
-                <thead>
-                  <tr className="border-b bg-slate-50 text-slate-700">
-                    <th className="px-2 py-1 text-left">Produto</th>
-                    <th className="px-2 py-1 text-left">Linha</th>
-                    <th className="px-2 py-1 text-center">Tipo</th>
-                    <th className="px-2 py-1 text-right">Estoque</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {criticalProducts.map((p) => {
-                    const lineName = lineLabel(p.line);
-                    const isVeryLow = (p.stock ?? 0) <= 2;
-                    return (
-                      <tr
-                        key={p.id}
-                        className={`border-b last:border-0 ${
-                          isVeryLow ? "bg-rose-100/70" : "bg-rose-50/40"
-                        }`}
-                      >
-                        <td className="px-2 py-1 text-slate-800">
-                          {p.name}
-                        </td>
-                        <td className="px-2 py-1 text-slate-700">
-                          {lineName}
-                        </td>
-                        <td className="px-2 py-1 text-center text-slate-700">
-                          {p.customizable ? "Personalizável" : "Liso"}
-                        </td>
-                        <td
-                          className={`px-2 py-1 text-right ${
-                            isVeryLow
-                              ? "font-semibold text-rose-800"
-                              : "text-rose-700"
+            <CardTitle className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-600 to-red-500">
+              Painel de Estoque Crítico
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900 mb-2">
+                  ⚠️ Aqui aparecem apenas itens com estoque <span className="font-black">crítico</span>
+                </p>
+                <p className="text-sm text-amber-800">
+                  Use esse painel para planejar compra de toalhas lisas e base para bordado.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 lg:items-end">
+                <div className="flex items-center gap-3 rounded-xl bg-white border-2 border-amber-300 px-4 py-3 shadow-md">
+                  <span className="text-xs font-bold text-slate-700">Limite de alerta:</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="h-9 w-20 border-2 border-amber-300 text-sm font-bold text-center rounded-xl"
+                    value={threshold}
+                    onChange={(e) =>
+                      setThreshold(Math.max(1, Number(e.target.value) || 1))
+                    }
+                  />
+                  <span className="text-xs font-bold text-slate-700">peças</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-white border-2 border-red-300 px-4 py-2 text-center">
+                    <div className="text-xs font-bold text-slate-600 mb-1">Produtos críticos</div>
+                    <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">
+                      {totalCritical}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white border-2 border-orange-300 px-4 py-2 text-center">
+                    <div className="text-xs font-bold text-slate-600 mb-1">Unidades críticas</div>
+                    <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600">
+                      {totalUnitsCritical}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lista de produtos críticos */}
+        <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
+            <CardTitle className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-white p-2.5 shadow-md">
+                  <Package className="h-5 w-5 text-rose-600" />
+                </div>
+                <span className="text-base font-bold text-slate-800">
+                  Lista de Itens Críticos
+                </span>
+              </div>
+              
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex items-center flex-1 sm:w-80">
+                  <Search className="absolute left-4 h-4 w-4 text-rose-400" />
+                  <Input
+                    placeholder="Buscar por nome do produto..."
+                    className="h-11 pl-11 pr-10 rounded-2xl border-2 border-rose-200 text-sm font-medium focus:border-rose-400 transition-colors"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 p-1 hover:bg-rose-100 rounded-full transition-colors"
+                    >
+                      <X className="h-4 w-4 text-rose-500" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11 px-5 rounded-2xl border-2 border-rose-200 text-sm font-bold text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-all"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setThreshold(5);
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {criticalProducts.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center mb-4">
+                  <Package className="h-10 w-10 text-emerald-500" />
+                </div>
+                <p className="text-base font-bold text-slate-700 mb-2">
+                  Nenhum item em nível crítico! 🎉
+                </p>
+                <p className="text-sm text-slate-500">
+                  Todos os produtos estão com estoque acima do limite de alerta
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border-2 border-rose-100">
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
+                      <th className="px-4 py-3 text-left text-xs font-black text-slate-700">
+                        Produto
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-black text-slate-700">
+                        Linha
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-black text-slate-700">
+                        Tipo
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-black text-slate-700">
+                        Estoque
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {criticalProducts.map((p) => {
+                      const lineName = lineLabel(p.line);
+                      const isVeryLow = (p.stock ?? 0) <= 2;
+                      return (
+                        <tr
+                          key={p.id}
+                          className={`border-b border-rose-50 last:border-0 transition-colors hover:bg-rose-50/50 ${
+                            isVeryLow ? "bg-red-50" : "bg-amber-50/40"
                           }`}
                         >
-                          {p.stock}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                          <td className="px-4 py-3">
+                            <span className={`text-sm font-semibold ${
+                              isVeryLow ? "text-red-800" : "text-slate-800"
+                            }`}>
+                              {p.name}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-700 font-medium">
+                            {lineName}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                              p.customizable
+                                ? "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border border-purple-200"
+                                : "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-700 border border-slate-200"
+                            }`}>
+                              {p.customizable ? (
+                                <>
+                                  <Sparkles className="h-3 w-3" />
+                                  Personalizável
+                                </>
+                              ) : (
+                                "Liso"
+                              )}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-black text-sm ${
+                              isVeryLow
+                                ? "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-2 border-red-300"
+                                : "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-2 border-amber-300"
+                            }`}>
+                              {isVeryLow && <AlertTriangle className="h-4 w-4" />}
+                              {p.stock}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

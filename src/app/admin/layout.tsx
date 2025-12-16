@@ -21,6 +21,7 @@ type AdminLayoutProps = {
 const adminNavItems = [
   { href: "/admin", label: "Visão geral" },
   { href: "/admin/products", label: "Produtos" },
+  { href: "/admin/products/featured", label: "Destaques" },
   { href: "/admin/orders", label: "Pedidos" },
   { href: "/admin/reports", label: "Relatórios" },
   { href: "/admin/stock", label: "Estoque" },

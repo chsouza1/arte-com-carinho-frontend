@@ -4,43 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { getCart, saveCart, type CartItem } from "@/lib/cart";
-import type { AuthSession } from "@/lib/auth";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession, type AuthSession } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-type PublicOrderRequest = {
-  customer: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  items: {
-    productId: number;
-    quantity: number;
-    selectedSize?: string | null;
-    selectedColor?: string | null;
-    customizationNotes?: string | null;
-  }[];
-  notes?: string | null;
-  paymentMethod?: string | null;
-};
-
-type OrderDTO = {
-  id: number;
-  orderNumber: string;
-  status: string;
-  totalAmount: number;
-};
+import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function CartPage() {
   const router = useRouter();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
+
   const [items, setItems] = useState<CartItem[]>([]);
   const [session, setSession] = useState<AuthSession | null>(null);
-
-  // campos do mini checkout
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
@@ -49,17 +25,27 @@ export default function CartPage() {
   useEffect(() => {
     setItems(getCart());
     setSession(getAuthSession());
+
+    const onUpdate = () => setItems(getCart());
+    window.addEventListener("cart:updated", onUpdate);
+    return () => window.removeEventListener("cart:updated", onUpdate);
   }, []);
 
-  const totalItems = useMemo(
-    () => items.reduce((sum, item) => sum + (item.quantity ?? 0), 0),
-    [items]
-  );
+  const resolveImage = (item: CartItem) => {
+    const img =
+      item.imageUrl ||
+      (item as any)?.images?.[0] ||
+      null;
+
+    if (!img) return null;
+    if (img.startsWith("http")) return img;
+    return `${API_URL}${img}`;
+  };
 
   const totalAmount = useMemo(
     () =>
       items.reduce(
-        (sum, item) => sum + (item.price ?? 0) * (item.quantity ?? 0),
+        (sum, item) => sum + item.price * (item.quantity ?? 1),
         0
       ),
     [items]
@@ -70,99 +56,41 @@ export default function CartPage() {
     saveCart(newItems);
   }
 
-  function handleChangeQuantity(productId: number, delta: number) {
-    const newItems = items
-      .map((item) =>
-        item.productId === productId
-          ? { ...item, quantity: Math.max(1, (item.quantity ?? 1) + delta) }
-          : item
-      )
-      .filter((item) => item.quantity > 0);
-
-    updateCart(newItems);
-  }
-
-  function handleRemove(productId: number) {
-    const newItems = items.filter((item) => item.productId !== productId);
-    updateCart(newItems);
-  }
-
-  function handleClear() {
-    updateCart([]);
-  }
-
-  async function fetchShippingQuote(toZip: string, items: any[]) {
-  const res = await api.post("/shipping/quote", {
-    toZip,
-    items: items.map((i) => ({
-      sku: i.sku,
-      qty: i.qty,
-      weight: i.weight,
-      width: i.width,
-      height: i.height,
-      length: i.length,
-      price: i.price,
-    })),
-  });
-  return res.data as { provider: string; service: string; price: number; days: number; rawId: string }[];
-}
-
-
-  const checkoutMutation = useMutation<
-    OrderDTO,
-    any,
-    { phone: string; notes: string; paymentMethod: string }
-  >({
-    mutationFn: async ({ phone, notes, paymentMethod }) => {
-      if (!session) {
-        throw new Error("NO_SESSION");
-      }
-      if (items.length === 0) {
-        throw new Error("EMPTY_CART");
-      }
-
-      const payload: PublicOrderRequest = {
+  // --- MUTAÇÃO CORRIGIDA ---
+  const checkoutMutation = useMutation({
+    mutationFn: async () => {
+      // CORREÇÃO AQUI: Removemos o .user, pois name/email estão direto na session
+      const payload = {
         customer: {
-          name: session.name,
-          email: session.email,
-          phone,
+            name: session?.name || "Cliente", // <--- CORRIGIDO
+            email: session?.email,            // <--- CORRIGIDO
+            phone: phone 
         },
-        items: items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity ?? 1,
-          selectedSize: null,
-          selectedColor: null,
-          customizationNotes: null,
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
         })),
-        notes: notes || null,
-        paymentMethod: paymentMethod || null
+        notes: notes,
+        paymentMethod: paymentMethod.toUpperCase(),
       };
 
-      const res = await api.post<OrderDTO>("/public/orders", payload);
+      const res = await api.post("/public/orders", payload);
       return res.data;
     },
-    onSuccess: (order) => {
-      // esvazia sacola e manda para pedidos
-      saveCart([]);
-      setItems([]);
-      router.push(`/account/orders/${order.id}`);
+    onSuccess: (data) => {
+      updateCart([]);
+      const orderId = data.id || data.orderId; 
+      router.push(`/order/success?id=${orderId}`);
     },
     onError: (error: any) => {
-      console.error("Erro ao criar pedido público:", error?.response?.data || error);
-      if (error?.message === "NO_SESSION") {
-        setFormError("Você precisa estar logado para finalizar o pedido.");
-        router.push("/auth/login?from=/cart");
-        return;
-      }
-      if (error?.message === "EMPTY_CART") {
-        setFormError("Sua sacola está vazia.");
-        return;
-      }
+      console.error("Erro no checkout:", error);
+      const serverMsg = error.response?.data?.message;
+      const validationMsg = error.response?.data?.validationErrors 
+          ? Object.values(error.response.data.validationErrors).join(", ") 
+          : null;
 
-      const backendMsg = error?.response?.data?.message;
       setFormError(
-        backendMsg ||
-          "Não foi possível finalizar o pedido. Verifique os dados e tente novamente."
+        validationMsg || serverMsg || "Ocorreu um erro ao processar o pedido. Verifique os dados."
       );
     },
   });
@@ -171,229 +99,280 @@ export default function CartPage() {
     setFormError(null);
 
     if (!session) {
-      // não logado → login com redirect de volta pra sacola
-      router.push("/auth/login?from=/cart");
+      router.push("/auth/login?redirect=/cart");
       return;
     }
 
-    if (items.length === 0) {
-      setFormError("Sua sacola está vazia.");
+    if (!phone) {
+      setFormError("Por favor, informe um telefone para contato.");
       return;
     }
 
-    if (!phone.trim()) {
-      setFormError("Informe um telefone para contato.");
-      return;
-    }
+    checkoutMutation.mutate();
+  }
+  // -------------------------------
 
-    checkoutMutation.mutate({
-      phone: phone.trim(),
-      notes: notes.trim(),
-      paymentMethod,
-    });
+  function handleChangeQuantity(productId: number, delta: number) {
+    updateCart(
+      items.map((item) =>
+        item.productId === productId
+          ? { ...item, quantity: Math.max(1, (item.quantity ?? 1) + delta) }
+          : item
+      )
+    );
+  }
+
+  function handleRemove(productId: number) {
+    updateCart(items.filter((item) => item.productId !== productId));
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header className="mb-4 space-y-1">
-        <h1 className="text-lg font-semibold text-slate-900">Sua sacola</h1>
-        <p className="text-xs text-slate-600">
-          Confira os itens escolhidos e informe os dados para o ateliê entrar em
-          contato e acompanhar o pedido.
-        </p>
-      </header>
-
-      {items.length === 0 ? (
-        <div className="space-y-3">
-          <p className="text-sm text-slate-700">
-            Sua sacola está vazia no momento.
-          </p>
-          <Button
-            size="sm"
-            className="bg-rose-500 text-xs text-white hover:bg-rose-600"
-            onClick={() => router.push("/products")}
-          >
-            Ver produtos do ateliê
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50">
+      <div className="mx-auto max-w-6xl px-4 py-12">
+        {/* HEADER */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <button
+              onClick={() => router.push("/")}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 hover:text-rose-700 transition-colors mb-3 group"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+              Continuar comprando
+            </button>
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500">
+              Sua Sacola
+            </h1>
+          </div>
+          
+          {items.length > 0 && (
+            <div className="flex items-center gap-3 rounded-2xl bg-white/80 backdrop-blur-sm px-6 py-3 shadow-lg border-2 border-rose-200">
+              <ShoppingBag size={20} className="text-rose-500" />
+              <span className="text-sm font-bold text-neutral-800">
+                {items.length} {items.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Lista de itens */}
-          <div className="space-y-2">
-            {items.map((item) => (
-              <div
-                key={item.productId}
-                className="flex items-center justify-between rounded-lg border border-rose-100 bg-white px-3 py-2 shadow-sm"
+
+        {items.length === 0 ? (
+          <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-16 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden text-center">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-2xl"></div>
+            
+            <div className="relative z-10">
+              <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-6">
+                <ShoppingBag size={40} className="text-rose-400" />
+              </div>
+              <p className="text-lg font-semibold text-neutral-700 mb-2">
+                Sua sacola está vazia
+              </p>
+              <p className="text-sm text-neutral-500 mb-8">
+                Adicione produtos para começar suas compras
+              </p>
+              <Button 
+                onClick={() => router.push("/")}
+                className="rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white px-8 py-6 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40"
               >
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">
-                    {item.name}
+                Ver produtos
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* ITENS */}
+            <div className="lg:col-span-2 space-y-5">
+              {items.map((item) => {
+                const image = resolveImage(item);
+
+                return (
+                  <div
+                    key={item.productId}
+                    className="group relative flex gap-5 rounded-3xl border-2 border-transparent bg-white p-6 shadow-lg hover:shadow-xl hover:border-rose-200 transition-all duration-300"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none rounded-3xl"></div>
+                    
+                    <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 flex-shrink-0 shadow-md">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={item.name}
+                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs text-slate-400 font-medium">
+                          Sem imagem
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-between relative z-10">
+                      <div>
+                        <p className="text-base font-bold text-neutral-800 group-hover:text-rose-600 transition-colors">
+                          {item.name}
+                        </p>
+                        <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 mt-1">
+                          {item.price.toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-4">
+                        <div className="flex items-center gap-3 rounded-full border-2 border-rose-200 bg-white px-4 py-2 text-sm font-bold shadow-sm">
+                          <button 
+                            onClick={() => handleChangeQuantity(item.productId, -1)}
+                            className="text-rose-500 hover:text-rose-700 transition-colors hover:scale-110 active:scale-95"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="min-w-[20px] text-center text-neutral-800">
+                            {item.quantity}
+                          </span>
+                          <button 
+                            onClick={() => handleChangeQuantity(item.productId, 1)}
+                            className="text-rose-500 hover:text-rose-700 transition-colors hover:scale-110 active:scale-95"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleRemove(item.productId)}
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-rose-500 hover:text-rose-700 transition-colors group/btn"
+                        >
+                          <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-right relative z-10">
+                      <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
+                        {(item.price * (item.quantity ?? 1)).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RESUMO */}
+            <div className="lg:sticky lg:top-8 h-fit">
+              <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-8 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl"></div>
+                
+                <div className="relative z-10 space-y-5">
+                  <h2 className="text-xl font-black text-neutral-800 mb-6">
+                    Resumo do Pedido
+                  </h2>
+
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Telefone / WhatsApp (Obrigatório)"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="rounded-2xl border-2 border-rose-200 px-5 py-6 bg-white/80 backdrop-blur-sm shadow-sm hover:border-rose-300 transition-colors font-medium"
+                    />
+
+                    <Textarea
+                      rows={3}
+                      placeholder="Observações (opcional)"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="rounded-2xl border-2 border-rose-200 px-5 py-4 bg-white/80 backdrop-blur-sm shadow-sm hover:border-rose-300 transition-colors font-medium resize-none"
+                    />
+                  </div>
+                  {/* FORMAS DE PAGAMENTO */}
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-neutral-700">
+                    Forma de pagamento
                   </p>
-                  <p className="text-[11px] text-slate-500">
-                    {item.price.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}{" "}
-                    x {item.quantity}
-                  </p>
+
+                  <label className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="pix"
+                      checked={paymentMethod === "pix"}
+                      onChange={() => setPaymentMethod("pix")}
+                      className="accent-rose-500"
+                    />
+                    <span className="text-sm font-medium text-neutral-800">
+                      Pix
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="card"
+                      checked={paymentMethod === "card"}
+                      onChange={() => setPaymentMethod("card")}
+                      className="accent-rose-500"
+                    />
+                    <span className="text-sm font-medium text-neutral-800">
+                      Cartão na entrega
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cash"
+                      checked={paymentMethod === "cash"}
+                      onChange={() => setPaymentMethod("cash")}
+                      className="accent-rose-500"
+                    />
+                    <span className="text-sm font-medium text-neutral-800">
+                      Dinheiro
+                    </span>
+                  </label>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="flex items-center gap-1 rounded-full border border-slate-200 px-2 py-[2px]">
-                    <button
-                      type="button"
-                      className="px-1 text-slate-600"
-                      onClick={() =>
-                        handleChangeQuantity(item.productId, -1)
-                      }
-                    >
-                      -
-                    </button>
-                    <span className="min-w-[16px] text-center">
-                      {item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      className="px-1 text-slate-600"
-                      onClick={() =>
-                        handleChangeQuantity(item.productId, 1)
-                      }
-                    >
-                      +
-                    </button>
-                  </div>
+                {formError && (
+                    <div className="p-3 bg-rose-100 text-rose-700 text-sm font-bold rounded-xl border border-rose-200">
+                        {formError}
+                    </div>
+                )}
 
-                  <div className="text-right">
-                    <p className="text-xs font-semibold text-rose-600">
-                      {(item.price * item.quantity).toLocaleString("pt-BR", {
+                  <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-6 flex justify-between items-center shadow-md border-2 border-rose-200">
+                    <span className="text-sm font-bold text-neutral-700">Total</span>
+                    <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
+                      {totalAmount.toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
                       })}
-                    </p>
-                    <button
-                      type="button"
-                      className="text-[10px] text-rose-500 underline"
-                      onClick={() => handleRemove(item.productId)}
-                    >
-                      remover
-                    </button>
+                    </span>
                   </div>
+
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={checkoutMutation.isPending}
+                    className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-7 text-base font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+                  >
+                    {checkoutMutation.isPending ? (
+                        <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Processando...
+                        </>
+                    ) : "Finalizar pedido"}
+                  </Button>
+
+                  <p className="text-xs text-center text-neutral-500 mt-4">
+                    Ao finalizar, você será redirecionado para o WhatsApp
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Mini checkout (dados do cliente) */}
-          <div className="space-y-3 rounded-lg border border-rose-100 bg-rose-50/60 p-3 text-xs">
-            <p className="text-[11px] font-semibold text-slate-800">
-              Dados para contato
-            </p>
-
-            {session ? (
-              <div className="text-[11px] text-slate-600">
-                <p>
-                  <span className="font-medium">Nome:</span> {session.name}
-                </p>
-                <p>
-                  <span className="font-medium">E-mail:</span> {session.email}
-                </p>
-              </div>
-            ) : (
-              <p className="text-[11px] text-rose-600">
-                Você precisa estar logado para finalizar o pedido.
-              </p>
-            )}
-
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-700">
-                Telefone / WhatsApp
-              </label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(47) 99999-9999"
-                className="h-8 text-[11px]"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-700">
-                Observações (opcional)
-              </label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                className="text-[11px]"
-                placeholder="Ex.: nome do bebê, cores preferidas, detalhes de personalização..."
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-700">
-                Forma de pagamento preferida
-              </label>
-              <select
-                className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-[11px]"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                <option value="pix">PIX</option>
-                <option value="cartao">Cartão</option>
-                <option value="dinheiro">Boleto</option>
-              </select>
-            </div>
-
-            {formError && (
-              <p className="text-[11px] text-rose-600">{formError}</p>
-            )}
-
-            {/* Resumo */}
-            <div className="mt-2 rounded-md bg-white/70 p-2 text-[11px]">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-700">Itens na sacola</span>
-                <span className="font-semibold text-slate-900">
-                  {totalItems}
-                </span>
-              </div>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-slate-700">Valor total estimado</span>
-                <span className="text-sm font-semibold text-rose-700">
-                  {totalAmount.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </span>
-              </div>
-              <p className="mt-2 text-[10px] text-slate-500">
-                O valor final, prazos e detalhes são confirmados diretamente com
-                o ateliê após o envio do pedido.
-              </p>
-            </div>
-
-            <div className="mt-3 flex gap-2">
-              <Button
-                size="sm"
-                className="flex-1 bg-rose-500 text-[11px] text-white hover:bg-rose-600"
-                onClick={handleCheckout}
-                disabled={checkoutMutation.isPending}
-              >
-                {checkoutMutation.isPending
-                  ? "Enviando pedido..."
-                  : "Finalizar pedido"}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 text-[11px]"
-                onClick={handleClear}
-              >
-                Esvaziar sacola
-              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

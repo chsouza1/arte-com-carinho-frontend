@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen bg-gradient-to-br from-[#FFF7F2] to-[#FFE4DC] text-slate-800">
+      <body className="min-h-screen bg-[#FBF7FF] text-gray-900">
         <ReactQueryProvider>
           <NotificationsProvider>
             <SessionActivityWatcher />

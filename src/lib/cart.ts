@@ -5,6 +5,7 @@ export type CartItem = {
   name: string;
   price: number;
   quantity: number;
+  imageUrl?: string | null;
 };
 
 const STORAGE_KEY = "artecomcarinho_cart";

@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type ProductCategory =
-  | "CLOTHING"
-  | "BABY_KIT"
-  | "EMBROIDERY"
-  | "DECOR"
+  | "ROUPAS" 
+  | "ENXOVAL_DE_BANHO" 
+  | "ACESSORIOS" 
+  | "DECORACAO_DE_CASA" 
+  | "OUTROS"
   | string;
 
 type Product = {

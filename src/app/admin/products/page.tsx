@@ -15,12 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { Package, Edit, Trash2, Plus, Eye, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 
 type ProductCategory =
-  | "CLOTHING"
-  | "BABY_KIT"
-  | "EMBROIDERY"
-  | "DECOR"
+  | "ROUPAS" 
+  | "ENXOVAL_DE_BANHO" 
+  | "ACESSORIOS" 
+  | "DECORACAO_DE_CASA" 
+  | "OUTROS"
   | string;
 
 type Product = {
@@ -76,7 +78,7 @@ export default function AdminProductsPage() {
     description: "",
     price: "",
     stockQuantity: "",
-    category: "CLOTHING",
+    category: "ROUPAS",
     active: true,
     featured: false,
     customizable: false,
@@ -146,7 +148,7 @@ export default function AdminProductsPage() {
       description: "",
       price: "",
       stockQuantity: "",
-      category: "CLOTHING",
+      category: "ROUPAS",
       active: true,
       featured: false,
       customizable: false,
@@ -174,7 +176,7 @@ export default function AdminProductsPage() {
       price: product.price != null ? String(product.price) : "",
       stockQuantity:
         product.stock != null ? String(product.stock) : "",
-      category: (product.category as ProductCategory) ?? "CLOTHING",
+      category: (product.category as ProductCategory) ?? "ROUPAS",
       active: product.active ?? true,
       featured: product.featured ?? false,
       customizable: product.customizable ?? false,
@@ -194,236 +196,321 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[2fr,1.5fr]">
-      {/* Lista de produtos */}
-      <Card className="border-rose-100 bg-white/95 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-slate-900">
-            Produtos do ateliê
-          </CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-[11px]"
-            onClick={() => router.push("/products")}
-          >
-            Ver como cliente
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {isLoading && (
-            <p className="text-xs text-slate-500">Carregando produtos...</p>
-          )}
-
-          {isError && (
-            <p className="text-xs text-rose-500">
-              Não foi possível carregar os produtos.
-            </p>
-          )}
-
-          {!isLoading && !isError && products.length === 0 && (
-            <p className="text-xs text-slate-500">
-              Nenhum produto cadastrado ainda.
-            </p>
-          )}
-
-          <div className="space-y-2">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between rounded-lg border border-rose-100 bg-rose-50/60 px-3 py-2 text-xs"
-              >
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    {product.name}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {product.category ?? "Categoria não informada"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-600">
-                    Preço:{" "}
-                    {product.price != null
-                      ? product.price.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })
-                      : "-"}{" "}
-                    • Estoque: {product.stock ?? "-"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    {product.active ? "Ativo" : "Inativo"}
-                    {product.featured && " • Destaque"}
-                    {product.customizable && " • Personalizável"}
-                  </p>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-8 lg:grid-cols-[1.8fr,1.2fr]">
+          {/* Lista de produtos */}
+          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-white p-2.5 shadow-md">
+                    <Package className="h-5 w-5 text-rose-600" />
+                  </div>
+                  <div>
+                    <span className="text-base font-bold text-slate-800">
+                      Produtos do ateliê
+                    </span>
+                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                      {products.length} {products.length === 1 ? 'produto cadastrado' : 'produtos cadastrados'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2 text-[10px]"
-                    onClick={() => handleEdit(product)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2 text-[10px] text-rose-600 hover:bg-rose-50"
-                    onClick={() => handleDelete(product.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    Desativar
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Formulário de cadastro/edição */}
-      <Card className="border-rose-100 bg-white/95 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold text-slate-900">
-            {form.id ? "Editar produto" : "Novo produto"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-            <div className="space-y-1">
-              <Label htmlFor="name">Nome do produto</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => handleFormChange("name", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={form.description}
-                onChange={(e) =>
-                  handleFormChange("description", e.target.value)
-                }
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="imageUrls">Urls das Imagens</label>
-              <textarea id="imageUrls"
-              placeholder="Cole aqui as Urls, uma por linha"
-              value={form.imageUrls}
-              onChange={(e) => handleFormChange("imageUrls", e.target.value)}
-              className="h-24">
-              </textarea>
-              <p className="text-[10px] text-slate-400">
-                    Ex.: https://meu-bucket/imagem1.jpg{"\n"}
-                    Cada linha será uma imagem diferente.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="price">Preço (R$)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.price}
-                  onChange={(e) => handleFormChange("price", e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="stock">Estoque</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  min="0"
-                  value={form.stockQuantity}
-                  onChange={(e) =>
-                    handleFormChange("stockQuantity", e.target.value)
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="category">Categoria</Label>
-              <select
-                id="category"
-                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
-                value={form.category}
-                onChange={(e) =>
-                  handleFormChange("category", e.target.value as ProductCategory)
-                }
-              >
-                <option value="CLOTHING">Roupas / Bodies</option>
-                <option value="BABY_KIT">Enxoval / Kits</option>
-                <option value="EMBROIDERY">Peças bordadas</option>
-                <option value="DECOR">Decoração</option>
-              </select>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <TogglePill
-                label="Ativo"
-                active={form.active}
-                onToggle={() => handleFormChange("active", !form.active)}
-              />
-              <TogglePill
-                label="Destaque"
-                active={form.featured}
-                onToggle={() =>
-                  handleFormChange("featured", !form.featured)
-                }
-              />
-              <TogglePill
-                label="Personalizável"
-                active={form.customizable}
-                onToggle={() =>
-                  handleFormChange("customizable", !form.customizable)
-                }
-              />
-            </div>
-
-            {errorMsg && (
-              <p className="text-[11px] text-rose-500">{errorMsg}</p>
-            )}
-
-            <div className="mt-2 flex gap-2">
-              <Button
-                type="submit"
-                className="h-8 flex-1 bg-rose-500 text-[11px] font-semibold text-white hover:bg-rose-600"
-                disabled={saveMutation.isPending}
-              >
-                {saveMutation.isPending
-                  ? "Salvando..."
-                  : form.id
-                  ? "Salvar alterações"
-                  : "Cadastrar produto"}
-              </Button>
-              {form.id && (
                 <Button
-                  type="button"
+                  size="sm"
                   variant="outline"
-                  className="h-8 flex-1 text-[11px]"
-                  onClick={resetForm}
+                  className="rounded-xl border-2 border-rose-200 text-xs font-semibold hover:bg-rose-50 hover:border-rose-300 transition-all"
+                  onClick={() => router.push("/products")}
                 >
-                  Novo produto
+                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  Ver como cliente
                 </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
+              {isLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-rose-500 border-r-transparent mb-3"></div>
+                    <p className="text-xs font-semibold text-neutral-600">Carregando produtos...</p>
+                  </div>
+                </div>
               )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+
+              {isError && (
+                <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 p-8 text-center border-2 border-rose-200">
+                  <p className="text-sm font-semibold text-rose-600">
+                    Não foi possível carregar os produtos.
+                  </p>
+                </div>
+              )}
+
+              {!isLoading && !isError && products.length === 0 && (
+                <div className="rounded-2xl bg-gradient-to-br from-white to-rose-50/50 p-12 text-center border-2 border-rose-200">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
+                    <Package className="h-8 w-8 text-rose-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-neutral-700 mb-2">
+                    Nenhum produto cadastrado ainda
+                  </p>
+                  <p className="text-xs text-neutral-500">
+                    Use o formulário ao lado para criar seu primeiro produto
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="group relative rounded-2xl border-2 border-rose-100 bg-gradient-to-br from-white to-rose-50/30 p-5 hover:shadow-lg hover:border-rose-200 transition-all duration-300"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="font-bold text-sm text-slate-800 group-hover:text-rose-600 transition-colors truncate">
+                            {product.name}
+                          </p>
+                          {product.active ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                          )}
+                        </div>
+                        
+                        <p className="text-xs text-slate-500 font-medium mb-2">
+                          {product.category ?? "Categoria não informada"}
+                        </p>
+                        
+                        <div className="flex items-center gap-3 text-xs mb-2">
+                          <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
+                            {product.price != null
+                              ? product.price.toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })
+                              : "-"}
+                          </span>
+                          <span className="text-slate-600 font-semibold">
+                            Estoque: {product.stock ?? "-"}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {!product.active && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                              Inativo
+                            </span>
+                          )}
+                          {product.featured && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-100 to-yellow-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                              <Sparkles className="h-2.5 w-2.5" />
+                              Destaque
+                            </span>
+                          )}
+                          {product.customizable && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 px-2.5 py-1 text-[10px] font-bold text-purple-700">
+                              <Sparkles className="h-2.5 w-2.5" />
+                              Personalizável
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-3 text-xs font-semibold rounded-xl border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-3 text-xs font-semibold rounded-xl border-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-all"
+                          onClick={() => handleDelete(product.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Desativar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Formulário de cadastro/edição */}
+          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden lg:sticky lg:top-8 h-fit">
+            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
+              <CardTitle className="flex items-center gap-3">
+                <div className="rounded-xl bg-white p-2.5 shadow-md">
+                  {form.id ? (
+                    <Edit className="h-5 w-5 text-rose-600" />
+                  ) : (
+                    <Plus className="h-5 w-5 text-rose-600" />
+                  )}
+                </div>
+                <span className="text-base font-bold text-slate-800">
+                  {form.id ? "Editar produto" : "Novo produto"}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-xs font-bold text-slate-700">Nome do produto *</Label>
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => handleFormChange("name", e.target.value)}
+                    required
+                    className="rounded-xl border-2 border-rose-200 h-10 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-xs font-bold text-slate-700">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    value={form.description}
+                    onChange={(e) =>
+                      handleFormChange("description", e.target.value)
+                    }
+                    rows={3}
+                    className="rounded-xl border-2 border-rose-200 px-4 py-3 text-sm font-medium focus:border-rose-400 transition-colors resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="imageUrls" className="text-xs font-bold text-slate-700">URLs das Imagens</Label>
+                  <Textarea
+                    id="imageUrls"
+                    placeholder="Cole aqui as URLs, uma por linha"
+                    value={form.imageUrls}
+                    onChange={(e) => handleFormChange("imageUrls", e.target.value)}
+                    rows={4}
+                    className="rounded-xl border-2 border-rose-200 px-4 py-3 text-sm font-medium focus:border-rose-400 transition-colors resize-none"
+                  />
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Ex.: https://meu-bucket/imagem1.jpg
+                    <br />
+                    Cada linha será uma imagem diferente.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price" className="text-xs font-bold text-slate-700">Preço (R$) *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.price}
+                      onChange={(e) => handleFormChange("price", e.target.value)}
+                      required
+                      className="rounded-xl border-2 border-rose-200 h-10 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="stock" className="text-xs font-bold text-slate-700">Estoque *</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      min="0"
+                      value={form.stockQuantity}
+                      onChange={(e) =>
+                        handleFormChange("stockQuantity", e.target.value)
+                      }
+                      required
+                      className="rounded-xl border-2 border-rose-200 h-10 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-xs font-bold text-slate-700">Categoria *</Label>
+                  <select
+                    id="category"
+                    className="h-10 w-full rounded-xl border-2 border-rose-200 bg-white px-4 text-sm font-semibold focus:border-rose-400 transition-colors cursor-pointer"
+                    value={form.category}
+                    onChange={(e) =>
+                      handleFormChange("category", e.target.value as ProductCategory)
+                    }
+                  >
+                    <option value="ROUPAS">Roupas / Bodies</option>
+                    <option value="ENXOVAL_DE_BANHO">Enxoval de Banho / Kits</option>
+                    <option value="ACESSORIOS">ACESSORIOS RN</option>
+                    <option value="DECORACAO_DE_CASA">Decoração de Casa</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-700">Opções</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <TogglePill
+                      label="Ativo"
+                      active={form.active}
+                      onToggle={() => handleFormChange("active", !form.active)}
+                    />
+                    <TogglePill
+                      label="Destaque"
+                      active={form.featured}
+                      onToggle={() =>
+                        handleFormChange("featured", !form.featured)
+                      }
+                    />
+                    <TogglePill
+                      label="Personalizável"
+                      active={form.customizable}
+                      onToggle={() =>
+                        handleFormChange("customizable", !form.customizable)
+                      }
+                    />
+                  </div>
+                </div>
+
+                {errorMsg && (
+                  <div className="rounded-xl bg-rose-50 border-2 border-rose-200 p-3">
+                    <p className="text-xs font-semibold text-rose-600">{errorMsg}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    className="h-11 flex-1 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40"
+                    disabled={saveMutation.isPending}
+                  >
+                    {saveMutation.isPending
+                      ? "Salvando..."
+                      : form.id
+                      ? "Salvar alterações"
+                      : "Cadastrar produto"}
+                  </Button>
+                  {form.id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 flex-1 rounded-xl border-2 border-rose-200 text-sm font-bold hover:bg-rose-50 hover:border-rose-300 transition-all"
+                      onClick={resetForm}
+                    >
+                      Novo produto
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -440,10 +527,10 @@ function TogglePill({ label, active, onToggle }: TogglePillProps) {
       type="button"
       onClick={onToggle}
       className={cn(
-        "inline-flex h-8 items-center justify-center rounded-full border px-3 text-[11px] font-medium",
+        "inline-flex h-9 items-center justify-center rounded-full border-2 px-4 text-xs font-bold transition-all hover:scale-105 active:scale-95",
         active
-          ? "border-rose-500 bg-rose-50 text-rose-600"
-          : "border-slate-200 bg-slate-50 text-slate-600"
+          ? "border-rose-500 bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
+          : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
       )}
     >
       {label}
