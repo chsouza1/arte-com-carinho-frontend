@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
+import ReCAPTCHA from "react-google-recaptcha"; 
 import { api, setAuthToken } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { saveSession } from "@/lib/auth";
@@ -37,12 +38,17 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // --- ESTADOS DO CAPTCHA ---
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+
   const loginMutation = useMutation({
     mutationFn: async () => {
       setErrorMsg(null);
       const res = await api.post<AuthResponse>("/auth/login", {
         email,
         password,
+        captchaToken,
       });
       return res.data;
     },
@@ -67,20 +73,37 @@ export function LoginForm() {
     },
     onError: (error: any) => {
       console.error("Erro ao fazer login:", error?.response?.data || error);
-      setErrorMsg("E-mail ou senha inválidos. Tente novamente.");
+      
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
+
+      if (error?.response?.status === 401) {
+        setErrorMsg("E-mail ou senha inválidos.");
+      } else if (error?.response?.status === 400 && error?.response?.data?.message?.includes("Captcha")) {
+        setErrorMsg("Erro na verificação do Captcha.");
+      } else {
+        setErrorMsg("Ocorreu um erro ao entrar. Tente novamente.");
+      }
     },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErrorMsg(null);
+
     if (!email || !password) {
       setErrorMsg("Preencha e-mail e senha para continuar.");
       return;
     }
+
+    if (!captchaToken) {
+      setErrorMsg("Por favor, confirme que você não é um robô.");
+      return;
+    }
+
     loginMutation.mutate();
   }
 
-  // --- FUNÇÃO DE LOGIN SOCIAL ---
   const handleSocialLogin = (provider: "google" | "facebook") => {
     window.location.href = `${API_URL}/oauth2/authorization/${provider}`;
   };
@@ -89,7 +112,6 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 px-4 py-12">
       <Card className="w-full max-w-md rounded-[2rem] border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-2xl overflow-hidden">
         <CardHeader className="relative bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100 pb-8 pt-10">
-          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl"></div>
           
           <div className="relative z-10 flex flex-col items-center space-y-4">
@@ -158,6 +180,15 @@ export function LoginForm() {
                 placeholder="Digite sua senha"
                 className="h-12 rounded-xl border-2 border-rose-200 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
                 required
+              />
+            </div>
+
+            {/* --- COMPONENTE RECAPTCHA --- */}
+            <div className="flex justify-center py-2">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                onChange={(token) => setCaptchaToken(token)}
               />
             </div>
 
