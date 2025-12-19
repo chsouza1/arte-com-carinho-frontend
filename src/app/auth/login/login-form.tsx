@@ -105,7 +105,8 @@ export function LoginForm() {
   }
 
   const handleSocialLogin = (provider: "google" | "facebook") => {
-    window.location.href = `${API_URL}/oauth2/authorization/${provider}`;
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/social-callback`);
+    window.location.href = `${API_URL}/oauth2/authorization/${provider}?redirect_uri=${redirectUri}`;
   };
 
   return (
