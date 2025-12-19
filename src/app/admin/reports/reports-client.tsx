@@ -42,6 +42,14 @@ type StatusPoint = {
   count: number;
 };
 
+const STATUS_MAP: Record<string, string> = {
+  PENDING: "Pendente",
+  IN_PRODUCTION: "Em Produção",
+  SHIPPED: "Enviado",
+  DELIVERED: "Entregue",
+  CANCELLED: "Cancelado",
+};
+
 async function fetchStatusDistribution(): Promise<StatusPoint[]> {
   const res = await api.get("/orders/stats/status-distribution");
   return res.data;
@@ -341,9 +349,16 @@ export function AdminReportsPageClient() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={statusDistribution}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="status" fontSize={11} tickLine={false} />
+                    <XAxis 
+                        dataKey="status" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        tickFormatter={(value) => STATUS_MAP[value] || value} 
+                    />
                     <YAxis allowDecimals={false} fontSize={11} />
-                    <Tooltip />
+                    <Tooltip 
+                        labelFormatter={(label) => STATUS_MAP[label] || label}
+                    />
                     <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

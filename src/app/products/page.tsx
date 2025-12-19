@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { addToCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Package, Sparkles, Filter } from "lucide-react";
+import { Package, Sparkles, Filter, AlertTriangle } from "lucide-react";
 
 type ProductCategory = string;
 
@@ -96,7 +96,6 @@ export default function ProductsPage() {
         {/* HEADER */}
         <header className="mb-10">
           <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-            {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-2xl"></div>
             
@@ -192,7 +191,12 @@ export default function ProductsPage() {
         )}
 
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {visibleProducts.map((product) => (
+          {visibleProducts.map((product) => {
+             // VERIFICAÇÃO DE ESTOQUE BAIXO
+             const stock = product.stock ?? 0;
+             const isLowStock = stock > 0 && stock <= 3;
+
+             return (
             <article
               key={product.id}
               className="group relative rounded-3xl bg-white border-2 border-transparent shadow-lg hover:shadow-2xl hover:border-rose-200 transition-all duration-300 overflow-hidden hover:-translate-y-2"
@@ -228,12 +232,18 @@ export default function ProductsPage() {
                     })}
                   </p>
 
-                  {product.customizable && (
+                  {/* Prioridade: Se for personalizável, mostra. Se não, mas tiver pouco estoque, mostra o aviso. */}
+                  {product.customizable ? (
                     <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 px-3 py-1 text-[10px] font-bold text-rose-600 shadow-sm">
                       <Sparkles size={10} />
                       Personalizável
                     </span>
-                  )}
+                  ) : isLowStock ? (
+                    <span className="flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-[10px] font-bold text-amber-600 shadow-sm animate-pulse">
+                      <AlertTriangle size={10} />
+                      Restam {stock}
+                    </span>
+                  ) : null}
                 </div>
 
                 <Button
@@ -247,7 +257,7 @@ export default function ProductsPage() {
                 </Button>
               </div>
             </article>
-          ))}
+          )})}
         </div>
       </div>
     </div>

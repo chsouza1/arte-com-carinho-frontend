@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 import WhatsAppFloatingButton from "@/components/ui/WhatsAppFloatingButton";
 import { addToCart } from "@/lib/cart";
 
+// 1. Adicionamos o campo 'stock' aqui
 type Product = {
   id: number;
   name: string;
@@ -14,6 +15,7 @@ type Product = {
   category?: string;
   images?: string[];
   active?: boolean;
+  stock: number; // <--- NOVO
 };
 
 const mainImage = (product: Product) => {
@@ -45,14 +47,11 @@ export default function HomePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // ATUALIZADO: Busca apenas os produtos em destaque do novo endpoint público
         const res = await fetch(`${API_URL}/public/products/featured`, { cache: "no-store" });
         
         if (!res.ok) throw new Error("Falha ao carregar destaques");
 
         const data = await res.json();
-        
-        // O endpoint retorna uma List<ProductDTO>, então é sempre um array
         const list = Array.isArray(data) ? data : [];
 
         const mapped: Product[] = list.map((p: any) => ({
@@ -62,6 +61,7 @@ export default function HomePage() {
           category: normalizeCategory(p.category),
           images: Array.isArray(p.images) ? p.images : [],
           active: p.active ?? true,
+          stock: Number(p.stock ?? 0), // <--- 2. Mapeamos o stock vindo do backend
         }));
 
         setProducts(mapped.filter((p) => p.active !== false));
@@ -100,8 +100,6 @@ export default function HomePage() {
     router.push("/cart");
   };
 
-  // Função auxiliar para redirecionar a busca para a página completa de produtos
-  // (Opcional: melhora a experiência se a busca na Home for para todo o catálogo)
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && query) {
       router.push(`/products?query=${encodeURIComponent(query)}`);
@@ -113,7 +111,6 @@ export default function HomePage() {
       {/* HERO */}
       <section className="mx-auto max-w-6xl px-4 pt-20">
         <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-12 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-2xl"></div>
           
@@ -131,7 +128,6 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-col md:flex-row gap-4">
-              {/* Barra de busca mantida, filtrando os destaques atuais */}
               <div className="relative flex items-center gap-3 rounded-2xl border-2 border-rose-200 px-5 py-4 bg-white/80 backdrop-blur-sm w-full shadow-lg hover:shadow-xl transition-all hover:border-rose-300 group">
                 <Search size={20} className="text-rose-500 group-hover:scale-110 transition-transform" />
                 <input
@@ -173,12 +169,16 @@ export default function HomePage() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filtered.map((product) => (
+          {filtered.map((product) => {
+             // 3. Lógica para definir se é estoque baixo (entre 1 e 3 unidades)
+             const isLowStock = product.stock > 0 && product.stock <= 3;
+             const isOutOfStock = product.stock === 0;
+
+             return (
             <div
               key={product.id}
               className="group relative rounded-3xl bg-white border-2 border-transparent shadow-lg hover:shadow-2xl hover:border-rose-200 transition-all duration-300 overflow-hidden hover:-translate-y-2"
             >
-              {/* Overlay, Imagem e Conteúdo (mantido igual ao original) */}
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
               
               {mainImage(product) ? (
@@ -186,8 +186,14 @@ export default function HomePage() {
                   <img
                     src={mainImage(product) as string}
                     alt={product.name}
-                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className={`h-full w-full object-cover group-hover:scale-110 transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
                   />
+                  {/* Etiqueta de Esgotado sobre a imagem */}
+                  {isOutOfStock && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                          <span className="bg-neutral-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">ESGOTADO</span>
+                      </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
               ) : (
@@ -201,22 +207,32 @@ export default function HomePage() {
                   {product.name}
                 </h2>
 
-                <p className="mt-3 text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
-                  {formatBRL(product.price)}
-                </p>
+                <div className="flex items-center justify-between mt-3">
+                    <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
+                    {formatBRL(product.price)}
+                    </p>
+                    
+                    {/* 4. Exibição do Alerta */}
+                    {isLowStock && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600 border border-amber-200 animate-pulse">
+                            <AlertTriangle size={10} />
+                            Restam {product.stock}
+                        </span>
+                    )}
+                </div>
 
                 <button
                   onClick={() => addToCartAndGo(product)}
-                  className="mt-6 w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-3 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95"
+                  disabled={isOutOfStock}
+                  className="mt-6 w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-3 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                 >
-                  Comprar
+                  {isOutOfStock ? "Indisponível" : "Comprar"}
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
         
-        {/* Botão para ver todos os produtos */}
         <div className="mt-12 text-center">
             <button 
                 onClick={() => router.push('/products')}

@@ -42,7 +42,12 @@ export type OrderDetail = OrderSummary & {
   customerEmail?: string;
   deliveryDate?: string | null;
   items: OrderItem[];
+  total: number;
+  paymentMethod: string;
   notes?: string | null;
+  customerPhone?: string;
+  user?: { name: string; phone: string };
+  customer?: { name: string; phone: string };
 };
 
 type PageResponse<T> = {
@@ -52,28 +57,33 @@ type PageResponse<T> = {
   number: number; 
 };
 
-export function useMyOrders(page = 0) {
-  return useQuery<PageResponse<OrderSummary>>({
-    queryKey: ["my-orders", page],
+export function useOrderDetail(orderId: string | null) {
+  return useQuery({
+    queryKey: ["order", orderId],
     queryFn: async () => {
-      const response = await api.get("/orders/my", { 
-        params: {
-          page,
-          size: 10,
-        },
-      });
+      if (!orderId) return null;
       
-      return response.data;
+      try {
+        const { data } = await api.get<OrderDetail>(`/public/orders/${orderId}`);
+        return data;
+      } catch (error) {
+        const { data } = await api.get<OrderDetail>(`/orders/${orderId}`);
+        return data;
+      }
     },
+    enabled: !!orderId,
+    retry: 1,
   });
 }
-export function useOrderDetail(orderId: string | number | null) {
-  return useQuery<OrderDetail>({
-    queryKey: ["order-detail", orderId],
-    enabled: !!orderId,
+
+
+export function useMyOrders(page: number = 0) {
+  return useQuery({
+    queryKey: ["my-orders", page], 
     queryFn: async () => {
-      const res = await api.get<OrderDetail>(`/orders/${orderId}`);
-      return res.data;
+      const { data } = await api.get<PageResponse<OrderSummary>>(`/orders/my?page=${page}&size=10`);
+      return data;
     },
+    retry: false,
   });
 }

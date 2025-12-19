@@ -9,13 +9,73 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  ShoppingBag,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowLeft,
+  Loader2,
+  Palette,
+  Type,
+  Scissors,
+  Shapes,
+  PaintBucket,
+  Baby
+} from "lucide-react";
+
+const COLORS = [
+  "Branco",
+  "Creme",
+  "Rosa Bebê",
+  "Azul Bebê",
+  "Verde Água",
+  "Lilás",
+  "Cinza",
+  "Outra (Definir no Whats)"
+];
+
+const THREAD_COLORS = [
+  "Dourado",
+  "Prateado",
+  "Rosa",
+  "Azul Marinho",
+  "Azul Claro",
+  "Preto",
+  "Branco",
+  "Cinza",
+  "Marrom",
+  "Bege",
+  "Outra (Definir no Whats)"
+];
+
+const GENDER_OPTIONS = [
+  "Menina",
+  "Menino",
+  "Unissex / Neutro"
+];
+
+const EMBROIDERY_TYPES = [
+  { value: "nome", label: "Somente Nome" },
+  { value: "nome_desenho", label: "Nome + Desenho" },
+  { value: "desenho", label: "Somente Desenho" },
+  { value: "sem_bordado", label: "Sem Bordado" }
+];
+
+interface CartItemWithCustomization extends CartItem {
+  selectedColor?: string;
+  embroideryType?: string;
+  customText?: string;
+  embroideryColor?: string;
+  designDescription?: string;
+  gender?: string;
+}
 
 export default function CartPage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
 
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItemWithCustomization[]>([]);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -23,10 +83,33 @@ export default function CartPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    setItems(getCart());
+    const loadedItems = getCart().map((i) => ({
+      ...i,
+      selectedColor: "Branco",
+      embroideryType: "nome",
+      customText: "",
+      embroideryColor: "Dourado",
+      designDescription: "",
+      gender: "Unissex / Neutro"
+    }));
+    setItems(loadedItems);
     setSession(getAuthSession());
 
-    const onUpdate = () => setItems(getCart());
+    const onUpdate = () => {
+        const newCart = getCart();
+        setItems(prev => newCart.map(newItem => {
+            const existing = prev.find(p => p.productId === newItem.productId);
+            return existing ? { ...newItem, ...existing } : { 
+                ...newItem, 
+                selectedColor: "Branco",
+                embroideryType: "nome",
+                customText: "",
+                embroideryColor: "Dourado",
+                designDescription: "",
+                gender: "Unissex / Neutro"
+            };
+        }));
+    };
     window.addEventListener("cart:updated", onUpdate);
     return () => window.removeEventListener("cart:updated", onUpdate);
   }, []);
@@ -51,26 +134,58 @@ export default function CartPage() {
     [items]
   );
 
-  function updateCart(newItems: CartItem[]) {
+  function updateCart(newItems: CartItemWithCustomization[]) {
     setItems(newItems);
-    saveCart(newItems);
+    saveCart(newItems.map(({ selectedColor, embroideryType, customText, embroideryColor, designDescription, gender, ...rest }) => rest));
   }
 
-  // --- MUTAÇÃO CORRIGIDA ---
+  function handleCustomize(productId: number, field: keyof CartItemWithCustomization, value: string) {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.productId === productId ? { ...item, [field]: value } : item
+      )
+    );
+  }
+
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      // CORREÇÃO AQUI: Removemos o .user, pois name/email estão direto na session
+      let customizationReport = "";
+      
+      items.forEach((item) => {
+        if (item.embroideryType !== "sem_bordado") {
+            customizationReport += `\n[${item.name.toUpperCase()}]\n`;
+            customizationReport += `- Para: ${item.gender}\n`;
+            customizationReport += `- Cor da Peça: ${item.selectedColor}\n`;
+            
+            const typeLabel = EMBROIDERY_TYPES.find(t => t.value === item.embroideryType)?.label;
+            customizationReport += `- Tipo: ${typeLabel}\n`;
+            
+            if (item.embroideryType === "nome" || item.embroideryType === "nome_desenho") {
+                customizationReport += `- Nome: "${item.customText || '(Não informado)'}"\n`;
+                customizationReport += `- Cor do Nome: ${item.embroideryColor}\n`;
+            }
+
+            if (item.embroideryType === "desenho" || item.embroideryType === "nome_desenho") {
+                customizationReport += `- Desenho: "${item.designDescription || '(Não informado)'}"\n`;
+            }
+            
+            customizationReport += "----------------\n";
+        }
+      });
+
+      const finalNotes = `${notes}\n\n=== DETALHES DE PERSONALIZAÇÃO ===${customizationReport}`;
+
       const payload = {
         customer: {
-            name: session?.name || "Cliente", // <--- CORRIGIDO
-            email: session?.email,            // <--- CORRIGIDO
+            name: session?.name || "Cliente",
+            email: session?.email,
             phone: phone 
         },
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,
         })),
-        notes: notes,
+        notes: finalNotes,
         paymentMethod: paymentMethod.toUpperCase(),
       };
 
@@ -85,13 +200,7 @@ export default function CartPage() {
     onError: (error: any) => {
       console.error("Erro no checkout:", error);
       const serverMsg = error.response?.data?.message;
-      const validationMsg = error.response?.data?.validationErrors 
-          ? Object.values(error.response.data.validationErrors).join(", ") 
-          : null;
-
-      setFormError(
-        validationMsg || serverMsg || "Ocorreu um erro ao processar o pedido. Verifique os dados."
-      );
+      setFormError(serverMsg || "Ocorreu um erro ao processar o pedido.");
     },
   });
 
@@ -108,9 +217,26 @@ export default function CartPage() {
       return;
     }
 
+    const missingName = items.find(
+        i => (i.embroideryType === 'nome' || i.embroideryType === 'nome_desenho') && !i.customText?.trim()
+    );
+
+    if (missingName) {
+        setFormError(`Por favor, informe o nome para bordar no item: ${missingName.name}`);
+        return;
+    }
+
+    const missingDesign = items.find(
+        i => (i.embroideryType === 'desenho' || i.embroideryType === 'nome_desenho') && !i.designDescription?.trim()
+    );
+
+    if (missingDesign) {
+        setFormError(`Por favor, descreva qual desenho você quer no item: ${missingDesign.name}`);
+        return;
+    }
+
     checkoutMutation.mutate();
   }
-  // -------------------------------
 
   function handleChangeQuantity(productId: number, delta: number) {
     updateCart(
@@ -129,7 +255,6 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50">
       <div className="mx-auto max-w-6xl px-4 py-12">
-        {/* HEADER */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <button
@@ -166,12 +291,9 @@ export default function CartPage() {
               <p className="text-lg font-semibold text-neutral-700 mb-2">
                 Sua sacola está vazia
               </p>
-              <p className="text-sm text-neutral-500 mb-8">
-                Adicione produtos para começar suas compras
-              </p>
               <Button 
                 onClick={() => router.push("/")}
-                className="rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white px-8 py-6 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40"
+                className="rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white px-8 py-6 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30"
               >
                 Ver produtos
               </Button>
@@ -179,88 +301,166 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* ITENS */}
             <div className="lg:col-span-2 space-y-5">
               {items.map((item) => {
                 const image = resolveImage(item);
+                const showNameInput = item.embroideryType === "nome" || item.embroideryType === "nome_desenho";
+                const showDesignInput = item.embroideryType === "desenho" || item.embroideryType === "nome_desenho";
 
                 return (
                   <div
                     key={item.productId}
-                    className="group relative flex gap-5 rounded-3xl border-2 border-transparent bg-white p-6 shadow-lg hover:shadow-xl hover:border-rose-200 transition-all duration-300"
+                    className="group relative flex flex-col md:flex-row gap-5 rounded-3xl border-2 border-transparent bg-white p-6 shadow-lg hover:shadow-xl hover:border-rose-200 transition-all duration-300"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none rounded-3xl"></div>
-                    
-                    <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 flex-shrink-0 shadow-md">
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={item.name}
-                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-slate-400 font-medium">
-                          Sem imagem
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 flex flex-col justify-between relative z-10">
-                      <div>
-                        <p className="text-base font-bold text-neutral-800 group-hover:text-rose-600 transition-colors">
-                          {item.name}
-                        </p>
-                        <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 mt-1">
-                          {item.price.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 flex items-center gap-4">
-                        <div className="flex items-center gap-3 rounded-full border-2 border-rose-200 bg-white px-4 py-2 text-sm font-bold shadow-sm">
-                          <button 
-                            onClick={() => handleChangeQuantity(item.productId, -1)}
-                            className="text-rose-500 hover:text-rose-700 transition-colors hover:scale-110 active:scale-95"
-                          >
-                            <Minus size={16} />
-                          </button>
-                          <span className="min-w-[20px] text-center text-neutral-800">
-                            {item.quantity}
-                          </span>
-                          <button 
-                            onClick={() => handleChangeQuantity(item.productId, 1)}
-                            className="text-rose-500 hover:text-rose-700 transition-colors hover:scale-110 active:scale-95"
-                          >
-                            <Plus size={16} />
-                          </button>
+                    <div className="flex gap-4">
+                        <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 flex-shrink-0 shadow-md">
+                        {image ? (
+                            <img
+                            src={image}
+                            alt={item.name}
+                            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-slate-400 font-medium">
+                            Sem imagem
+                            </div>
+                        )}
                         </div>
 
-                        <button
-                          onClick={() => handleRemove(item.productId)}
-                          className="inline-flex items-center gap-2 text-sm font-semibold text-rose-500 hover:text-rose-700 transition-colors group/btn"
-                        >
-                          <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
-                          Remover
-                        </button>
-                      </div>
+                        <div className="flex flex-col justify-between">
+                            <div>
+                                <p className="text-base font-bold text-neutral-800 group-hover:text-rose-600 transition-colors">
+                                {item.name}
+                                </p>
+                                <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 mt-1">
+                                {item.price.toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                })}
+                                </p>
+                            </div>
+
+                            <div className="mt-2 flex items-center gap-3 rounded-full border-2 border-rose-200 bg-white px-3 py-1.5 text-sm font-bold shadow-sm w-fit">
+                                <button 
+                                    onClick={() => handleChangeQuantity(item.productId, -1)}
+                                    className="text-rose-500 hover:text-rose-700"
+                                >
+                                    <Minus size={14} />
+                                </button>
+                                <span className="min-w-[20px] text-center text-neutral-800">
+                                    {item.quantity}
+                                </span >
+                                <button 
+                                    onClick={() => handleChangeQuantity(item.productId, 1)}
+                                    className="text-rose-500 hover:text-rose-700"
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="text-right relative z-10">
-                      <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
-                        {(item.price * (item.quantity ?? 1)).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </p>
+                    <div className="flex-1 border-t md:border-t-0 md:border-l border-rose-100 pt-4 md:pt-0 md:pl-5 space-y-3">
+                        <h4 className="text-xs font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1">
+                            <Scissors size={12} /> Personalização
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="sm:col-span-1">
+                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                                    <Baby size={10} /> Para quem é?
+                                </label>
+                                <select 
+                                    value={item.gender}
+                                    onChange={(e) => handleCustomize(item.productId, "gender", e.target.value)}
+                                    className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
+                                >
+                                    {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="sm:col-span-1">
+                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                                    <Palette size={10} /> Cor da Peça
+                                </label>
+                                <select 
+                                    value={item.selectedColor}
+                                    onChange={(e) => handleCustomize(item.productId, "selectedColor", e.target.value)}
+                                    className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
+                                >
+                                    {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="sm:col-span-1">
+                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                                    <Type size={10} /> Tipo de Bordado
+                                </label>
+                                <select 
+                                    value={item.embroideryType}
+                                    onChange={(e) => handleCustomize(item.productId, "embroideryType", e.target.value)}
+                                    className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
+                                >
+                                    {EMBROIDERY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {showNameInput && (
+                            <div className="animate-in fade-in slide-in-from-top-2 grid grid-cols-3 gap-2">
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">
+                                        Nome para bordar:
+                                    </label>
+                                    <Input 
+                                        placeholder="Ex: Maria Eduarda"
+                                        value={item.customText}
+                                        onChange={(e) => handleCustomize(item.productId, "customText", e.target.value)}
+                                        className="h-8 text-xs border-rose-200 focus:border-rose-400"
+                                    />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1">
+                                        <PaintBucket size={10} /> Cor do Nome
+                                    </label>
+                                    <select 
+                                        value={item.embroideryColor}
+                                        onChange={(e) => handleCustomize(item.productId, "embroideryColor", e.target.value)}
+                                        className="w-full h-8 rounded-lg border border-rose-200 text-[10px] px-1 focus:border-rose-400 outline-none bg-slate-50"
+                                    >
+                                        {THREAD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
+                        {showDesignInput && (
+                            <div className="animate-in fade-in slide-in-from-top-2">
+                                <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1">
+                                    <Shapes size={10} /> Qual desenho você quer?
+                                </label>
+                                <Input 
+                                    placeholder="Ex: Ursinho príncipe, Flor, Leão..."
+                                    value={item.designDescription}
+                                    onChange={(e) => handleCustomize(item.productId, "designDescription", e.target.value)}
+                                    className="h-8 text-xs border-rose-200 focus:border-rose-400"
+                                />
+                            </div>
+                        )}
                     </div>
+
+                    <button
+                        onClick={() => handleRemove(item.productId)}
+                        className="absolute top-4 right-4 text-rose-300 hover:text-rose-500 transition-colors"
+                        title="Remover item"
+                    >
+                        <Trash2 size={18} />
+                    </button>
                   </div>
                 );
               })}
             </div>
 
-            {/* RESUMO */}
             <div className="lg:sticky lg:top-8 h-fit">
               <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-8 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl"></div>
@@ -280,63 +480,38 @@ export default function CartPage() {
 
                     <Textarea
                       rows={3}
-                      placeholder="Observações (opcional)"
+                      placeholder="Observações adicionais (opcional)"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="rounded-2xl border-2 border-rose-200 px-5 py-4 bg-white/80 backdrop-blur-sm shadow-sm hover:border-rose-300 transition-colors font-medium resize-none"
                     />
                   </div>
-                  {/* FORMAS DE PAGAMENTO */}
+
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-neutral-700">
                     Forma de pagamento
                   </p>
-
-                  <label className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="pix"
-                      checked={paymentMethod === "pix"}
-                      onChange={() => setPaymentMethod("pix")}
-                      className="accent-rose-500"
-                    />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Pix
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      checked={paymentMethod === "card"}
-                      onChange={() => setPaymentMethod("card")}
-                      className="accent-rose-500"
-                    />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Cartão na entrega
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
-                      onChange={() => setPaymentMethod("cash")}
-                      className="accent-rose-500"
-                    />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Dinheiro
-                    </span>
-                  </label>
+                  
+                  {['pix', 'card', 'cash'].map((method) => (
+                     <label key={method} className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
+                        <input
+                        type="radio"
+                        name="payment"
+                        value={method}
+                        checked={paymentMethod === method}
+                        onChange={() => setPaymentMethod(method)}
+                        className="accent-rose-500"
+                        />
+                        <span className="text-sm font-medium text-neutral-800">
+                        {method === 'pix' ? 'Pix' : method === 'card' ? 'Cartão na entrega' : 'Dinheiro'}
+                        </span>
+                    </label>
+                  ))}
                 </div>
 
                 {formError && (
-                    <div className="p-3 bg-rose-100 text-rose-700 text-sm font-bold rounded-xl border border-rose-200">
+                    <div className="p-3 bg-rose-100 text-rose-700 text-sm font-bold rounded-xl border border-rose-200 flex items-start gap-2">
+                        <span className="mt-0.5 text-xs">⚠️</span>
                         {formError}
                     </div>
                 )}
@@ -359,14 +534,10 @@ export default function CartPage() {
                     {checkoutMutation.isPending ? (
                         <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Processando...
+                            Enviando pedido...
                         </>
                     ) : "Finalizar pedido"}
                   </Button>
-
-                  <p className="text-xs text-center text-neutral-500 mt-4">
-                    Ao finalizar, você será redirecionado para o WhatsApp
-                  </p>
                 </div>
               </div>
             </div>

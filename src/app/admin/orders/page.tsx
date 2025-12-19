@@ -33,7 +33,7 @@ type Order = {
   customerName?: string;
   status: OrderStatus;
   totalAmount: number;
-  orderDate: string; // ISO
+  orderDate: string;
   expectedDeliveryDate?: string;
 };
 
@@ -75,30 +75,27 @@ export default function AdminOrdersPage() {
     });
   }, [data, search, statusFilter]);
 
-// Atualizar status
-const updateStatusMutation = useMutation({
-  mutationFn: async (payload: { id: number; status: OrderStatus }) => {
-    // backend: PATCH /api/orders/{id}/status?status=IN_PRODUCTION
-    await api.patch(`/orders/${payload.id}/status`, null, {
-      params: { status: payload.status },
-    });
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
-  },
-});
-
+  // Atualizar status
+  const updateStatusMutation = useMutation({
+    mutationFn: async (payload: { id: number; status: OrderStatus }) => {
+      await api.patch(`/orders/${payload.id}/status`, null, {
+        params: { status: payload.status },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+    },
+  });
 
   // Cancelar pedido
-const cancelOrderMutation = useMutation({
-  mutationFn: async (id: number) => {
-    // backend: DELETE /api/orders/{id}
-    await api.delete(`/orders/${id}`);
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
-  },
-});
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/orders/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+    },
+  });
 
   function handleChangeStatus(order: Order, newStatus: OrderStatus) {
     if (order.status === "CANCELLED") return;
@@ -124,7 +121,6 @@ const cancelOrderMutation = useMutation({
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Cabeçalho */}
         <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-2xl"></div>
           
@@ -150,7 +146,6 @@ const cancelOrderMutation = useMutation({
         {/* Filtros */}
         <section className="rounded-[2rem] bg-white/80 backdrop-blur-sm p-6 shadow-lg border-2 border-rose-200">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            {/* Busca */}
             <div className="flex-1">
               <Label htmlFor="search" className="text-xs font-bold text-slate-700 mb-2 block">
                 Buscar pedido
@@ -167,7 +162,6 @@ const cancelOrderMutation = useMutation({
               </div>
             </div>
 
-            {/* Filtros de status */}
             <div className="lg:w-auto">
               <div className="flex items-center gap-2 mb-2">
                 <Filter className="h-4 w-4 text-rose-500" />
@@ -176,36 +170,12 @@ const cancelOrderMutation = useMutation({
                 </Label>
               </div>
               <div className="flex flex-wrap gap-2">
-                <StatusFilterButton
-                  label="Todos"
-                  active={statusFilter === "ALL"}
-                  onClick={() => setStatusFilter("ALL")}
-                />
-                <StatusFilterButton
-                  label="Pendentes"
-                  active={statusFilter === "PENDING"}
-                  onClick={() => setStatusFilter("PENDING")}
-                />
-                <StatusFilterButton
-                  label="Produção"
-                  active={statusFilter === "IN_PRODUCTION"}
-                  onClick={() => setStatusFilter("IN_PRODUCTION")}
-                />
-                <StatusFilterButton
-                  label="Enviados"
-                  active={statusFilter === "SHIPPED"}
-                  onClick={() => setStatusFilter("SHIPPED")}
-                />
-                <StatusFilterButton
-                  label="Entregues"
-                  active={statusFilter === "DELIVERED"}
-                  onClick={() => setStatusFilter("DELIVERED")}
-                />
-                <StatusFilterButton
-                  label="Cancelados"
-                  active={statusFilter === "CANCELLED"}
-                  onClick={() => setStatusFilter("CANCELLED")}
-                />
+                <StatusFilterButton label="Todos" active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} />
+                <StatusFilterButton label="Pendentes" active={statusFilter === "PENDING"} onClick={() => setStatusFilter("PENDING")} />
+                <StatusFilterButton label="Produção" active={statusFilter === "IN_PRODUCTION"} onClick={() => setStatusFilter("IN_PRODUCTION")} />
+                <StatusFilterButton label="Enviados" active={statusFilter === "SHIPPED"} onClick={() => setStatusFilter("SHIPPED")} />
+                <StatusFilterButton label="Entregues" active={statusFilter === "DELIVERED"} onClick={() => setStatusFilter("DELIVERED")} />
+                <StatusFilterButton label="Cancelados" active={statusFilter === "CANCELLED"} onClick={() => setStatusFilter("CANCELLED")} />
               </div>
             </div>
           </div>
@@ -216,10 +186,7 @@ const cancelOrderMutation = useMutation({
           {isLoading && (
             <div className="space-y-4">
               {[...Array(6)].map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className="h-32 rounded-3xl bg-rose-100"
-                />
+                <Skeleton key={i} className="h-32 rounded-3xl bg-rose-100" />
               ))}
             </div>
           )}
@@ -229,12 +196,8 @@ const cancelOrderMutation = useMutation({
               <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
                 <ShoppingBag className="h-10 w-10 text-rose-400" />
               </div>
-              <p className="text-base font-semibold text-neutral-700 mb-2">
-                Nenhum pedido encontrado
-              </p>
-              <p className="text-sm text-neutral-500">
-                Ajuste os filtros ou faça uma nova busca
-              </p>
+              <p className="text-base font-semibold text-neutral-700 mb-2">Nenhum pedido encontrado</p>
+              <p className="text-sm text-neutral-500">Ajuste os filtros ou faça uma nova busca</p>
             </div>
           )}
 
@@ -302,7 +265,7 @@ const cancelOrderMutation = useMutation({
                         variant="outline"
                         size="sm"
                         className="h-9 rounded-xl border-2 border-slate-200 text-xs font-bold hover:bg-slate-50 hover:border-slate-300 transition-all"
-                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/orders/${order.id}/pdf`, "_blank")}
+                        onClick={() => window.open(`/admin/orders/${order.id}/print`, "_blank")}
                       >
                         <FileText className="mr-1.5 h-3.5 w-3.5" />
                         Ver PDF
@@ -326,16 +289,7 @@ const cancelOrderMutation = useMutation({
     </div>
   );
 }
-
-function StatusFilterButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function StatusFilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -353,27 +307,16 @@ function StatusFilterButton({
 }
 
 function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const map: Record<
-    OrderStatus,
-    { label: string; className: string }
-  > = {
+  const map: Record<OrderStatus, { label: string; className: string }> = {
     PENDING: { label: "Pendente", className: "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border-amber-200" },
-    IN_PRODUCTION: {
-      label: "Em produção",
-      className: "bg-gradient-to-r from-sky-100 to-blue-100 text-sky-700 border-sky-200",
-    },
+    IN_PRODUCTION: { label: "Em produção", className: "bg-gradient-to-r from-sky-100 to-blue-100 text-sky-700 border-sky-200" },
     SHIPPED: { label: "Enviado", className: "bg-gradient-to-r from-violet-100 to-purple-100 text-violet-700 border-violet-200" },
     DELIVERED: { label: "Entregue", className: "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border-emerald-200" },
     CANCELLED: { label: "Cancelado", className: "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-600 border-slate-200" },
   };
 
   const cfg = map[status];
-
-  return (
-    <Badge className={cn("border-2 px-4 py-1.5 text-xs font-bold shadow-sm", cfg.className)}>
-      {cfg.label}
-    </Badge>
-  );
+  return <Badge className={cn("border-2 px-4 py-1.5 text-xs font-bold shadow-sm", cfg.className)}>{cfg.label}</Badge>;
 }
 
 function StatusActionButtons({
@@ -388,7 +331,6 @@ function StatusActionButtons({
   loading: boolean;
 }) {
   const disabled = loading || order.status === "CANCELLED";
-
   return (
     <>
       {order.status === "PENDING" && (

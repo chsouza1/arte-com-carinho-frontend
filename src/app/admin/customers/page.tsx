@@ -1,146 +1,94 @@
-// src/app/admin/customers/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, applyAuthFromStorage } from "@/lib/api";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import type { OrderSummary } from "@/lib/orders";
-import { Calendar, Users, Search, ShoppingBag, DollarSign, Clock, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  Search, 
+  Users, 
+  Mail, 
+  Phone, 
+  Shield, 
+  User as UserIcon,
+  MessageCircle,
+  ShoppingBag
+} from "lucide-react";
 
-type CustomerSummary = {
+type User = {
   id: number;
   name: string;
   email: string;
-  phone?: string | null;
-  createdAt?: string | null;
+  phone?: string;
+  role: "ADMIN" | "CUSTOMER" | "USER";
+  active: boolean;
+  createdAt?: string;
 };
 
-type CustomerKpi = {
-  customerId: number;
-  ordersCount: number;
-  totalRevenue: number;
-  lastOrderDate?: string | null;
+// Mapeamento de Tradução
+const ROLE_MAP = {
+  ADMIN: "Administrador",
+  CUSTOMER: "Cliente",
+  USER: "Usuário"
 };
 
-type CustomerWithKpi = CustomerSummary & { kpi?: CustomerKpi };
-
-type PageResponse<T> = {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-};
-
-async function fetchCustomers(): Promise<CustomerSummary[]> {
-  const res = await api.get<CustomerSummary[]>("/customers/admin");
-  return res.data;
-}
-
-async function fetchCustomerKpis(): Promise<CustomerKpi[]> {
-  const res = await api.get<CustomerKpi[]>("/customers/admin/kpis");
-  return res.data;
-}
-
-async function fetchOrdersByCustomer(customerId: number): Promise<OrderSummary[]> {
-  const res = await api.get<PageResponse<OrderSummary>>(
-    `/orders/customer/${customerId}`,
-    { params: { size: 50, sort: "orderDate,desc" } }
-  );
-
-  return (res.data as any).content ?? (res.data as any);
+async function fetchUsers(): Promise<User[]> {
+  try {
+    const res = await api.get("/users", {
+      params: { size: 100, sort: "id,desc" }
+    });
+    return res.data.content ?? res.data ?? [];
+  } catch (error) {
+    console.error("Erro ao buscar clientes:", error);
+    return [];
+  }
 }
 
 export default function AdminCustomersPage() {
   const [search, setSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] =
-    useState<CustomerWithKpi | null>(null);
 
   useEffect(() => {
     applyAuthFromStorage();
   }, []);
 
-  const {
-    data: customers,
-    isLoading: loadingCustomers,
-    isError,
-  } = useQuery({
-    queryKey: ["admin", "customers"],
-    queryFn: fetchCustomers,
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: fetchUsers,
   });
 
-  const { data: kpis } = useQuery({
-    queryKey: ["admin", "customers-kpis"],
-    queryFn: fetchCustomerKpis,
-  });
-
-  const {
-    data: customerOrders,
-    isLoading: loadingOrders,
-  } = useQuery({
-    queryKey: ["admin", "customer-orders", selectedCustomer?.id],
-    queryFn: () =>
-      selectedCustomer ? fetchOrdersByCustomer(selectedCustomer.id) : [],
-    enabled: !!selectedCustomer,
-  });
-
-  const customersWithKpis = useMemo<CustomerWithKpi[]>(() => {
-    const list = customers ?? [];
-    const map = new Map<number, CustomerKpi>();
-    (kpis ?? []).forEach((k) => map.set(k.customerId, k));
-
-    return list.map((c) => ({
-      ...c,
-      kpi: map.get(c.id),
-    }));
-  }, [customers, kpis]);
-
-  const filteredCustomers = useMemo<CustomerWithKpi[]>(() => {
-    const list = customersWithKpis;
-    if (!search.trim()) return list;
-
-    const term = search.toLowerCase();
-    return list.filter(
-      (c) =>
-        c.name.toLowerCase().includes(term) ||
-        (c.email ?? "").toLowerCase().includes(term) ||
-        (c.phone ?? "").toLowerCase().includes(term)
+  const filteredUsers = useMemo(() => {
+    const list = users ?? [];
+    if (!search) return list;
+    
+    const lowerSearch = search.toLowerCase();
+    return list.filter((u) => 
+      u.name.toLowerCase().includes(lowerSearch) || 
+      u.email.toLowerCase().includes(lowerSearch) ||
+      (u.phone && u.phone.includes(lowerSearch))
     );
-  }, [customersWithKpis, search]);
+  }, [users, search]);
 
-  function formatDate(iso?: string | null) {
-    if (!iso) return "-";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString("pt-BR");
-  }
-
-  if (isError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50">
-            <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500">
-              Clientes
-            </h1>
-            <p className="mt-3 text-sm font-semibold text-rose-600">
-              Ocorreu um erro ao carregar os clientes. Verifique se está logado como admin.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getWhatsAppLink = (phone?: string) => {
+    if (!phone) return null;
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) return null;
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    return `https://wa.me/${fullPhone}`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
       <div className="mx-auto max-w-7xl space-y-8">
+        
         {/* Cabeçalho */}
         <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
           
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
@@ -148,255 +96,119 @@ export default function AdminCustomersPage() {
                 <Users size={24} className="text-rose-600" />
               </div>
               <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30">
-                <Sparkles size={14} className="animate-pulse" />
-                {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente' : 'clientes'}
+                {filteredUsers.length} {filteredUsers.length === 1 ? 'registro' : 'registros'}
               </span>
             </div>
             
             <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Base de Clientes
+              Base de Usuários
             </h1>
             <p className="mt-3 text-base text-neutral-600 font-medium">
-              Visualize a base de clientes e acompanhe os pedidos de cada um.
+              Gerencie os administradores, clientes e usuários do sistema.
             </p>
           </div>
         </section>
 
-        {/* Layout: esquerda = clientes, direita = pedidos */}
-        <section className="grid gap-8 lg:grid-cols-2">
-          {/* Lista de clientes */}
-          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
-              <CardTitle className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-white p-2.5 shadow-md">
-                    <Users className="h-5 w-5 text-rose-600" />
-                  </div>
-                  <span className="text-base font-bold text-slate-800">
-                    Lista de Clientes
-                  </span>
-                </div>
-
-                <div className="relative flex items-center">
-                  <Search className="absolute left-4 h-5 w-5 text-rose-400" />
-                  <Input
-                    placeholder="Buscar por nome, e-mail ou telefone..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="h-12 pl-12 rounded-2xl border-2 border-rose-200 text-sm font-medium focus:border-rose-400 transition-colors"
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="p-6 max-h-[calc(100vh-24rem)] overflow-y-auto">
-              {loadingCustomers && (
-                <div className="space-y-3">
-                  {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-32 rounded-2xl bg-rose-100" />
-                  ))}
-                </div>
-              )}
-
-              {!loadingCustomers && filteredCustomers.length === 0 && (
-                <div className="text-center py-12">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
-                    <Users className="h-8 w-8 text-rose-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-600">
-                    Nenhum cliente encontrado
-                  </p>
-                </div>
-              )}
-
-              {!loadingCustomers &&
-                filteredCustomers.map((customer) => {
-                  const isSelected = selectedCustomer?.id === customer.id;
-
-                  return (
-                    <button
-                      key={customer.id}
-                      type="button"
-                      onClick={() => setSelectedCustomer(customer)}
-                      className={cn(
-                        "w-full rounded-2xl border-2 p-5 text-left transition-all duration-300 mb-3",
-                        isSelected
-                          ? "border-rose-400 bg-gradient-to-br from-rose-50 to-pink-50 shadow-lg scale-[1.02]"
-                          : "border-rose-100 bg-white hover:bg-rose-50/50 hover:border-rose-200 hover:shadow-md"
-                      )}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-black text-base text-slate-900 truncate">
-                              {customer.name}
-                            </h3>
-                            <p className="text-xs text-slate-600 font-medium truncate mt-1">
-                              {customer.email}
-                            </p>
-                            {customer.phone && (
-                              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                                {customer.phone}
-                              </p>
-                            )}
-                          </div>
-                          <span
-                            className={cn(
-                              "inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-bold transition-all",
-                              isSelected
-                                ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
-                                : "bg-slate-100 text-slate-700"
-                            )}
-                          >
-                            Ver
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-sky-50 px-3 py-2 border border-blue-200">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <ShoppingBag className="h-3 w-3 text-blue-600" />
-                              <span className="text-[10px] font-bold text-blue-700">Pedidos</span>
-                            </div>
-                            <p className="text-sm font-black text-blue-800">
-                              {customer.kpi?.ordersCount ?? 0}
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 px-3 py-2 border border-emerald-200">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <DollarSign className="h-3 w-3 text-emerald-600" />
-                              <span className="text-[10px] font-bold text-emerald-700">Total</span>
-                            </div>
-                            <p className="text-xs font-black text-emerald-800 truncate">
-                              {(customer.kpi?.totalRevenue ?? 0).toLocaleString("pt-BR", {
-                                style: "currency",
-                                currency: "BRL",
-                              })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          {customer.kpi?.lastOrderDate && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 px-3 py-1 text-[10px] font-bold text-violet-700 border border-violet-200">
-                              <Clock className="h-3 w-3" />
-                              Último: {formatDate(customer.kpi.lastOrderDate)}
-                            </span>
-                          )}
-                          {customer.createdAt && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-rose-50 to-pink-50 px-3 py-1 text-[10px] font-bold text-rose-700 border border-rose-200">
-                              <Calendar className="h-3 w-3" />
-                              Desde {formatDate(customer.createdAt)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-            </CardContent>
-          </Card>
-
-          {/* Pedidos do cliente selecionado */}
-          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden lg:sticky lg:top-8 h-fit max-h-[calc(100vh-4rem)]">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 border-b-2 border-blue-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="rounded-xl bg-white p-2.5 shadow-md">
-                  <ShoppingBag className="h-5 w-5 text-blue-600" />
-                </div>
-                <CardTitle className="text-base font-bold text-slate-800">
-                  Pedidos do Cliente
-                </CardTitle>
-              </div>
-              <p className="text-xs font-semibold text-slate-600">
-                {selectedCustomer 
-                  ? `Histórico de pedidos de ${selectedCustomer.name}`
-                  : "Selecione um cliente para ver os pedidos"}
-              </p>
-            </CardHeader>
-
-            <CardContent className="p-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
-              {!selectedCustomer && (
-                <div className="text-center py-12">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 flex items-center justify-center mb-4">
-                    <ShoppingBag className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-600">
-                    Selecione um cliente
-                  </p>
-                  <p className="text-xs text-slate-500 mt-2">
-                    Clique em um cliente à esquerda para ver seus pedidos
-                  </p>
-                </div>
-              )}
-
-              {selectedCustomer && loadingOrders && (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-24 rounded-2xl bg-blue-100" />
-                  ))}
-                </div>
-              )}
-
-              {selectedCustomer &&
-                !loadingOrders &&
-                (!customerOrders || customerOrders.length === 0) && (
-                  <div className="text-center py-12">
-                    <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 flex items-center justify-center mb-4">
-                      <ShoppingBag className="h-8 w-8 text-slate-400" />
-                    </div>
-                    <p className="text-sm font-semibold text-slate-600">
-                      Nenhum pedido encontrado
-                    </p>
-                    <p className="text-xs text-slate-500 mt-2">
-                      {selectedCustomer.name} ainda não realizou pedidos
-                    </p>
-                  </div>
-                )}
-
-              {selectedCustomer &&
-                !loadingOrders &&
-                customerOrders &&
-                customerOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="group rounded-2xl border-2 border-blue-100 bg-gradient-to-br from-white to-blue-50/30 p-4 hover:shadow-lg hover:border-blue-200 transition-all duration-300 mb-3"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="space-y-2 flex-1">
-                        <div className="font-black text-sm text-slate-900 group-hover:text-blue-600 transition-colors">
-                          {order.orderNumber ?? order.code ?? `Pedido #${order.id}`}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3 w-3 text-slate-500" />
-                          <span className="text-xs text-slate-600 font-medium">
-                            {formatDate(
-                              (order as any).orderDate ??
-                              (order as any).createdDate ??
-                              (order as any).createdAt
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">
-                          {(order as any).totalAmount?.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                        </span>
-                        <span className="rounded-full bg-gradient-to-r from-slate-100 to-gray-100 px-3 py-1 text-xs font-bold text-slate-700 border border-slate-200">
-                          {(order as any).status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </CardContent>
-          </Card>
+        {/* Barra de Busca */}
+        <section className="rounded-[2rem] bg-white/80 backdrop-blur-sm p-6 shadow-lg border-2 border-rose-200">
+          <Label htmlFor="search" className="text-xs font-bold text-slate-700 mb-2 block">
+             Buscar Usuário
+          </Label>
+          <div className="relative flex items-center">
+            <Search className="absolute left-4 h-5 w-5 text-rose-400" />
+            <Input
+              id="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nome, email ou telefone..."
+              className="h-12 pl-12 rounded-2xl border-2 border-rose-200 text-sm font-medium focus:border-rose-400 transition-colors"
+            />
+          </div>
         </section>
+
+        {/* Lista de Clientes (Grid) */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            [...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-48 rounded-3xl bg-rose-100/50" />
+            ))
+          ) : filteredUsers.length === 0 ? (
+            <div className="col-span-full rounded-[2rem] bg-white/50 p-16 text-center border-2 border-dashed border-rose-200">
+              <Users className="mx-auto h-12 w-12 text-rose-300 mb-4" />
+              <p className="text-slate-600 font-bold">Nenhum usuário encontrado.</p>
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <Card 
+                key={user.id} 
+                className="group relative overflow-hidden rounded-3xl border-2 border-rose-100 bg-white/90 hover:border-rose-300 hover:shadow-xl transition-all duration-300"
+              >
+                <div className="absolute top-0 right-0 p-4">
+                    {/* Badge Traduzida */}
+                    <Badge variant="outline" className={
+                        user.role === 'ADMIN' 
+                        ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                        : user.role === 'CUSTOMER'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }>
+                        {user.role === 'ADMIN' ? <Shield size={10} className="mr-1"/> : 
+                         user.role === 'CUSTOMER' ? <ShoppingBag size={10} className="mr-1"/> :
+                         <UserIcon size={10} className="mr-1"/>}
+                        {ROLE_MAP[user.role] || user.role}
+                    </Badge>
+                </div>
+
+                <CardContent className="pt-8 pb-6 px-6">
+                    <div className="flex flex-col items-center text-center space-y-4">
+                        <Avatar className="h-20 w-20 border-4 border-rose-50 shadow-sm">
+                            <AvatarFallback className="bg-gradient-to-br from-rose-200 to-pink-200 text-rose-600 font-black text-xl">
+                                {user.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-800 group-hover:text-rose-600 transition-colors">
+                                {user.name}
+                            </h3>
+                            <div className="mt-3 space-y-2">
+                                <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 py-1.5 px-3 rounded-full">
+                                    <Mail size={12} />
+                                    <span className="truncate max-w-[200px]">{user.email}</span>
+                                </div>
+                                {user.phone ? (
+                                    <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 py-1.5 px-3 rounded-full">
+                                        <Phone size={12} />
+                                        <span>{user.phone}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-slate-400 italic">Sem telefone</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="w-full pt-4 border-t border-rose-50 mt-2">
+                            {user.phone ? (
+                                <Button 
+                                    className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-emerald-200 shadow-lg"
+                                    onClick={() => window.open(getWhatsAppLink(user.phone) || '#', '_blank')}
+                                >
+                                    <MessageCircle size={16} className="mr-2" />
+                                    WhatsApp
+                                </Button>
+                            ) : (
+                                <Button variant="outline" disabled className="w-full rounded-xl border-slate-200 text-slate-400">
+                                    Sem contato
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </section>
+
       </div>
     </div>
   );

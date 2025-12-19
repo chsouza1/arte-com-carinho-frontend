@@ -90,7 +90,7 @@ export function SiteFooter() {
                   Localização
                 </p>
                 <p className="text-xs text-slate-600">
-                  Videira, Santa Catarina
+                  Mandirituba, Paraná, Brasil
                 </p>
               </div>
 
