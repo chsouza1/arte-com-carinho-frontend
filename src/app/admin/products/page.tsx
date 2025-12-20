@@ -588,6 +588,7 @@ export default function AdminProductsPage() {
                     <option value="TOALHA_CAPUZ">Toalha com Capuz</option>
                     <option value="NANINHAS">Naninhas</option>
                     <option value="TOALHA_FRAUDA">Toalha Frauda</option>
+                    <option value="BODYS">Bodys</option>
                     <option value="CADERNETAS_VACINACAO">Cadernetas de Vacinação</option>
                     <option value="TOALHA_DE_BOCA">Toalha de Boca</option>
                     <option value="NECESSARIES">Necessaires</option>
