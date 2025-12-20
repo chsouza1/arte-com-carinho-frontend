@@ -24,7 +24,7 @@ export function ProductCard({ product }: { product: Product }) {
     : null;
 
   return (
-    <Link href={`/products#product-${product.id}`}>
+    <Link href={`/products/${product.id}`}>
       <Card className="group relative h-full cursor-pointer overflow-hidden rounded-3xl border-2 border-transparent bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-rose-200">
         {/* Gradient overlay on hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
