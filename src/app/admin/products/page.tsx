@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Package, Edit, Trash2, Plus, Eye, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { Package, Edit, Trash2, Plus, Eye, Sparkles, CheckCircle2, XCircle, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 
 type ProductCategory =
   | "ROUPAS" 
@@ -71,6 +71,9 @@ async function fetchProducts(): Promise<PageResponse<Product>> {
 export default function AdminProductsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductFormData>({
@@ -94,9 +97,70 @@ export default function AdminProductsPage() {
   const products = useMemo(() => data?.content ?? [], [data]);
 
   const imagesArray = form.imageUrls
-  .split("\n")
-  .map((s) => s.trim())
-  .filter((s) => s.length > 0);
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  // --- Função de Upload para o Cloudinary ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setErrorMsg(null);
+
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      setErrorMsg("Erro de configuração: Variáveis do Cloudinary não encontradas.");
+      setIsUploading(false);
+      return;
+    }
+
+    try {
+      const newUrls: string[] = [];
+
+      // Upload de cada arquivo selecionado
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", uploadPreset);
+
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!res.ok) throw new Error("Falha no upload da imagem");
+
+        const data = await res.json();
+        newUrls.push(data.secure_url);
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        imageUrls: prev.imageUrls 
+          ? `${prev.imageUrls}\n${newUrls.join("\n")}`
+          : newUrls.join("\n"),
+      }));
+
+    } catch (error) {
+      console.error("Erro no upload:", error);
+      setErrorMsg("Erro ao fazer upload da imagem. Tente novamente.");
+    } finally {
+      setIsUploading(false);
+      // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -199,8 +263,9 @@ export default function AdminProductsPage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 lg:grid-cols-[1.8fr,1.2fr]">
-          {/* Lista de produtos */}
+          {/* Lista de produtos - MANTIDA IGUAL */}
           <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
+             {/* ... (conteúdo da lista de produtos mantido igual ao anterior) ... */}
             <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -266,6 +331,17 @@ export default function AdminProductsPage() {
                     className="group relative rounded-2xl border-2 border-rose-100 bg-gradient-to-br from-white to-rose-50/30 p-5 hover:shadow-lg hover:border-rose-200 transition-all duration-300"
                   >
                     <div className="flex items-start justify-between gap-4">
+                      {/* Miniatura da Imagem (Nova funcionalidade visual) */}
+                      {product.images && product.images.length > 0 && (
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-rose-100 bg-white">
+                          <img 
+                            src={product.images[0]} 
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
+                      
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <p className="font-bold text-sm text-slate-800 group-hover:text-rose-600 transition-colors truncate">
@@ -363,6 +439,7 @@ export default function AdminProductsPage() {
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                {/* --- INPUTS DO FORMULÁRIO (Nome e Descrição) --- */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-xs font-bold text-slate-700">Nome do produto *</Label>
                   <Input
@@ -387,23 +464,65 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="imageUrls" className="text-xs font-bold text-slate-700">URLs das Imagens</Label>
+                {/* --- SESSÃO DE IMAGENS ATUALIZADA --- */}
+                <div className="space-y-3 rounded-2xl border-2 border-rose-100 bg-rose-50/50 p-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="imageUrls" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <ImageIcon className="h-3.5 w-3.5" />
+                      Imagens do produto
+                    </Label>
+                    
+                    {/* Botão de Upload Customizado */}
+                    <div className="relative">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <label 
+                        htmlFor="file-upload"
+                        className={cn(
+                          "flex items-center gap-2 cursor-pointer rounded-xl bg-white border-2 border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 shadow-sm hover:bg-rose-50 transition-all",
+                          isUploading && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {isUploading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5" />
+                        )}
+                        {isUploading ? "Enviando..." : "Fazer Upload"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Campo de URLs (Mantido para edição manual ou visualização) */}
                   <Textarea
                     id="imageUrls"
-                    placeholder="Cole aqui as URLs, uma por linha"
+                    placeholder="URLs aparecerão aqui após o upload..."
                     value={form.imageUrls}
                     onChange={(e) => handleFormChange("imageUrls", e.target.value)}
                     rows={4}
-                    className="rounded-xl border-2 border-rose-200 px-4 py-3 text-sm font-medium focus:border-rose-400 transition-colors resize-none"
+                    className="rounded-xl border-2 border-rose-200 px-4 py-3 text-xs font-medium focus:border-rose-400 transition-colors resize-none bg-white"
                   />
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    Ex.: https://meu-bucket/imagem1.jpg
-                    <br />
-                    Cada linha será uma imagem diferente.
-                  </p>
+                  
+                  {/* Preview das imagens (Visualização rápida) */}
+                  {imagesArray.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                      {imagesArray.map((url, idx) => (
+                        <div key={idx} className="relative h-16 w-16 shrink-0 rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm group">
+                          <img src={url} alt={`Preview ${idx}`} className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
+                
+                {/* --- RESTO DO FORMULÁRIO (Preço, Estoque, etc) --- */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="price" className="text-xs font-bold text-slate-700">Preço (R$) *</Label>
@@ -487,7 +606,7 @@ export default function AdminProductsPage() {
                   <Button
                     type="submit"
                     className="h-11 flex-1 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40"
-                    disabled={saveMutation.isPending}
+                    disabled={saveMutation.isPending || isUploading}
                   >
                     {saveMutation.isPending
                       ? "Salvando..."
