@@ -21,7 +21,24 @@ type ProductCategory =
   | "ROUPAS" 
   | "ENXOVAL_DE_BANHO" 
   | "ACESSORIOS" 
-  | "DECORACAO_DE_CASA" 
+  | "DECORACAO_DE_CASA"
+  | "ENXOVAL_DE_BANHO"
+  | "TOALHA_CAPUZ"
+  | "NANINHAS"
+  | "TOALHA_FRAUDA"
+  | "CADERNETAS_VACINACAO"
+  | "BODYS"
+  | "TOALHA_DE_BOCA"
+  | "NECESSARIES"
+  | "SAQUINHOS_TROCA"
+  | "MANTINHAS"
+  | "BATIZADO"
+  | "BOLSAS_MATERNIDADES"
+  | "TROCADORES"
+  | "PANO_COPA"
+  | "SAIDA_MATERNIDADE"
+  | "KITS"
+  | "ESTOJO_ESCOLAR"
   | "OUTROS"
   | string;
 
@@ -564,10 +581,26 @@ export default function AdminProductsPage() {
                       handleFormChange("category", e.target.value as ProductCategory)
                     }
                   >
-                    <option value="ROUPAS">Roupas / Bodies</option>
-                    <option value="ENXOVAL_DE_BANHO">Enxoval de Banho / Kits</option>
-                    <option value="ACESSORIOS">ACESSORIOS RN</option>
+                    <option value="ROUPAS">Roupas</option>
+                    <option value="ENXOVAL_DE_BANHO">Enxoval de Banho</option>
+                    <option value="ACESSORIOS">Acessorios</option>
                     <option value="DECORACAO_DE_CASA">Decoração de Casa</option>
+                    <option value="TOALHA_CAPUZ">Toalha com Capuz</option>
+                    <option value="NANINHAS">Naninhas</option>
+                    <option value="TOALHA_FRAUDA">Toalha Frauda</option>
+                    <option value="CADERNETAS_VACINACAO">Cadernetas de Vacinação</option>
+                    <option value="TOALHA_DE_BOCA">Toalha de Boca</option>
+                    <option value="NECESSARIES">Necessaires</option>
+                    <option value="SAQUINHOS_TROCA">Saquinhos de Troca</option>
+                    <option value="MANTINHAS">Mantinhas</option>
+                    <option value="BATIZADO">Toalha Batizado</option>
+                    <option value="BOLSAS_MATERNIDADES">Bolsas Maternidades</option>
+                    <option value="TROCADORES">Trocadores</option>
+                    <option value="PANO_COPA">Pano de Copa</option>
+                    <option value="SAIDA_MATERNIDADE">Saída Maternidade</option>
+                    <option value="KITS">Kits</option>
+                    <option value="ESTOJO_ESCOLAR">Estojo Escolar</option>
+                    <option value="OUTROS">Outros</option>
                   </select>
                 </div>
 

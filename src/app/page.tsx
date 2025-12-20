@@ -7,7 +7,6 @@ import { api } from "@/lib/api";
 import WhatsAppFloatingButton from "@/components/ui/WhatsAppFloatingButton";
 import { addToCart } from "@/lib/cart";
 
-// 1. Adicionamos o campo 'stock' aqui
 type Product = {
   id: number;
   name: string;
@@ -15,7 +14,7 @@ type Product = {
   category?: string;
   images?: string[];
   active?: boolean;
-  stock: number; // <--- NOVO
+  stock: number;
 };
 
 const mainImage = (product: Product) => {
@@ -61,7 +60,7 @@ export default function HomePage() {
           category: normalizeCategory(p.category),
           images: Array.isArray(p.images) ? p.images : [],
           active: p.active ?? true,
-          stock: Number(p.stock ?? 0), // <--- 2. Mapeamos o stock vindo do backend
+          stock: Number(p.stock ?? 0),
         }));
 
         setProducts(mapped.filter((p) => p.active !== false));
