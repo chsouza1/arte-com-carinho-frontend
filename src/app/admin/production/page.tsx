@@ -1,6 +1,7 @@
+// src/app/admin/production/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, applyAuthFromStorage } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -8,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Package, ChevronRight, ChevronLeft, FileText, Sparkles, Clock, CheckCircle } from "lucide-react";
+import { 
+  Package, ChevronRight, ChevronLeft, FileText, Sparkles, 
+  Clock, CheckCircle, Calendar, AlertTriangle 
+} from "lucide-react";
+import { useNotifications } from "@/components/ui/notifications"; 
 
 type ProductionStage = "BORDADO" | "COSTURA" | "ACABAMENTO" | "EMBALAGEM" | "CONCLUIDO";
 
@@ -25,6 +30,7 @@ type ProductionCard = {
   status: "PENDING" | "IN_PROGRESS" | "DONE";
   notes?: string | null;
   updatedAt?: string | null;
+  expectedDeliveryDate?: string | null;
   items: ProductionCardItem[];
 };
 
@@ -47,6 +53,7 @@ async function fetchBoard(): Promise<ProductionBoard> {
 
 export default function AdminProductionPage() {
   const qc = useQueryClient();
+  const { notify } = useNotifications();
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -64,7 +71,11 @@ export default function AdminProductionPage() {
       const res = await api.post(`/production/orders/${orderId}/next`);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "production-board"] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
+      notify(`Pedido ${data.orderNumber} avançou para a próxima etapa!`, "success");
+    },
+    onError: () => notify("Erro ao mover pedido. Tente novamente.", "error"),
   });
 
   const movePrev = useMutation({
@@ -72,7 +83,11 @@ export default function AdminProductionPage() {
       const res = await api.post(`/production/orders/${orderId}/prev`);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "production-board"] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
+      notify(`Pedido ${data.orderNumber} retornou uma etapa.`, "info");
+    },
+    onError: () => notify("Erro ao voltar etapa.", "error"),
   });
 
   const saveNotes = useMutation({
@@ -80,7 +95,11 @@ export default function AdminProductionPage() {
       const res = await api.patch(`/production/orders/${orderId}`, { notes });
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "production-board"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
+      notify("Observação salva com sucesso!", "success");
+    },
+    onError: () => notify("Falha ao salvar observação.", "error"),
   });
 
   const setStatus = useMutation({
@@ -88,35 +107,52 @@ export default function AdminProductionPage() {
       const res = await api.patch(`/production/orders/${orderId}`, { status });
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "production-board"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
+    },
   });
+
+  const getDeliveryInfo = (dateStr?: string | null) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    date.setHours(0,0,0,0);
+
+    const diffTime = date.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const isLate = diffDays < 0;
+    const isUrgent = diffDays >= 0 && diffDays <= 5; //urgencia
+
+    return {
+      formatted: date.toLocaleDateString("pt-BR"),
+      isUrgent,
+      isLate,
+      daysLeft: diffDays
+    };
+  };
 
   const board = data?.columns;
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50">
-            <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500">
-              Produção
-            </h1>
-            <p className="mt-3 text-sm font-semibold text-rose-600">
-              Erro ao carregar o quadro. Verifique se está logado como admin.
-            </p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-rose-600">Erro ao carregar quadro</h1>
+          <p className="text-slate-600">Verifique sua conexão ou se está logado como admin.</p>
+          <Button onClick={() => window.location.reload()} variant="outline">Tentar novamente</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-      <div className="mx-auto max-w-[1800px] space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-4 md:p-8">
+      <div className="mx-auto max-w-[1900px] space-y-8">
         {/* Header */}
-        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
+        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-6 md:p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-          
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
               <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-3 shadow-md">
@@ -127,37 +163,27 @@ export default function AdminProductionPage() {
                 Quadro Kanban
               </span>
             </div>
-            
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
+            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
               Produção
             </h1>
-            <p className="mt-3 text-base text-neutral-600 font-medium">
-              Acompanhe e mova pedidos entre etapas: bordado, costura, acabamento e embalagem.
+            <p className="mt-2 text-neutral-600 font-medium max-w-2xl">
+              Gerencie o fluxo de produção arrastando os pedidos ou usando os botões de navegação.
             </p>
           </div>
         </section>
 
         {isLoading && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {STAGES.map((s) => (
-              <Card key={s.key} className="rounded-3xl border-2 border-rose-200 bg-white/90 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold">{s.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Skeleton className="h-32 rounded-2xl bg-rose-100" />
-                  <Skeleton className="h-32 rounded-2xl bg-rose-100" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+             {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-96 rounded-3xl bg-rose-100/50" />)}
+           </div>
         )}
 
         {!isLoading && (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+          <div className="flex flex-col xl:flex-row gap-6 overflow-x-auto pb-8 min-h-[600px] items-start">
             {STAGES.map((col) => {
               const cards = board?.[col.key] ?? [];
-              const colorMap = {
+              
+              const colorMap: any = {
                 blue: "from-blue-50 to-sky-50 border-blue-200",
                 purple: "from-purple-50 to-violet-50 border-purple-200",
                 amber: "from-amber-50 to-yellow-50 border-amber-200",
@@ -165,187 +191,138 @@ export default function AdminProductionPage() {
                 emerald: "from-emerald-50 to-green-50 border-emerald-200",
               };
 
-              const badgeMap = {
-                blue: "bg-gradient-to-r from-blue-500 to-sky-500",
-                purple: "bg-gradient-to-r from-purple-500 to-violet-500",
-                amber: "bg-gradient-to-r from-amber-500 to-yellow-500",
-                orange: "bg-gradient-to-r from-orange-500 to-red-500",
-                emerald: "bg-gradient-to-r from-emerald-500 to-green-500",
-              };
-
               return (
-                <Card key={col.key} className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-                  <CardHeader className={cn("bg-gradient-to-r border-b-2", colorMap[col.color as keyof typeof colorMap])}>
+                <Card key={col.key} className="min-w-[320px] xl:w-1/5 rounded-3xl border-2 border-rose-200 bg-white/60 backdrop-blur-sm shadow-xl flex flex-col shrink-0">
+                  <CardHeader className={cn("bg-gradient-to-r border-b-2 py-4", colorMap[col.color])}>
                     <CardTitle className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-800">
+                      <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                         {col.title}
                       </span>
-                      <span className={cn("rounded-full px-3 py-1 text-xs font-bold text-white shadow-lg", badgeMap[col.color as keyof typeof badgeMap])}>
+                      <span className="rounded-full bg-white/60 px-2.5 py-0.5 text-xs font-bold text-slate-800 shadow-sm border border-white/20">
                         {cards.length}
                       </span>
                     </CardTitle>
                   </CardHeader>
 
-                  <CardContent className="p-4 space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
+                  <CardContent className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[calc(100vh-20rem)] custom-scrollbar">
                     {cards.length === 0 && (
-                      <div className="text-center py-8">
-                        <div className="mx-auto w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 flex items-center justify-center mb-3">
-                          <Package className="h-6 w-6 text-slate-400" />
+                      <div className="text-center py-12 opacity-50 flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                           <Package className="h-5 w-5 text-slate-400" />
                         </div>
-                        <p className="text-xs font-semibold text-slate-500">
-                          Nenhum pedido nesta etapa
-                        </p>
+                        <p className="text-xs font-medium text-slate-500">Sem pedidos</p>
                       </div>
                     )}
 
                     {cards.map((card) => {
                       const draft = notesDraft[card.orderId] ?? (card.notes ?? "");
-                      const statusColors = {
-                        PENDING: "bg-amber-100 text-amber-700 border-amber-300",
-                        IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-300",
-                        DONE: "bg-emerald-100 text-emerald-700 border-emerald-300",
-                      };
-
+                      const deliveryInfo = getDeliveryInfo(card.expectedDeliveryDate);
+                      
                       return (
                         <div
                           key={card.orderId}
-                          className="rounded-2xl border-2 border-rose-100 bg-white p-4 shadow-sm hover:shadow-md transition-all"
+                          className={cn(
+                            "group relative rounded-2xl border-2 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300",
+                            deliveryInfo?.isLate ? "border-red-300 bg-red-50" : 
+                            deliveryInfo?.isUrgent ? "border-amber-300 bg-amber-50" : "border-rose-100"
+                          )}
                         >
-                          {/* Header do card */}
-                          <div className="flex items-start justify-between gap-2 mb-3">
-                            <div className="flex-1">
-                              <div className="font-black text-sm text-slate-900 mb-1">
-                                {card.orderNumber}
-                              </div>
-                              <div className="text-xs text-slate-600 font-semibold">
-                                {card.customerName}
-                              </div>
-                            </div>
-                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-200">
-                              #{card.orderId}
+                          {/* Topo do Card: Número e Data */}
+                          <div className="flex justify-between items-start mb-2 gap-2">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                              {card.orderNumber}
                             </span>
-                          </div>
-
-                          {/* Status atual */}
-                          <div className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border-2 mb-3", statusColors[card.status])}>
-                            {card.status === "PENDING" && <Clock className="h-3 w-3" />}
-                            {card.status === "IN_PROGRESS" && <Sparkles className="h-3 w-3" />}
-                            {card.status === "DONE" && <CheckCircle className="h-3 w-3" />}
-                            {card.status === "PENDING" ? "Pendente" : card.status === "IN_PROGRESS" ? "Em andamento" : "Concluído"}
-                          </div>
-
-                          {/* Items */}
-                          <div className="space-y-1 mb-3 p-3 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200">
-                            {card.items?.slice(0, 3).map((it, idx) => (
-                              <div key={idx} className="text-xs text-slate-700 font-medium">
-                                • {it.name} <span className="text-slate-500 font-bold">x{it.quantity}</span>
-                              </div>
-                            ))}
-                            {card.items && card.items.length > 3 && (
-                              <div className="text-xs text-slate-500 font-semibold">
-                                +{card.items.length - 3} itens…
-                              </div>
+                            
+                            {deliveryInfo && (
+                                <div className={cn(
+                                    "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
+                                    deliveryInfo.isLate ? "bg-red-200 text-red-700" : 
+                                    deliveryInfo.isUrgent ? "bg-amber-200 text-amber-700" : "bg-slate-100 text-slate-600"
+                                )}>
+                                    {deliveryInfo.isLate && <AlertTriangle size={10} />}
+                                    {!deliveryInfo.isLate && <Calendar size={10} />}
+                                    {deliveryInfo.formatted}
+                                </div>
                             )}
                           </div>
 
-                          {/* Botões de status */}
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            <Button
-                              variant={card.status === "PENDING" ? "default" : "outline"}
-                              size="sm"
-                              className="h-8 text-xs rounded-xl"
-                              onClick={() => setStatus.mutate({ orderId: card.orderId, status: "PENDING" })}
-                              disabled={setStatus.isPending}
-                            >
-                              Pendente
-                            </Button>
-
-                            <Button
-                              variant={card.status === "IN_PROGRESS" ? "default" : "outline"}
-                              size="sm"
-                              className="h-8 text-xs rounded-xl"
-                              onClick={() => setStatus.mutate({ orderId: card.orderId, status: "IN_PROGRESS" })}
-                              disabled={setStatus.isPending}
-                            >
-                              Produzindo
-                            </Button>
-
-                            <Button
-                              variant={card.status === "DONE" ? "default" : "outline"}
-                              size="sm"
-                              className="h-8 text-xs rounded-xl"
-                              onClick={() => setStatus.mutate({ orderId: card.orderId, status: "DONE" })}
-                              disabled={setStatus.isPending}
-                            >
-                              Feito
-                            </Button>
+                          <div className="font-bold text-slate-800 text-sm mb-2 leading-tight">
+                            {card.customerName}
                           </div>
 
-                          {/* Observações */}
-                          <Textarea
-                            value={draft}
-                            onChange={(e) =>
-                              setNotesDraft((prev) => ({
-                                ...prev,
-                                [card.orderId]: e.target.value,
-                              }))
-                            }
-                            placeholder="Observações (nome bordado, cor, detalhes...)"
-                            className="min-h-[70px] text-xs rounded-xl border-2 border-rose-200 mb-3"
-                          />
-
-                          {/* Ações */}
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-9 text-xs rounded-xl font-bold"
-                              disabled={saveNotes.isPending}
-                              onClick={() => saveNotes.mutate({ orderId: card.orderId, notes: draft })}
-                            >
-                              Salvar obs.
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9 text-xs rounded-xl font-bold border-2"
-                              onClick={() => window.open(`/api/production/orders/${card.orderId}/pdf`, "_blank")}
-                            >
-                              <FileText className="h-3.5 w-3.5 mr-1" />
-                              PDF
-                            </Button>
-
-                            <div className="ml-auto flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 px-3 text-xs rounded-xl font-bold border-2"
-                                disabled={col.key === "BORDADO" || movePrev.isPending}
-                                onClick={() => movePrev.mutate(card.orderId)}
-                              >
-                                <ChevronLeft className="h-4 w-4" />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                className={cn(
-                                  "h-9 px-3 text-xs rounded-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30",
-                                  col.key === "CONCLUIDO" && "opacity-60"
-                                )}
-                                disabled={col.key === "CONCLUIDO" || moveNext.isPending}
-                                onClick={() => moveNext.mutate(card.orderId)}
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          {/* Lista de Itens (Compacta) */}
+                          <div className="bg-slate-50/80 rounded-lg p-2 mb-3 border border-slate-100">
+                            {card.items?.slice(0, 3).map((it, idx) => (
+                              <div key={idx} className="flex justify-between text-xs text-slate-600 mb-1 last:mb-0">
+                                <span className="truncate pr-2 font-medium">{it.name}</span>
+                                <span className="font-bold shrink-0 bg-white px-1 rounded border">x{it.quantity}</span>
+                              </div>
+                            ))}
+                            {card.items && card.items.length > 3 && (
+                                <div className="text-[10px] text-slate-400 text-center font-medium mt-1">
+                                    +{card.items.length - 3} itens...
+                                </div>
+                            )}
                           </div>
 
-                          {card.updatedAt && (
-                            <div className="text-[10px] text-slate-400 font-medium mt-3 text-center">
-                              Atualizado em {new Date(card.updatedAt).toLocaleString("pt-BR")}
+                          {/* Campo de Observações com Botão Salvar Condicional */}
+                          <div className="mb-3 relative">
+                            <Textarea
+                              value={draft}
+                              onChange={(e) => setNotesDraft(prev => ({ ...prev, [card.orderId]: e.target.value }))}
+                              placeholder="Observações..."
+                              className="min-h-[50px] text-xs resize-none bg-white border-slate-200 focus:border-rose-300 pr-8 py-2"
+                            />
+                            {draft !== (card.notes || "") && (
+                                <Button
+                                    size="icon"
+                                    className="absolute bottom-2 right-2 h-5 w-5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all"
+                                    onClick={() => saveNotes.mutate({ orderId: card.orderId, notes: draft })}
+                                    disabled={saveNotes.isPending}
+                                    title="Salvar observação"
+                                >
+                                    <CheckCircle size={12} />
+                                </Button>
+                            )}
+                          </div>
+
+                          {/* Rodapé: Ações */}
+                          <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-100/50">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                onClick={() => window.open(`/api/production/orders/${card.orderId}/pdf`, "_blank")}
+                                title="Imprimir Ficha de Produção (PDF)"
+                            >
+                                <FileText size={14} />
+                            </Button>
+
+                            <div className="flex items-center gap-1.5">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2 rounded-lg border-slate-200 hover:bg-slate-50"
+                                    disabled={col.key === "BORDADO" || movePrev.isPending}
+                                    onClick={() => movePrev.mutate(card.orderId)}
+                                    title="Voltar etapa"
+                                >
+                                    <ChevronLeft size={14} />
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    className={cn(
+                                        "h-8 px-3 rounded-lg bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md hover:shadow-lg transition-all border-0",
+                                        col.key === "CONCLUIDO" && "opacity-50 grayscale cursor-not-allowed"
+                                    )}
+                                    disabled={col.key === "CONCLUIDO" || moveNext.isPending}
+                                    onClick={() => moveNext.mutate(card.orderId)}
+                                    title="Avançar etapa"
+                                >
+                                    <ChevronRight size={14} />
+                                </Button>
                             </div>
-                          )}
+                          </div>
                         </div>
                       );
                     })}

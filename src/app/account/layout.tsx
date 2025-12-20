@@ -8,7 +8,7 @@ import { getSession, clearAuthSession } from "@/lib/auth";
 import { applyAuthFromStorage, setAuthToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { UserCircle2, LogOut, Heart, Sparkles, ShoppingBag } from "lucide-react";
+import { UserCircle2, LogOut, Heart, Sparkles, ShoppingBag, MapPin, UserCog } from "lucide-react";
 
 type AccountLayoutProps = {
   children: ReactNode;
@@ -16,6 +16,8 @@ type AccountLayoutProps = {
 
 const accountNavItems = [
   { href: "/account/orders", label: "Meus pedidos", icon: ShoppingBag },
+  { href: "/account/profile", label: "Meus dados", icon: UserCog },
+  { href: "/account/addresses", label: "Endereços", icon: MapPin },
 ];
 
 export default function AccountLayout({ children }: AccountLayoutProps) {
