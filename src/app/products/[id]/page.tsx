@@ -9,9 +9,9 @@ import { useCartStore } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Check, ChevronLeft, Star, Ruler, Palette, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Check, ChevronLeft, Star, Ruler, Palette, AlertTriangle, Bug } from "lucide-react";
 
-// Tipos atualizados para o detalhe
+// Tipos atualizados
 type Product = {
   id: number;
   name: string;
@@ -19,7 +19,7 @@ type Product = {
   price: number;
   stock: number;
   images: string[];
-  sizes?: string[]; 
+  sizes?: string[];
   colors?: string[];
   category: string;
   featured: boolean;
@@ -31,21 +31,29 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
   const router = useRouter();
   const { addItem } = useCartStore();
   
-  // Estado para as seleções do usuário
+
+  const productId = params.id;
+
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-  // Busca o produto específico pelo ID
-  const { data: product, isLoading, isError } = useQuery({
-    queryKey: ["product", params.id],
+  // Busca o produto com tratamento de erro detalhado
+  const { data: product, isLoading, isError, error } = useQuery({
+    queryKey: ["product", productId],
     queryFn: async () => {
-      const res = await api.get<Product>(`/products/${params.id}`);
-      return res.data;
+      console.log(`Buscando produto ID: ${productId}`); // Log para debug
+      try {
+        const res = await api.get<Product>(`/products/${productId}`);
+        return res.data;
+      } catch (err: any) {
+        console.error("Erro ao buscar produto:", err);
+        throw err;
+      }
     },
+    retry: 1,
   });
 
-  // Define a imagem principal assim que carregar
   useEffect(() => {
     if (product?.images && product.images.length > 0) {
       setSelectedImage(product.images[0]);
@@ -54,8 +62,6 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
 
   const handleAddToCart = () => {
     if (!product) return;
-    
-    // if (product.sizes?.length && !selectedSize) { alert("Selecione um tamanho"); return; }
 
     addItem({
       id: product.id,
@@ -68,18 +74,44 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
       stock: product.stock
     });
     
-    // Feedback visual simples ou redirecionar
     router.push("/cart");
   };
 
   if (isLoading) return <ProductSkeleton />;
   
+  // TELA DE ERRO DETALHADA (DEBUG)
   if (isError || !product) {
+    const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+    const errorDetails = (error as any)?.response?.data ? JSON.stringify((error as any).response.data) : null;
+    const status = (error as any)?.response?.status;
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 p-8">
-        <h2 className="text-2xl font-bold text-slate-800">Produto não encontrado</h2>
-        <p className="text-slate-500">Talvez ele tenha sido desativado ou removido.</p>
-        <Button onClick={() => router.back()} variant="outline">Voltar para loja</Button>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-6 p-8 bg-slate-50">
+        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-lg w-full border border-rose-100">
+            <div className="mx-auto w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="h-8 w-8 text-rose-500" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Ops! Não conseguimos carregar.</h2>
+            <p className="text-slate-500 mb-6">Ocorreu um problema ao buscar o produto ID: <strong>{productId}</strong></p>
+            
+            {/* Área técnica para você identificar o problema */}
+            <div className="bg-slate-900 rounded-xl p-4 text-left mb-6 overflow-hidden">
+                <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase mb-2">
+                    <Bug size={12} /> Diagnóstico Técnico
+                </div>
+                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
+                  Status: {status || 'N/A'}{"\n"}
+                  Erro: {errorMsg}{"\n"}
+                  {errorDetails && `Detalhes: ${errorDetails}`}
+                </pre>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+                <Button onClick={() => window.location.reload()} variant="outline">Tentar Novamente</Button>
+                <Button onClick={() => router.back()} className="bg-rose-500 hover:bg-rose-600 text-white">Voltar para Loja</Button>
+            </div>
+        </div>
       </div>
     );
   }
@@ -92,7 +124,6 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
     <div className="min-h-screen bg-[#FBF7FF]">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         
-        {/* Botão Voltar */}
         <button 
           onClick={() => router.back()} 
           className="group mb-6 flex items-center text-sm font-medium text-slate-500 hover:text-rose-600 transition-colors"
@@ -105,9 +136,8 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-10 lg:grid-cols-2">
           
-          {/* --- COLUNA ESQUERDA: Galeria --- */}
+          {/* GALERIA */}
           <div className="flex flex-col gap-4">
-            {/* Imagem Principal */}
             <div className="relative aspect-square w-full overflow-hidden rounded-[2rem] border-2 border-rose-100 bg-white shadow-lg">
               {mainImage ? (
                 <img
@@ -136,7 +166,6 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
               )}
             </div>
 
-            {/* Carrossel de Miniaturas */}
             {hasImages && product.images.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide py-2">
                 {product.images.map((img, idx) => (
@@ -156,7 +185,7 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
             )}
           </div>
 
-          {/* --- COLUNA DIREITA: Informações --- */}
+          {/* INFORMAÇÕES */}
           <div className="flex flex-col pt-2">
             <div className="mb-3">
               <span className="text-xs font-bold uppercase tracking-widest text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
@@ -187,7 +216,6 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
 
             <div className="space-y-6 mt-auto">
               
-              {/* Se o produto tiver Cores (Futuro) */}
               {product.colors && product.colors.length > 0 && (
                 <div>
                   <h3 className="mb-3 text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -211,7 +239,6 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                 </div>
               )}
 
-              {/* Botão de Ação */}
               <div className="flex gap-4 pt-4">
                 <Button
                   size="lg"
@@ -224,7 +251,6 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                 </Button>
               </div>
 
-              {/* Badges de Confiança */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm border border-slate-100">
                   <div className="rounded-full bg-green-100 p-2 text-green-600">
