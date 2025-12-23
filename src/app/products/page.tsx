@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link"; // <--- IMPORTANTE: Importar o Link
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { useCartStore } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
@@ -203,9 +203,10 @@ export default function ProductsPage() {
               key={product.id}
               className="group relative rounded-3xl bg-white border-2 border-transparent shadow-lg hover:shadow-2xl hover:border-rose-200 transition-all duration-300 overflow-hidden hover:-translate-y-2"
             >
+              {/* Gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
               
-              {/* IMAGEM COM LINK */}
+              {/* --- 2. Link na IMAGEM --- */}
               <Link href={`/products/${product.id}`} className="block cursor-pointer">
                 {mainImage(product) ? (
                   <div className="h-48 overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 relative">
@@ -224,7 +225,7 @@ export default function ProductsPage() {
               </Link>
 
               <div className="flex flex-1 flex-col gap-3 p-6 relative z-20">
-                {/* NOME COM LINK */}
+                {/* --- 3. Link no NOME --- */}
                 <Link href={`/products/${product.id}`} className="block cursor-pointer">
                     <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors min-h-[2.5rem]">
                     {product.name}
