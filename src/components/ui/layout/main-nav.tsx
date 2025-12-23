@@ -8,7 +8,7 @@ import { Store, UserCircle2, ShoppingBag, Menu, X, LogOut, Heart, Sparkles } fro
 
 import type { AuthSession } from "@/lib/auth";
 import { getAuthSession, clearAuthSession, isAdmin } from "@/lib/auth";
-import { getCartCount } from "@/lib/cart";
+import { useCartStore } from "@/lib/cart"; 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -23,30 +23,15 @@ export function MainNav() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const cartCount = useCartStore((state) => state.getTotalItems());
+
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [cartCount, setCartCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const admin = useMemo(() => isAdmin(session), [session]);
 
   useEffect(() => {
     setSession(getAuthSession());
-  }, [pathname]);
-
-  useEffect(() => {
-    const update = () => setCartCount(getCartCount());
-
-    update();
-
-    window.addEventListener("focus", update);
-    document.addEventListener("visibilitychange", update);
-    window.addEventListener("cart:updated", update as EventListener);
-
-    return () => {
-      window.removeEventListener("focus", update);
-      document.removeEventListener("visibilitychange", update);
-      window.removeEventListener("cart:updated", update as EventListener);
-    };
   }, [pathname]);
 
   const handleLogout = () => {

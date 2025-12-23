@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { addToCart } from "@/lib/cart";
+import { useCartStore } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +11,24 @@ type ProductCategory =
   | "ROUPAS" 
   | "ENXOVAL_DE_BANHO" 
   | "ACESSORIOS" 
-  | "DECORACAO_DE_CASA" 
+  | "DECORACAO_DE_CASA"
+  | "ENXOVAL_DE_BANHO"
+  | "TOALHA_CAPUZ"
+  | "NANINHAS"
+  | "TOALHA_FRAUDA"
+  | "CADERNETAS_VACINACAO"
+  | "BODYS"
+  | "TOALHA_DE_BOCA"
+  | "NECESSARIES"
+  | "SAQUINHOS_TROCA"
+  | "MANTINHAS"
+  | "BATIZADO"
+  | "BOLSAS_MATERNIDADES"
+  | "TROCADORES"
+  | "PANO_COPA"
+  | "SAIDA_MATERNIDADE"
+  | "KITS"
+  | "ESTOJO_ESCOLAR"
   | "OUTROS"
   | string;
 
@@ -44,6 +61,7 @@ async function fetchShopProducts(): Promise<PageResponse<Product>> {
 }
 
 export default function ProductsPage() {
+  const { addItem } = useCartStore(); // <--- MUDANÇA
   const { data, isLoading, isError } = useQuery({
     queryKey: ["shop", "products"],
     queryFn: fetchShopProducts,
@@ -63,8 +81,8 @@ export default function ProductsPage() {
   function handleAddToCart(product: Product) {
     if (!product.id || !product.price) return;
 
-    addToCart({
-      productId: product.id,
+    addItem({ // <--- MUDANÇA
+      id: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,

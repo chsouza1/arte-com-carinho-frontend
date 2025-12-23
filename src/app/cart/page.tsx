@@ -3,58 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { getCart, saveCart, type CartItem } from "@/lib/cart";
+import { useCartStore, type CartItem } from "@/lib/cart";
 import { getAuthSession, type AuthSession } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ShoppingBag,
-  Trash2,
-  Plus,
-  Minus,
-  ArrowLeft,
-  Loader2,
-  Palette,
-  Type,
-  Scissors,
-  Shapes,
-  PaintBucket,
-  Baby
+  ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Loader2,
+  Palette, Type, Scissors, Shapes, PaintBucket, Baby
 } from "lucide-react";
 
-const COLORS = [
-  "Branco",
-  "Creme",
-  "Rosa Bebê",
-  "Azul Bebê",
-  "Verde Água",
-  "Lilás",
-  "Cinza",
-  "Outra (Definir no Whats)"
-];
 
-const THREAD_COLORS = [
-  "Dourado",
-  "Prateado",
-  "Rosa",
-  "Azul Marinho",
-  "Azul Claro",
-  "Preto",
-  "Branco",
-  "Cinza",
-  "Marrom",
-  "Bege",
-  "Outra (Definir no Whats)"
-];
-
-const GENDER_OPTIONS = [
-  "Menina",
-  "Menino",
-  "Unissex / Neutro"
-];
-
+const COLORS = ["Branco", "Creme", "Rosa Bebê", "Azul Bebê", "Verde Água", "Lilás", "Cinza", "Outra (Definir no Whats)"];
+const THREAD_COLORS = ["Dourado", "Prateado", "Rosa", "Azul Marinho", "Azul Claro", "Preto", "Branco", "Cinza", "Marrom", "Bege", "Outra (Definir no Whats)"];
+const GENDER_OPTIONS = ["Menina", "Menino", "Unissex / Neutro"];
 const EMBROIDERY_TYPES = [
   { value: "nome", label: "Somente Nome" },
   { value: "nome_desenho", label: "Nome + Desenho" },
@@ -62,20 +25,13 @@ const EMBROIDERY_TYPES = [
   { value: "sem_bordado", label: "Sem Bordado" }
 ];
 
-interface CartItemWithCustomization extends CartItem {
-  selectedColor?: string;
-  embroideryType?: string;
-  customText?: string;
-  embroideryColor?: string;
-  designDescription?: string;
-  gender?: string;
-}
-
 export default function CartPage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
 
-  const [items, setItems] = useState<CartItemWithCustomization[]>([]);
+
+  const { items, updateQuantity, removeItem, updateItem, clearCart } = useCartStore();
+
   const [session, setSession] = useState<AuthSession | null>(null);
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -83,68 +39,24 @@ export default function CartPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadedItems = getCart().map((i) => ({
-      ...i,
-      selectedColor: "Branco",
-      embroideryType: "nome",
-      customText: "",
-      embroideryColor: "Dourado",
-      designDescription: "",
-      gender: "Unissex / Neutro"
-    }));
-    setItems(loadedItems);
     setSession(getAuthSession());
-
-    const onUpdate = () => {
-        const newCart = getCart();
-        setItems(prev => newCart.map(newItem => {
-            const existing = prev.find(p => p.productId === newItem.productId);
-            return existing ? { ...newItem, ...existing } : { 
-                ...newItem, 
-                selectedColor: "Branco",
-                embroideryType: "nome",
-                customText: "",
-                embroideryColor: "Dourado",
-                designDescription: "",
-                gender: "Unissex / Neutro"
-            };
-        }));
-    };
-    window.addEventListener("cart:updated", onUpdate);
-    return () => window.removeEventListener("cart:updated", onUpdate);
   }, []);
 
   const resolveImage = (item: CartItem) => {
-    const img =
-      item.imageUrl ||
-      (item as any)?.images?.[0] ||
-      null;
-
+    const img = item.image;
     if (!img) return null;
     if (img.startsWith("http")) return img;
     return `${API_URL}${img}`;
   };
 
   const totalAmount = useMemo(
-    () =>
-      items.reduce(
-        (sum, item) => sum + item.price * (item.quantity ?? 1),
-        0
-      ),
+    () => items.reduce((sum, item) => sum + item.price * (item.quantity ?? 1), 0),
     [items]
   );
 
-  function updateCart(newItems: CartItemWithCustomization[]) {
-    setItems(newItems);
-    saveCart(newItems.map(({ selectedColor, embroideryType, customText, embroideryColor, designDescription, gender, ...rest }) => rest));
-  }
-
-  function handleCustomize(productId: number, field: keyof CartItemWithCustomization, value: string) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, [field]: value } : item
-      )
-    );
+  // Função helper para atualizar personalização
+  function handleCustomize(id: number, field: keyof CartItem, value: string) {
+    updateItem(id, { [field]: value });
   }
 
   const checkoutMutation = useMutation({
@@ -152,20 +64,26 @@ export default function CartPage() {
       let customizationReport = "";
       
       items.forEach((item) => {
-        if (item.embroideryType !== "sem_bordado") {
+        // Valores default para campos não preenchidos
+        const embType = item.embroideryType || "nome";
+        const gender = item.gender || "Unissex / Neutro";
+        const color = item.selectedColor || "Branco";
+        const thread = item.embroideryColor || "Dourado";
+
+        if (embType !== "sem_bordado") {
             customizationReport += `\n[${item.name.toUpperCase()}]\n`;
-            customizationReport += `- Para: ${item.gender}\n`;
-            customizationReport += `- Cor da Peça: ${item.selectedColor}\n`;
+            customizationReport += `- Para: ${gender}\n`;
+            customizationReport += `- Cor da Peça: ${color}\n`;
             
-            const typeLabel = EMBROIDERY_TYPES.find(t => t.value === item.embroideryType)?.label;
+            const typeLabel = EMBROIDERY_TYPES.find(t => t.value === embType)?.label;
             customizationReport += `- Tipo: ${typeLabel}\n`;
             
-            if (item.embroideryType === "nome" || item.embroideryType === "nome_desenho") {
+            if (embType === "nome" || embType === "nome_desenho") {
                 customizationReport += `- Nome: "${item.customText || '(Não informado)'}"\n`;
-                customizationReport += `- Cor do Nome: ${item.embroideryColor}\n`;
+                customizationReport += `- Cor do Nome: ${thread}\n`;
             }
 
-            if (item.embroideryType === "desenho" || item.embroideryType === "nome_desenho") {
+            if (embType === "desenho" || embType === "nome_desenho") {
                 customizationReport += `- Desenho: "${item.designDescription || '(Não informado)'}"\n`;
             }
             
@@ -182,7 +100,7 @@ export default function CartPage() {
             phone: phone 
         },
         items: items.map((i) => ({
-          productId: i.productId,
+          productId: i.id,
           quantity: i.quantity,
         })),
         notes: finalNotes,
@@ -193,7 +111,7 @@ export default function CartPage() {
       return res.data;
     },
     onSuccess: (data) => {
-      updateCart([]);
+      clearCart();
       const orderId = data.id || data.orderId; 
       router.push(`/order/success?id=${orderId}`);
     },
@@ -218,7 +136,10 @@ export default function CartPage() {
     }
 
     const missingName = items.find(
-        i => (i.embroideryType === 'nome' || i.embroideryType === 'nome_desenho') && !i.customText?.trim()
+        i => {
+           const type = i.embroideryType || "nome";
+           return (type === 'nome' || type === 'nome_desenho') && !i.customText?.trim()
+        }
     );
 
     if (missingName) {
@@ -227,7 +148,10 @@ export default function CartPage() {
     }
 
     const missingDesign = items.find(
-        i => (i.embroideryType === 'desenho' || i.embroideryType === 'nome_desenho') && !i.designDescription?.trim()
+        i => {
+            const type = i.embroideryType || "nome";
+            return (type === 'desenho' || type === 'nome_desenho') && !i.designDescription?.trim()
+        }
     );
 
     if (missingDesign) {
@@ -236,20 +160,6 @@ export default function CartPage() {
     }
 
     checkoutMutation.mutate();
-  }
-
-  function handleChangeQuantity(productId: number, delta: number) {
-    updateCart(
-      items.map((item) =>
-        item.productId === productId
-          ? { ...item, quantity: Math.max(1, (item.quantity ?? 1) + delta) }
-          : item
-      )
-    );
-  }
-
-  function handleRemove(productId: number) {
-    updateCart(items.filter((item) => item.productId !== productId));
   }
 
   return (
@@ -304,12 +214,17 @@ export default function CartPage() {
             <div className="lg:col-span-2 space-y-5">
               {items.map((item) => {
                 const image = resolveImage(item);
-                const showNameInput = item.embroideryType === "nome" || item.embroideryType === "nome_desenho";
-                const showDesignInput = item.embroideryType === "desenho" || item.embroideryType === "nome_desenho";
+                const embType = item.embroideryType || "nome";
+                const gender = item.gender || "Unissex / Neutro";
+                const selectedColor = item.selectedColor || "Branco";
+                const embroideryColor = item.embroideryColor || "Dourado";
+                
+                const showNameInput = embType === "nome" || embType === "nome_desenho";
+                const showDesignInput = embType === "desenho" || embType === "nome_desenho";
 
                 return (
                   <div
-                    key={item.productId}
+                    key={item.id}
                     className="group relative flex flex-col md:flex-row gap-5 rounded-3xl border-2 border-transparent bg-white p-6 shadow-lg hover:shadow-xl hover:border-rose-200 transition-all duration-300"
                   >
                     <div className="flex gap-4">
@@ -342,7 +257,7 @@ export default function CartPage() {
 
                             <div className="mt-2 flex items-center gap-3 rounded-full border-2 border-rose-200 bg-white px-3 py-1.5 text-sm font-bold shadow-sm w-fit">
                                 <button 
-                                    onClick={() => handleChangeQuantity(item.productId, -1)}
+                                    onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)}
                                     className="text-rose-500 hover:text-rose-700"
                                 >
                                     <Minus size={14} />
@@ -351,7 +266,7 @@ export default function CartPage() {
                                     {item.quantity}
                                 </span >
                                 <button 
-                                    onClick={() => handleChangeQuantity(item.productId, 1)}
+                                    onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)}
                                     className="text-rose-500 hover:text-rose-700"
                                 >
                                     <Plus size={14} />
@@ -371,8 +286,8 @@ export default function CartPage() {
                                     <Baby size={10} /> Para quem é?
                                 </label>
                                 <select 
-                                    value={item.gender}
-                                    onChange={(e) => handleCustomize(item.productId, "gender", e.target.value)}
+                                    value={gender}
+                                    onChange={(e) => handleCustomize(item.id, "gender", e.target.value)}
                                     className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
                                 >
                                     {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
@@ -384,8 +299,8 @@ export default function CartPage() {
                                     <Palette size={10} /> Cor da Peça
                                 </label>
                                 <select 
-                                    value={item.selectedColor}
-                                    onChange={(e) => handleCustomize(item.productId, "selectedColor", e.target.value)}
+                                    value={selectedColor}
+                                    onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)}
                                     className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
                                 >
                                     {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -397,8 +312,8 @@ export default function CartPage() {
                                     <Type size={10} /> Tipo de Bordado
                                 </label>
                                 <select 
-                                    value={item.embroideryType}
-                                    onChange={(e) => handleCustomize(item.productId, "embroideryType", e.target.value)}
+                                    value={embType}
+                                    onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)}
                                     className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
                                 >
                                     {EMBROIDERY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -414,8 +329,8 @@ export default function CartPage() {
                                     </label>
                                     <Input 
                                         placeholder="Ex: Maria Eduarda"
-                                        value={item.customText}
-                                        onChange={(e) => handleCustomize(item.productId, "customText", e.target.value)}
+                                        value={item.customText || ""}
+                                        onChange={(e) => handleCustomize(item.id, "customText", e.target.value)}
                                         className="h-8 text-xs border-rose-200 focus:border-rose-400"
                                     />
                                 </div>
@@ -424,8 +339,8 @@ export default function CartPage() {
                                         <PaintBucket size={10} /> Cor do Nome
                                     </label>
                                     <select 
-                                        value={item.embroideryColor}
-                                        onChange={(e) => handleCustomize(item.productId, "embroideryColor", e.target.value)}
+                                        value={embroideryColor}
+                                        onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)}
                                         className="w-full h-8 rounded-lg border border-rose-200 text-[10px] px-1 focus:border-rose-400 outline-none bg-slate-50"
                                     >
                                         {THREAD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -441,8 +356,8 @@ export default function CartPage() {
                                 </label>
                                 <Input 
                                     placeholder="Ex: Ursinho príncipe, Flor, Leão..."
-                                    value={item.designDescription}
-                                    onChange={(e) => handleCustomize(item.productId, "designDescription", e.target.value)}
+                                    value={item.designDescription || ""}
+                                    onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)}
                                     className="h-8 text-xs border-rose-200 focus:border-rose-400"
                                 />
                             </div>
@@ -450,7 +365,7 @@ export default function CartPage() {
                     </div>
 
                     <button
-                        onClick={() => handleRemove(item.productId)}
+                        onClick={() => removeItem(item.id)}
                         className="absolute top-4 right-4 text-rose-300 hover:text-rose-500 transition-colors"
                         title="Remover item"
                     >

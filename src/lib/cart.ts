@@ -7,21 +7,26 @@ export type CartItem = {
   name: string;
   price: number;
   quantity: number;
-  image?: string;
+  image?: string | null;
   selectedSize?: string;
   selectedColor?: string;
+  embroideryType?: string;
+  customText?: string;
+  embroideryColor?: string;
+  designDescription?: string;
+  gender?: string;
+  stock?: number;
 };
 
 interface CartState {
   items: CartItem[];
   
-  // Ações
   addItem: (item: CartItem) => void;
-  removeItem: (id: number, size?: string, color?: string) => void;
-  updateQuantity: (id: number, quantity: number, size?: string, color?: string) => void;
+  removeItem: (id: number) => void;
+  updateQuantity: (id: number, quantity: number) => void;
+  updateItem: (id: number, updates: Partial<CartItem>) => void;
   clearCart: () => void;
   
-  // Getters computados
   getTotalItems: () => number;
   getTotalPrice: () => number;
 }
@@ -33,75 +38,52 @@ export const useCartStore = create<CartState>()(
 
       addItem: (newItem) =>
         set((state) => {
-          // Verifica se já existe o mesmo produto com as mesmas opções (cor/tamanho)
-          const existingIndex = state.items.findIndex(
-            (item) =>
-              item.id === newItem.id &&
-              item.selectedSize === newItem.selectedSize &&
-              item.selectedColor === newItem.selectedColor
-          );
+          // Verifica se já existe item igual (mesmo ID)
+          const existingIndex = state.items.findIndex((item) => item.id === newItem.id);
 
           if (existingIndex > -1) {
-            // Se existe, só aumenta a quantidade
             const updatedItems = [...state.items];
             updatedItems[existingIndex].quantity += newItem.quantity;
             return { items: updatedItems };
           }
 
-          // Se não, adiciona novo item
           return { items: [...state.items, newItem] };
         }),
 
-      removeItem: (id, size, color) =>
+      removeItem: (id) =>
         set((state) => ({
-          items: state.items.filter(
-            (item) =>
-              !(
-                item.id === id &&
-                item.selectedSize === size &&
-                item.selectedColor === color
-              )
+          items: state.items.filter((item) => item.id !== id),
+        })),
+
+      updateQuantity: (id, quantity) =>
+        set((state) => {
+           if (quantity <= 0) {
+               return { items: state.items.filter((item) => item.id !== id) };
+           }
+           return {
+              items: state.items.map((item) =>
+                item.id === id ? { ...item, quantity } : item
+              ),
+           };
+        }),
+
+      updateItem: (id, updates) =>
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === id ? { ...item, ...updates } : item
           ),
         })),
 
-      updateQuantity: (id, quantity, size, color) =>
-        set((state) => {
-          if (quantity <= 0) {
-            // Se quantidade for 0 ou menos, remove o item
-            return {
-                items: state.items.filter(
-                    (item) => !(item.id === id && item.selectedSize === size && item.selectedColor === color)
-                )
-            }
-          }  
-          return {
-            items: state.items.map((item) => {
-              if (
-                item.id === id &&
-                item.selectedSize === size &&
-                item.selectedColor === color
-              ) {
-                return { ...item, quantity };
-              }
-              return item;
-            }),
-          };
-        }),
-
       clearCart: () => set({ items: [] }),
 
-      getTotalItems: () => {
-        return get().items.reduce((acc, item) => acc + item.quantity, 0);
-      },
+      getTotalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
 
-      getTotalPrice: () => {
-        return get().items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-      },
+      getTotalPrice: () => get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
     }),
     {
       name: "artecomcarinho-cart",
       storage: createJSONStorage(() => localStorage),
-      skipHydration: true, 
+      skipHydration: true,
     }
   )
 );

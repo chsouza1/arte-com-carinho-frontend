@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { addToCart } from "@/lib/cart";
+import { useCartStore } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Package, Sparkles, Filter, AlertTriangle } from "lucide-react";
@@ -34,6 +34,8 @@ async function fetchShopProducts(): Promise<PageResponse<Product>> {
 }
 
 export default function ProductsPage() {
+  const { addItem } = useCartStore();
+  
   const { data, isLoading, isError } = useQuery({
     queryKey: ["shop", "products"],
     queryFn: fetchShopProducts,
@@ -81,12 +83,14 @@ export default function ProductsPage() {
   function handleAddToCart(product: Product) {
     if (!product.id || !product.price) return;
 
-    addToCart({
-      productId: product.id,
+    // CORREÇÃO: Usar addItem do hook
+    addItem({
+      id: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,
-      imageUrl: mainImage(product),
+      image: mainImage(product),
+      stock: product.stock
     });
   }
 
@@ -192,7 +196,6 @@ export default function ProductsPage() {
 
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {visibleProducts.map((product) => {
-             // VERIFICAÇÃO DE ESTOQUE BAIXO
              const stock = product.stock ?? 0;
              const isLowStock = stock > 0 && stock <= 3;
 
@@ -232,7 +235,6 @@ export default function ProductsPage() {
                     })}
                   </p>
 
-                  {/* Prioridade: Se for personalizável, mostra. Se não, mas tiver pouco estoque, mostra o aviso. */}
                   {product.customizable ? (
                     <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 px-3 py-1 text-[10px] font-bold text-rose-600 shadow-sm">
                       <Sparkles size={10} />

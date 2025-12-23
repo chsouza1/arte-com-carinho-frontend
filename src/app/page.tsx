@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Sparkles, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 import WhatsAppFloatingButton from "@/components/ui/WhatsAppFloatingButton";
-import { addToCart } from "@/lib/cart";
+import { useCartStore } from "@/lib/cart";
 
 type Product = {
   id: number;
@@ -38,6 +38,7 @@ function normalizeCategory(cat?: string) {
 export default function HomePage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
+  const { addItem } = useCartStore(); // <--- MUDANÇA
 
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -47,9 +48,7 @@ export default function HomePage() {
     const load = async () => {
       try {
         const res = await fetch(`${API_URL}/public/products/featured`, { cache: "no-store" });
-        
         if (!res.ok) throw new Error("Falha ao carregar destaques");
-
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
 
@@ -68,7 +67,6 @@ export default function HomePage() {
         console.error("Erro ao carregar produtos em destaque:", error);
       }
     };
-
     load();
   }, [API_URL]);
 
@@ -80,21 +78,20 @@ export default function HomePage() {
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const matchesQuery =
-        !query || p.name.toLowerCase().includes(query.toLowerCase());
-      const matchesCategory =
-        category === "all" || normalizeCategory(p.category) === category;
+      const matchesQuery = !query || p.name.toLowerCase().includes(query.toLowerCase());
+      const matchesCategory = category === "all" || normalizeCategory(p.category) === category;
       return matchesQuery && matchesCategory;
     });
   }, [products, query, category]);
 
   const addToCartAndGo = (product: Product) => {
-    addToCart({
-      productId: product.id,
+    addItem({
+      id: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,
-      imageUrl: mainImage(product),
+      image: mainImage(product),
+      stock: product.stock
     });
     router.push("/cart");
   };
@@ -169,7 +166,6 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filtered.map((product) => {
-             // 3. Lógica para definir se é estoque baixo (entre 1 e 3 unidades)
              const isLowStock = product.stock > 0 && product.stock <= 3;
              const isOutOfStock = product.stock === 0;
 
@@ -187,7 +183,6 @@ export default function HomePage() {
                     alt={product.name}
                     className={`h-full w-full object-cover group-hover:scale-110 transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
                   />
-                  {/* Etiqueta de Esgotado sobre a imagem */}
                   {isOutOfStock && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
                           <span className="bg-neutral-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">ESGOTADO</span>
@@ -211,7 +206,6 @@ export default function HomePage() {
                     {formatBRL(product.price)}
                     </p>
                     
-                    {/* 4. Exibição do Alerta */}
                     {isLowStock && (
                         <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600 border border-amber-200 animate-pulse">
                             <AlertTriangle size={10} />
