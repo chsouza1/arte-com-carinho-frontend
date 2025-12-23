@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link"; // <--- IMPORTANTE: Importar o Link
 import { api } from "@/lib/api";
 import { useCartStore } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,6 @@ async function fetchShopProducts(): Promise<PageResponse<Product>> {
 
 export default function ProductsPage() {
   const { addItem } = useCartStore();
-  
   const { data, isLoading, isError } = useQuery({
     queryKey: ["shop", "products"],
     queryFn: fetchShopProducts,
@@ -83,7 +83,6 @@ export default function ProductsPage() {
   function handleAddToCart(product: Product) {
     if (!product.id || !product.price) return;
 
-    // CORREÇÃO: Usar addItem do hook
     addItem({
       id: product.id,
       name: product.name,
@@ -204,28 +203,33 @@ export default function ProductsPage() {
               key={product.id}
               className="group relative rounded-3xl bg-white border-2 border-transparent shadow-lg hover:shadow-2xl hover:border-rose-200 transition-all duration-300 overflow-hidden hover:-translate-y-2"
             >
-              {/* Gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
               
-              {mainImage(product) ? (
-                <div className="h-48 overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 relative">
-                  <img
-                    src={mainImage(product)!}
-                    alt={product.name}
-                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </div>
-              ) : (
-                <div className="flex h-48 items-center justify-center bg-gradient-to-br from-rose-100 to-pink-100 text-sm text-slate-400 font-medium">
-                  Sem imagem
-                </div>
-              )}
+              {/* IMAGEM COM LINK */}
+              <Link href={`/products/${product.id}`} className="block cursor-pointer">
+                {mainImage(product) ? (
+                  <div className="h-48 overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 relative">
+                    <img
+                      src={mainImage(product)!}
+                      alt={product.name}
+                      className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
+                ) : (
+                  <div className="flex h-48 items-center justify-center bg-gradient-to-br from-rose-100 to-pink-100 text-sm text-slate-400 font-medium">
+                    Sem imagem
+                  </div>
+                )}
+              </Link>
 
               <div className="flex flex-1 flex-col gap-3 p-6 relative z-20">
-                <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors min-h-[2.5rem]">
-                  {product.name}
-                </h2>
+                {/* NOME COM LINK */}
+                <Link href={`/products/${product.id}`} className="block cursor-pointer">
+                    <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors min-h-[2.5rem]">
+                    {product.name}
+                    </h2>
+                </Link>
 
                 <div className="flex items-center justify-between">
                   <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">

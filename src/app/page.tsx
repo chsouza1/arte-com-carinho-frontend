@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // <--- IMPORTANTE: Importar o Link
 import { Search, Sparkles, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 import WhatsAppFloatingButton from "@/components/ui/WhatsAppFloatingButton";
@@ -38,7 +39,7 @@ function normalizeCategory(cat?: string) {
 export default function HomePage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
-  const { addItem } = useCartStore(); // <--- MUDANÇA
+  const { addItem } = useCartStore();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -176,30 +177,35 @@ export default function HomePage() {
             >
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
               
-              {mainImage(product) ? (
-                <div className="h-52 bg-gradient-to-br from-rose-100 to-pink-100 overflow-hidden relative">
-                  <img
-                    src={mainImage(product) as string}
-                    alt={product.name}
-                    className={`h-full w-full object-cover group-hover:scale-110 transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
-                  />
-                  {isOutOfStock && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                          <span className="bg-neutral-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">ESGOTADO</span>
-                      </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </div>
-              ) : (
-                <div className="h-52 flex items-center justify-center text-sm text-slate-400 bg-gradient-to-br from-rose-100 to-pink-100 font-medium">
-                  Sem imagem
-                </div>
-              )}
+              {/* IMAGEM COM LINK */}
+              <Link href={`/products/${product.id}`} className="block cursor-pointer">
+                {mainImage(product) ? (
+                  <div className="h-52 bg-gradient-to-br from-rose-100 to-pink-100 overflow-hidden relative">
+                    <img
+                      src={mainImage(product) as string}
+                      alt={product.name}
+                      className={`h-full w-full object-cover group-hover:scale-110 transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
+                    />
+                    {isOutOfStock && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                            <span className="bg-neutral-800 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">ESGOTADO</span>
+                        </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-52 flex items-center justify-center text-sm text-slate-400 bg-gradient-to-br from-rose-100 to-pink-100 font-medium">
+                    Sem imagem
+                  </div>
+                )}
+              </Link>
 
               <div className="p-6 relative z-20">
-                <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors">
-                  {product.name}
-                </h2>
+                {/* NOME COM LINK */}
+                <Link href={`/products/${product.id}`} className="block cursor-pointer">
+                    <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors">
+                    {product.name}
+                    </h2>
+                </Link>
 
                 <div className="flex items-center justify-between mt-3">
                     <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
