@@ -36,6 +36,14 @@ function normalizeCategory(cat?: string) {
   return cat.trim().toLowerCase();
 }
 
+function formatCategoryLabel(cat: string) {
+  if (cat === "all") return "Todas as categorias";
+  return cat
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
 export default function HomePage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
@@ -48,7 +56,6 @@ export default function HomePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        
         const res = await fetch(`${API_URL}/public/products/featured?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Falha ao carregar destaques");
         const data = await res.json();
@@ -114,7 +121,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50">
-      {/* HERO */}
       <section className="mx-auto max-w-6xl px-4 pt-20">
         <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-12 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
@@ -152,7 +158,7 @@ export default function HomePage() {
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c === "all" ? "Todas as categorias" : c}
+                    {formatCategoryLabel(c)}
                   </option>
                 ))}
               </select>
@@ -161,7 +167,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PRODUTOS EM DESTAQUE */}
       <main className="mx-auto max-w-6xl px-4 mt-20 pb-32">
         <div className="flex items-center gap-2 mb-8">
             <Sparkles className="text-rose-500" />
@@ -195,7 +200,6 @@ export default function HomePage() {
 
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
               
-              {/* Link na Imagem */}
               <Link href={linkTarget} className={`block ${hasId ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                 {mainImage(product) ? (
                   <div className="h-52 bg-gradient-to-br from-rose-100 to-pink-100 overflow-hidden relative">
@@ -218,7 +222,6 @@ export default function HomePage() {
               </Link>
 
               <div className="p-6 relative z-20">
-                {/* Link no Nome */}
                 <Link href={linkTarget} className={`block ${hasId ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                     <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors">
                     {product.name}
@@ -267,6 +270,7 @@ export default function HomePage() {
     </div>
   );
 }
+
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
