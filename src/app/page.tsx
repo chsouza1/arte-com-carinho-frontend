@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; // <--- IMPORTANTE: Importar o Link
-import { Search, Sparkles, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { Search, Sparkles, AlertTriangle, Bug } from "lucide-react";
 import { api } from "@/lib/api";
 import WhatsAppFloatingButton from "@/components/ui/WhatsAppFloatingButton";
 import { useCartStore } from "@/lib/cart";
@@ -48,13 +48,18 @@ export default function HomePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API_URL}/public/products/featured`, { cache: "no-store" });
+        
+        const res = await fetch(`${API_URL}/public/products/featured?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Falha ao carregar destaques");
         const data = await res.json();
+        
+        console.log("=== DEBUG HOME PAGE ===");
+        console.log("Produtos recebidos:", data);
+
         const list = Array.isArray(data) ? data : [];
 
         const mapped: Product[] = list.map((p: any) => ({
-          id: Number(p.id),
+          id: p.id,
           name: p.name,
           price: Number(p.price ?? 0),
           category: normalizeCategory(p.category),
@@ -86,6 +91,10 @@ export default function HomePage() {
   }, [products, query, category]);
 
   const addToCartAndGo = (product: Product) => {
+    if (!product.id) {
+        alert("Erro: Este produto está sem ID. Recarregue a página.");
+        return;
+    }
     addItem({
       id: product.id,
       name: product.name,
@@ -167,18 +176,27 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filtered.map((product) => {
-             const isLowStock = product.stock > 0 && product.stock <= 3;
-             const isOutOfStock = product.stock === 0;
+             const stock = product.stock ?? 0;
+             const isLowStock = stock > 0 && stock <= 3;
+             const isOutOfStock = stock === 0;
+             const hasId = product.id !== undefined && product.id !== null;
+             const linkTarget = hasId ? `/products/${product.id}` : "#";
 
              return (
             <div
-              key={product.id}
+              key={product.id || Math.random()}
               className="group relative rounded-3xl bg-white border-2 border-transparent shadow-lg hover:shadow-2xl hover:border-rose-200 transition-all duration-300 overflow-hidden hover:-translate-y-2"
             >
+              {!hasId && (
+                  <div className="absolute top-2 left-2 z-50 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg flex items-center gap-1">
+                      <Bug size={10} /> ERRO ID
+                  </div>
+              )}
+
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-pink-500/0 group-hover:from-rose-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none z-10"></div>
               
-              {/* IMAGEM COM LINK */}
-              <Link href={`/products/${product.id}`} className="block cursor-pointer">
+              {/* Link na Imagem */}
+              <Link href={linkTarget} className={`block ${hasId ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                 {mainImage(product) ? (
                   <div className="h-52 bg-gradient-to-br from-rose-100 to-pink-100 overflow-hidden relative">
                     <img
@@ -200,8 +218,8 @@ export default function HomePage() {
               </Link>
 
               <div className="p-6 relative z-20">
-                {/* NOME COM LINK */}
-                <Link href={`/products/${product.id}`} className="block cursor-pointer">
+                {/* Link no Nome */}
+                <Link href={linkTarget} className={`block ${hasId ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                     <h2 className="text-sm font-bold text-neutral-800 line-clamp-2 group-hover:text-rose-600 transition-colors">
                     {product.name}
                     </h2>
@@ -215,17 +233,20 @@ export default function HomePage() {
                     {isLowStock && (
                         <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600 border border-amber-200 animate-pulse">
                             <AlertTriangle size={10} />
-                            Restam {product.stock}
+                            Restam {stock}
                         </span>
                     )}
                 </div>
 
                 <button
                   onClick={() => addToCartAndGo(product)}
-                  disabled={isOutOfStock}
-                  className="mt-6 w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-3 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  disabled={isOutOfStock || !hasId}
+                  className={cn(
+                    "mt-6 w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-3 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none",
+                    !hasId && "bg-slate-400"
+                  )}
                 >
-                  {isOutOfStock ? "Indisponível" : "Comprar"}
+                  {isOutOfStock ? "Indisponível" : hasId ? "Comprar" : "Erro (Sem ID)"}
                 </button>
               </div>
             </div>
@@ -245,4 +266,7 @@ export default function HomePage() {
       <WhatsAppFloatingButton phone="5541999932625" />
     </div>
   );
+}
+function cn(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(" ");
 }
