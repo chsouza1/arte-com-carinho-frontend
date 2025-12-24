@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation"; // ADICIONADO: useParams
 import Image from "next/image";
 import { api } from "@/lib/api";
 import { useCartStore } from "@/lib/cart";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Check, ChevronLeft, Star, Ruler, Palette, AlertTriangle, Bug } from "lucide-react";
 
-// Tipos atualizados
+
 type Product = {
   id: number;
   name: string;
@@ -27,22 +27,25 @@ type Product = {
   customizable: boolean;
 };
 
-export default function ProductDetailsPage({ params }: { params: { id: string } }) {
+
+export default function ProductDetailsPage() {
   const router = useRouter();
+  const params = useParams(); 
   const { addItem } = useCartStore();
   
-
-  const productId = params.id;
+ 
+  const productId = params?.id ? String(params.id) : null;
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-  // Busca o produto com tratamento de erro detalhado
   const { data: product, isLoading, isError, error } = useQuery({
     queryKey: ["product", productId],
     queryFn: async () => {
-      console.log(`Buscando produto ID: ${productId}`); // Log para debug
+      if (!productId) throw new Error("ID do produto não encontrado");
+      
+      console.log(`Buscando produto ID: ${productId}`);
       try {
         const res = await api.get<Product>(`/products/${productId}`);
         return res.data;
@@ -52,6 +55,7 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
       }
     },
     retry: 1,
+    enabled: !!productId, 
   });
 
   useEffect(() => {
@@ -76,10 +80,8 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
     
     router.push("/cart");
   };
-
-  if (isLoading) return <ProductSkeleton />;
+  if (!productId || isLoading) return <ProductSkeleton />;
   
-  // TELA DE ERRO DETALHADA (DEBUG)
   if (isError || !product) {
     const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
     const errorDetails = (error as any)?.response?.data ? JSON.stringify((error as any).response.data) : null;
