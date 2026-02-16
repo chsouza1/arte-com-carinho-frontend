@@ -183,6 +183,15 @@ export function LoginForm() {
                 required
               />
             </div>
+            <div className="flex justify-end">
+              <button 
+                type="button"
+                onClick={() => router.push("/auth/forgot-password")}
+                className="text-xs font-bold text-rose-600 hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
 
             {/* --- COMPONENTE RECAPTCHA --- */}
             <div className="flex justify-center py-2">
