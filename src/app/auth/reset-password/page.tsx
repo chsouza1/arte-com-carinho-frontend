@@ -27,6 +27,7 @@ export default function ResetPasswordPage() {
         token, 
         newPassword: password 
       });
+      //buid?
     },
     onSuccess: () => {
       setIsSuccess(true);
