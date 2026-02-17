@@ -192,7 +192,7 @@ export default function HomePage() {
                   {/* INFO DO PRODUTO */}
                   <div className="mt-3 text-center px-1">
                     <p className="text-[10px] uppercase tracking-widest text-[#A1887F] font-bold mb-1">
-                        {product.category}
+                        {formatCategoryLabel(product.category || "")}
                     </p>
                     <Link href={`/products/${product.id}`}>
                         <h3 className="text-[#5D4037] font-medium text-lg leading-tight group-hover:text-[#E53935] transition-colors font-serif">

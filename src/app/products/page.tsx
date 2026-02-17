@@ -280,7 +280,7 @@ export default function ProductsPage() {
                 {/* Nome do Produto (Abaixo da imagem, dentro do card polaroid) */}
                 <div className="mt-4 text-center px-2">
                     <p className="text-[10px] uppercase font-bold text-[#A1887F] tracking-widest mb-1">
-                        {product.category || "Artesanato"}
+                        {formatCategory(product.category || "Artesanato")}
                     </p>
                     <Link href={`/products/${product.id}`}>
                         <h2 className="font-serif text-lg text-[#5D4037] leading-tight group-hover:text-[#E53935] transition-colors line-clamp-2 min-h-[2.5em]">
