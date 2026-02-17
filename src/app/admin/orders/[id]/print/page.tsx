@@ -91,11 +91,16 @@ export default function OrderPrintPage() {
       {/* FOLHA A4 */}
       <div className="mx-auto min-h-[297mm] w-[210mm] bg-white p-[15mm] shadow-2xl print:min-h-0 print:w-full print:shadow-none border border-[#D7CCC8] print:border-0 relative">
         
-        {/* CABEÇALHO */}
+
         <div className="flex justify-between items-start border-b-2 border-[#5D4037] pb-6 mb-8">
             <div className="flex items-center gap-4">
-                <div className="p-3 border-2 border-[#5D4037] rounded-full">
-                    <Scissors size={32} className="text-[#E53935]" />
+                
+                <div className="h-20 w-20 relative overflow-hidden rounded-full border-2 border-[#5D4037] bg-white p-1">
+                    <img 
+                        src="/public/logo.png" 
+                        alt="Logo Arte com Carinho" 
+                        className="h-full w-full object-contain" 
+                    />
                 </div>
                 <div>
                     <h1 className="text-3xl font-serif font-bold leading-none text-[#5D4037]">Arte com Carinho</h1>
