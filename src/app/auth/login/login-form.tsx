@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import HCaptcha from "@hcaptcha/react-hcaptcha"; 
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { api, setAuthToken } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { saveSession } from "@/lib/auth";
@@ -34,7 +34,7 @@ export function LoginForm() {
 
   // --- ESTADOS DO CAPTCHA ---
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const hcaptchaRef = useRef<HCaptcha>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const loginMutation = useMutation({
     mutationFn: async () => {
@@ -42,7 +42,7 @@ export function LoginForm() {
       const res = await api.post<AuthResponse>("/auth/login", {
         email,
         password,
-        captchaToken,
+        captchaToken, 
       });
       return res.data;
     },
@@ -68,14 +68,14 @@ export function LoginForm() {
     onError: (error: any) => {
       console.error("Erro ao fazer login:", error?.response?.data || error);
       
-      // MUDANÇA 3: Método de reset do hCaptcha é diferente (.resetCaptcha)
-      hcaptchaRef.current?.resetCaptcha();
+      // MUDANÇA 3: Resetando o widget em caso de erro
+      turnstileRef.current?.reset();
       setCaptchaToken(null);
 
       if (error?.response?.status === 401) {
         setErrorMsg("E-mail ou senha não conferem.");
       } else if (error?.response?.status === 400 && error?.response?.data?.message?.includes("Captcha")) {
-        setErrorMsg("Por favor, verifique o Captcha novamente.");
+        setErrorMsg("Erro na verificação de segurança. Tente novamente.");
       } else {
         setErrorMsg("Ocorreu um erro. Tente novamente mais tarde.");
       }
@@ -92,7 +92,7 @@ export function LoginForm() {
     }
 
     if (!captchaToken) {
-      setErrorMsg("Por favor, confirme que você não é um robô.");
+      setErrorMsg("Aguarde a verificação de segurança (Turnstile).");
       return;
     }
 
@@ -105,15 +105,11 @@ export function LoginForm() {
   };
 
   return (
-    // Fundo Creme
     <div className="flex min-h-screen items-center justify-center bg-[#FAF7F5] px-4 py-12 font-sans text-[#5D4037]">
-      
       <div className="w-full max-w-md bg-white border border-[#D7CCC8] shadow-xl rounded-sm relative overflow-hidden">
         
-        {/* Faixa Decorativa */}
         <div className="h-1 bg-[#E53935] w-full absolute top-0 left-0"></div>
 
-        {/* Cabeçalho */}
         <div className="text-center pt-10 pb-6 px-8 bg-[url('/paper-texture.png')] border-b border-dashed border-[#D7CCC8]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF7F5] border border-[#EFEBE9] shadow-sm">
                 <Heart className="h-7 w-7 text-[#E53935] fill-current" />
@@ -126,7 +122,6 @@ export function LoginForm() {
               Acesse sua conta para ver seus pedidos com carinho.
             </p>
 
-            {/* Alertas de Contexto */}
             {fromCheckout && (
               <div className="mt-4 rounded-sm bg-[#E3F2FD] border border-[#BBDEFB] p-3 text-center">
                 <p className="text-xs font-bold text-[#1565C0]">
@@ -148,7 +143,6 @@ export function LoginForm() {
         <div className="p-8 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             
-            {/* E-mail */}
             <div className="space-y-1.5">
               <label htmlFor="email" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider flex items-center gap-1.5">
                 <Mail className="h-3 w-3" /> E-mail
@@ -165,7 +159,6 @@ export function LoginForm() {
               />
             </div>
 
-            {/* Senha */}
             <div className="space-y-1.5">
               <label htmlFor="password" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider flex items-center gap-1.5">
                 <Lock className="h-3 w-3" /> Senha
@@ -191,16 +184,21 @@ export function LoginForm() {
                </div>
             </div>
 
-            {/*Componente HCaptcha */}
-            <div className="flex justify-center py-2 scale-90 origin-center">
-              <HCaptcha
-                ref={hcaptchaRef}
-                sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || ""}
-                onVerify={(token) => setCaptchaToken(token)}
+            {/*Componente Turnstile */}
+            <div className="flex justify-center py-2 min-h-[65px]">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onError={() => setCaptchaToken(null)}
+                onExpire={() => setCaptchaToken(null)}
+                options={{
+                    theme: 'light',
+                    size: 'normal',
+                }}
               />
             </div>
 
-            {/* Mensagem de Erro */}
             {errorMsg && (
               <div className="rounded-sm bg-[#FFEBEE] border border-[#FFCDD2] p-3 flex items-start gap-2 text-[#C62828]">
                 <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -208,7 +206,6 @@ export function LoginForm() {
               </div>
             )}
 
-            {/* Botão Entrar */}
             <Button
               type="submit"
               className="h-12 w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest text-xs rounded-sm shadow-md transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0"
@@ -218,7 +215,6 @@ export function LoginForm() {
             </Button>
           </form>
 
-          {/* Divisor */}
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-dashed border-[#D7CCC8]" />
@@ -228,7 +224,6 @@ export function LoginForm() {
             </div>
           </div>
 
-          {/* Social Login */}
           <div className="grid grid-cols-2 gap-3">
             <Button 
               variant="outline" 
@@ -251,7 +246,6 @@ export function LoginForm() {
             </Button>
           </div>
 
-          {/* Rodapé: Criar Conta */}
           <div className="pt-4 border-t border-dashed border-[#D7CCC8] text-center space-y-3">
             <p className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider">
               Ainda não tem cadastro?
