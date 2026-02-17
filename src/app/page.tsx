@@ -87,8 +87,6 @@ export default function HomePage() {
   };
 
   return (
-    // FUNDO: Creme suave (#FAF7F5) para imitar o fundo do logo, mas mais limpo para leitura
-    // TEXTO: Stone-800 (Marrom acinzentado) para suavidade
     <div className="min-h-screen bg-[#FAF7F5] font-sans text-stone-800">
       
       {/* 1. TOPO: Inspirado na linha pontilhada do logo */}
@@ -138,13 +136,13 @@ export default function HomePage() {
         {/* Título da Seção com detalhe de costura */}
         <div className="flex items-center gap-4 mb-10">
             <div className="h-[2px] flex-1 bg-stone-200 border-t border-dashed border-stone-300"></div>
-            <h2 className="text-2xl font-serif text-[#5D4037]">Nossas Peças</h2>
+            <h2 className="text-2xl font-serif text-[#5D4037]">Nossas Peças Em Destaque</h2>
             <div className="h-[2px] flex-1 bg-stone-200 border-t border-dashed border-stone-300"></div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="text-center py-20 opacity-50">
-            <p>Nenhuma peça encontrada com esse nome.</p>
+            <p>Desculpe, nenhuma peça foi encontrada com esse nome.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -215,7 +213,7 @@ export default function HomePage() {
                 onClick={() => router.push('/products')}
                 className="inline-block border-b-2 border-[#E53935] text-[#E53935] pb-1 font-bold hover:text-[#B71C1C] hover:border-[#B71C1C] transition-colors uppercase text-xs tracking-widest"
              >
-                Ver todas as peças
+                Ver todas as peças no catalago
              </button>
         </div>
       </main>
