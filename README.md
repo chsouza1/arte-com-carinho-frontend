@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+🧵 Arte com Carinho - Frontend
 
-## Getting Started
+Bem-vindo ao repositório frontend do Ateliê Arte com Carinho, um e-commerce especializado em bordados personalizados, enxovais e presentes feitos à mão com dedicação e cuidado.
 
-First, run the development server:
+Este projeto foi construído com foco em uma experiência de usuário acolhedora e um painel administrativo robusto para gestão de produção.
+🚀 Tecnologias Utilizadas
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+O projeto utiliza as tecnologias mais modernas do ecossistema React:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    Framework: Next.js 14+ (App Router)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    Linguagem: TypeScript
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+    Estilização: Tailwind CSS
 
-## Learn More
+    Componentes de UI: Radix UI & Shadcn/UI
 
-To learn more about Next.js, take a look at the following resources:
+    Gerenciamento de Estado de API: TanStack Query (React Query)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    Gerenciamento de Estado Local: Zustand (Carrinho de compras)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    Formulários: React Hook Form com validação Zod
 
-## Deploy on Vercel
+    Ícones: Lucide React
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    Upload de Imagens: Integração com Cloudinary API
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+✨ Funcionalidades Principais
+🛍️ Área do Cliente (Loja)
+
+    Vitrine de Produtos: Catálogo completo com filtros por categoria e busca em tempo real.
+
+    Produtos Destaque: Exibição dinâmica na Home de itens marcados pela administração.
+
+    Carrinho Inteligente: Sistema de sacola com persistência local.
+
+    Personalização de Bordado: Interface detalhada para o cliente escolher nomes, desenhos e cores de linha diretamente no checkout.
+
+    Checkout via WhatsApp: Envio automático dos detalhes do pedido para o WhatsApp do Ateliê.
+
+🛠️ Painel Administrativo (Admin)
+
+    Dashboard Financeiro: Relatórios de faturamento, ticket médio e volume de pedidos com gráficos interativos (Recharts).
+
+    Quadro de Produção (Kanban): Gestão visual do fluxo de trabalho (Bordado → Costura → Acabamento → Embalagem).
+
+    Gestão de Estoque: Monitoramento de estoque crítico para toalhas lisas e materiais de base.
+
+    Catálogo Admin: CRUD completo de produtos com upload direto de múltiplas imagens.
+
+    Impressão de Pedidos: Geração de fichas de produção formatadas para papel A4.
+
+🎨 Design System
+
+O projeto segue uma identidade visual Artesanal/Vintage:
+
+    Paleta: Tons de Creme (#FAF7F5), Marrom Chocolate (#5D4037) e Vermelho Amor (#E53935).
+
+    Tipografia: Mix de fontes Serifadas (para títulos elegantes) e Sans-serif (para legibilidade técnica).
+
+    Estética: Uso de bordas tracejadas (simulando costura) e cantos retos/suaves para parecer papelaria de ateliê físico.
+
+⚙️ Instalação e Uso
+
+    Clone o repositório:
+    Bash
+
+    git clone https://github.com/seu-usuario/arte-com-carinho-frontend.git
+
+    Instale as dependências:
+    Bash
+
+    npm install
+
+    Configure as variáveis de ambiente:
+    Crie um arquivo .env.local na raiz com as seguintes chaves:
+    Snippet de código
+
+    NEXT_PUBLIC_API_URL=http://localhost:8080
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=seu_cloud_name
+    NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=seu_preset
+    NEXT_PUBLIC_RECAPTCHA_SITE_KEY=sua_chave_google
+
+    Inicie o servidor de desenvolvimento:
+    Bash
+
+    npm run dev
+
+📁 Estrutura de Pastas
+Plaintext
+
+src/
+├── app/              # Rotas e Páginas (Next.js App Router)
+│   ├── admin/        # Painel Administrativo
+│   ├── cart/         # Carrinho de Compras
+│   └── auth/         # Login e Cadastro
+├── components/       # Componentes Reutilizáveis (UI e Core)
+├── lib/              # Configurações (API, Auth, Utilitários)
+├── store/            # Estados do Zustand (Cart Store)
+└── types/            # Definições de TypeScript
+
+Desenvolvido com carinho para Arte com Carinho by Simone. ✨
