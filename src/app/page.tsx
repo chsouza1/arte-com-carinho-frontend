@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import WhatsAppFloatingButton from "@/components/ui/WhatsAppFloatingButton";
 import { useCartStore } from "@/lib/cart";
 
-// Tipos
+// Tipos dos produtos
 type Product = {
   id: number;
   name: string;
