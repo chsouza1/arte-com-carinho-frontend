@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useParams } from "next/navigation";
 import { Loader2, Printer, X, Scissors, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoImg from "@/app/logo.png";
 
 interface OrderItem {
   productId: number;
@@ -97,7 +98,7 @@ export default function OrderPrintPage() {
                 
                 <div className="h-20 w-20 relative overflow-hidden rounded-full border-2 border-[#5D4037] bg-white p-1">
                     <img 
-                        src="/logo.png" 
+                        src={logoImg.src} 
                         alt="Logo Arte com Carinho" 
                         className="h-full w-full object-contain" 
                     />
