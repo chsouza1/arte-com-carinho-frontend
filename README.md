@@ -67,7 +67,6 @@ O projeto segue uma identidade visual **Artesanal/Vintage**:
     NEXT_PUBLIC_API_URL=http://localhost:8080
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=seu_cloud_name
     NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=seu_preset
-    NEXT_PUBLIC_RECAPTCHA_SITE_KEY=sua_chave_google
     ```
 
 4.  **Inicie o servidor de desenvolvimento:**
