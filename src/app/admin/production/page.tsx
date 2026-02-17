@@ -1,4 +1,3 @@
-// src/app/admin/production/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,12 +5,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, applyAuthFromStorage } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { 
   Package, ChevronRight, ChevronLeft, FileText, Sparkles, 
-  Clock, CheckCircle, Calendar, AlertTriangle 
+  Clock, CheckCircle, Calendar, AlertTriangle, Layers, Scissors, Check, Loader2 
 } from "lucide-react";
 import { useNotifications } from "@/components/ui/notifications"; 
 
@@ -38,12 +36,12 @@ type ProductionBoard = {
   columns: Record<ProductionStage, ProductionCard[]>;
 };
 
-const STAGES: { key: ProductionStage; title: string; color: string }[] = [
-  { key: "BORDADO", title: "Bordado", color: "blue" },
-  { key: "COSTURA", title: "Costura", color: "purple" },
-  { key: "ACABAMENTO", title: "Acabamento", color: "amber" },
-  { key: "EMBALAGEM", title: "Embalagem", color: "orange" },
-  { key: "CONCLUIDO", title: "Concluído", color: "emerald" },
+const STAGES: { key: ProductionStage; title: string; theme: string }[] = [
+  { key: "BORDADO", title: "Bordado", theme: "blue" },
+  { key: "COSTURA", title: "Costura", theme: "purple" },
+  { key: "ACABAMENTO", title: "Acabamento", theme: "amber" },
+  { key: "EMBALAGEM", title: "Embalagem", theme: "orange" },
+  { key: "CONCLUIDO", title: "Concluído", theme: "emerald" },
 ];
 
 async function fetchBoard(): Promise<ProductionBoard> {
@@ -56,9 +54,7 @@ export default function AdminProductionPage() {
   const { notify } = useNotifications();
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
 
-  useEffect(() => {
-    applyAuthFromStorage();
-  }, []);
+  useEffect(() => { applyAuthFromStorage(); }, []);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin", "production-board"],
@@ -73,9 +69,9 @@ export default function AdminProductionPage() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
-      notify(`Pedido ${data.orderNumber} avançou para a próxima etapa!`, "success");
+      notify(`Pedido #${data.orderNumber} avançou!`, "success");
     },
-    onError: () => notify("Erro ao mover pedido. Tente novamente.", "error"),
+    onError: () => notify("Erro ao mover pedido.", "error"),
   });
 
   const movePrev = useMutation({
@@ -85,7 +81,7 @@ export default function AdminProductionPage() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
-      notify(`Pedido ${data.orderNumber} retornou uma etapa.`, "info");
+      notify(`Pedido #${data.orderNumber} retornou.`, "info");
     },
     onError: () => notify("Erro ao voltar etapa.", "error"),
   });
@@ -97,19 +93,9 @@ export default function AdminProductionPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
-      notify("Observação salva com sucesso!", "success");
+      notify("Nota salva!", "success");
     },
-    onError: () => notify("Falha ao salvar observação.", "error"),
-  });
-
-  const setStatus = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: number; status: "PENDING" | "IN_PROGRESS" | "DONE" }) => {
-      const res = await api.patch(`/production/orders/${orderId}`, { status });
-      return res.data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "production-board"] });
-    },
+    onError: () => notify("Erro ao salvar nota.", "error"),
   });
 
   const getDeliveryInfo = (dateStr?: string | null) => {
@@ -123,7 +109,7 @@ export default function AdminProductionPage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     const isLate = diffDays < 0;
-    const isUrgent = diffDays >= 0 && diffDays <= 5; //urgencia
+    const isUrgent = diffDays >= 0 && diffDays <= 3; 
 
     return {
       formatted: date.toLocaleDateString("pt-BR"),
@@ -137,202 +123,181 @@ export default function AdminProductionPage() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-rose-600">Erro ao carregar quadro</h1>
-          <p className="text-slate-600">Verifique sua conexão ou se está logado como admin.</p>
-          <Button onClick={() => window.location.reload()} variant="outline">Tentar novamente</Button>
-        </div>
+      <div className="flex h-96 flex-col items-center justify-center text-[#8D6E63]">
+        <AlertTriangle size={32} className="mb-2 text-[#E53935]" />
+        <p className="font-bold">Não foi possível carregar o quadro.</p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="mt-4 border-[#D7CCC8]">Recarregar</Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-4 md:p-8">
-      <div className="mx-auto max-w-[1900px] space-y-8">
+    <div className="space-y-6 h-[calc(100vh-140px)] flex flex-col">
+        
         {/* Header */}
-        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-6 md:p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-3 shadow-md">
-                <Package size={24} className="text-rose-600" />
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30">
-                <Sparkles size={14} className="animate-pulse" />
-                Quadro Kanban
-              </span>
+        <div className="flex items-center justify-between border-b border-dashed border-[#D7CCC8] pb-4 flex-shrink-0">
+            <div className="flex items-center gap-4">
+                <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+                    <Layers className="h-6 w-6 text-[#5D4037]" />
+                </div>
+                <div>
+                    <h1 className="text-2xl font-serif font-bold text-[#5D4037]">Quadro de Produção</h1>
+                    <p className="text-[#8D6E63] text-sm">Controle de fluxo do ateliê.</p>
+                </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Produção
-            </h1>
-            <p className="mt-2 text-neutral-600 font-medium max-w-2xl">
-              Gerencie o fluxo de produção arrastando os pedidos ou usando os botões de navegação.
-            </p>
-          </div>
-        </section>
+            
+            <div className="hidden md:flex items-center gap-2 bg-[#FFF8E1] px-3 py-1.5 rounded-sm border border-[#FFE0B2]">
+                <Clock size={14} className="text-[#F57F17]" />
+                <span className="text-xs font-bold text-[#F57F17] uppercase">Atualização em tempo real</span>
+            </div>
+        </div>
 
-        {isLoading && (
-           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-             {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-96 rounded-3xl bg-rose-100/50" />)}
-           </div>
-        )}
+        {/* Board Container */}
+        {isLoading ? (
+            <div className="flex h-full items-center justify-center text-[#8D6E63]">
+                <Loader2 className="h-8 w-8 animate-spin mb-2 text-[#D7CCC8]" />
+                <span className="text-sm font-bold uppercase tracking-widest ml-2">Montando quadro...</span>
+            </div>
+        ) : (
+            <div className="flex gap-4 overflow-x-auto pb-4 h-full items-start">
+                {STAGES.map((col) => {
+                    const cards = board?.[col.key] ?? [];
+                    
+                    // Cores temáticas para os headers das colunas
+                    const themeMap: any = {
+                        blue: "bg-[#E3F2FD] text-[#1565C0] border-[#BBDEFB]",
+                        purple: "bg-[#F3E5F5] text-[#7B1FA2] border-[#E1BEE7]",
+                        amber: "bg-[#FFF8E1] text-[#F57F17] border-[#FFE0B2]",
+                        orange: "bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]",
+                        emerald: "bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]",
+                    };
+                    const theme = themeMap[col.theme];
 
-        {!isLoading && (
-          <div className="flex flex-col xl:flex-row gap-6 overflow-x-auto pb-8 min-h-[600px] items-start">
-            {STAGES.map((col) => {
-              const cards = board?.[col.key] ?? [];
-              
-              const colorMap: any = {
-                blue: "from-blue-50 to-sky-50 border-blue-200",
-                purple: "from-purple-50 to-violet-50 border-purple-200",
-                amber: "from-amber-50 to-yellow-50 border-amber-200",
-                orange: "from-orange-50 to-red-50 border-orange-200",
-                emerald: "from-emerald-50 to-green-50 border-emerald-200",
-              };
-
-              return (
-                <Card key={col.key} className="min-w-[320px] xl:w-1/5 rounded-3xl border-2 border-rose-200 bg-white/60 backdrop-blur-sm shadow-xl flex flex-col shrink-0">
-                  <CardHeader className={cn("bg-gradient-to-r border-b-2 py-4", colorMap[col.color])}>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-800 uppercase tracking-wide">
-                        {col.title}
-                      </span>
-                      <span className="rounded-full bg-white/60 px-2.5 py-0.5 text-xs font-bold text-slate-800 shadow-sm border border-white/20">
-                        {cards.length}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-
-                  <CardContent className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[calc(100vh-20rem)] custom-scrollbar">
-                    {cards.length === 0 && (
-                      <div className="text-center py-12 opacity-50 flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-2">
-                           <Package className="h-5 w-5 text-slate-400" />
-                        </div>
-                        <p className="text-xs font-medium text-slate-500">Sem pedidos</p>
-                      </div>
-                    )}
-
-                    {cards.map((card) => {
-                      const draft = notesDraft[card.orderId] ?? (card.notes ?? "");
-                      const deliveryInfo = getDeliveryInfo(card.expectedDeliveryDate);
-                      
-                      return (
-                        <div
-                          key={card.orderId}
-                          className={cn(
-                            "group relative rounded-2xl border-2 bg-white p-3 shadow-sm hover:shadow-md transition-all duration-300",
-                            deliveryInfo?.isLate ? "border-red-300 bg-red-50" : 
-                            deliveryInfo?.isUrgent ? "border-amber-300 bg-amber-50" : "border-rose-100"
-                          )}
-                        >
-                          {/* Topo do Card: Número e Data */}
-                          <div className="flex justify-between items-start mb-2 gap-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                              {card.orderNumber}
-                            </span>
+                    return (
+                        <div key={col.key} className="flex flex-col w-[300px] min-w-[300px] h-full rounded-sm bg-[#EFEBE9]/40 border border-[#D7CCC8] overflow-hidden">
                             
-                            {deliveryInfo && (
-                                <div className={cn(
-                                    "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
-                                    deliveryInfo.isLate ? "bg-red-200 text-red-700" : 
-                                    deliveryInfo.isUrgent ? "bg-amber-200 text-amber-700" : "bg-slate-100 text-slate-600"
-                                )}>
-                                    {deliveryInfo.isLate && <AlertTriangle size={10} />}
-                                    {!deliveryInfo.isLate && <Calendar size={10} />}
-                                    {deliveryInfo.formatted}
-                                </div>
-                            )}
-                          </div>
-
-                          <div className="font-bold text-slate-800 text-sm mb-2 leading-tight">
-                            {card.customerName}
-                          </div>
-
-                          {/* Lista de Itens (Compacta) */}
-                          <div className="bg-slate-50/80 rounded-lg p-2 mb-3 border border-slate-100">
-                            {card.items?.slice(0, 3).map((it, idx) => (
-                              <div key={idx} className="flex justify-between text-xs text-slate-600 mb-1 last:mb-0">
-                                <span className="truncate pr-2 font-medium">{it.name}</span>
-                                <span className="font-bold shrink-0 bg-white px-1 rounded border">x{it.quantity}</span>
-                              </div>
-                            ))}
-                            {card.items && card.items.length > 3 && (
-                                <div className="text-[10px] text-slate-400 text-center font-medium mt-1">
-                                    +{card.items.length - 3} itens...
-                                </div>
-                            )}
-                          </div>
-
-                          {/* Campo de Observações com Botão Salvar Condicional */}
-                          <div className="mb-3 relative">
-                            <Textarea
-                              value={draft}
-                              onChange={(e) => setNotesDraft(prev => ({ ...prev, [card.orderId]: e.target.value }))}
-                              placeholder="Observações..."
-                              className="min-h-[50px] text-xs resize-none bg-white border-slate-200 focus:border-rose-300 pr-8 py-2"
-                            />
-                            {draft !== (card.notes || "") && (
-                                <Button
-                                    size="icon"
-                                    className="absolute bottom-2 right-2 h-5 w-5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all"
-                                    onClick={() => saveNotes.mutate({ orderId: card.orderId, notes: draft })}
-                                    disabled={saveNotes.isPending}
-                                    title="Salvar observação"
-                                >
-                                    <CheckCircle size={12} />
-                                </Button>
-                            )}
-                          </div>
-
-                          {/* Rodapé: Ações */}
-                          <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-100/50">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                                onClick={() => window.open(`/api/production/orders/${card.orderId}/pdf`, "_blank")}
-                                title="Imprimir Ficha de Produção (PDF)"
-                            >
-                                <FileText size={14} />
-                            </Button>
-
-                            <div className="flex items-center gap-1.5">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-2 rounded-lg border-slate-200 hover:bg-slate-50"
-                                    disabled={col.key === "BORDADO" || movePrev.isPending}
-                                    onClick={() => movePrev.mutate(card.orderId)}
-                                    title="Voltar etapa"
-                                >
-                                    <ChevronLeft size={14} />
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    className={cn(
-                                        "h-8 px-3 rounded-lg bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md hover:shadow-lg transition-all border-0",
-                                        col.key === "CONCLUIDO" && "opacity-50 grayscale cursor-not-allowed"
-                                    )}
-                                    disabled={col.key === "CONCLUIDO" || moveNext.isPending}
-                                    onClick={() => moveNext.mutate(card.orderId)}
-                                    title="Avançar etapa"
-                                >
-                                    <ChevronRight size={14} />
-                                </Button>
+                            {/* Header da Coluna */}
+                            <div className={cn("px-4 py-3 border-b-2 flex justify-between items-center", theme)}>
+                                <span className="font-bold text-xs uppercase tracking-wider">{col.title}</span>
+                                <span className="bg-white/60 px-2 py-0.5 rounded-full text-[10px] font-bold border border-black/5">
+                                    {cards.length}
+                                </span>
                             </div>
-                          </div>
+
+                            {/* Área de Cards */}
+                            <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
+                                {cards.length === 0 && (
+                                    <div className="h-20 flex items-center justify-center border-2 border-dashed border-[#D7CCC8] rounded-sm m-2">
+                                        <span className="text-[10px] font-bold text-[#A1887F] uppercase opacity-50">Vazio</span>
+                                    </div>
+                                )}
+
+                                {cards.map((card) => {
+                                    const draft = notesDraft[card.orderId] ?? (card.notes ?? "");
+                                    const deliveryInfo = getDeliveryInfo(card.expectedDeliveryDate);
+                                    
+                                    return (
+                                        <div 
+                                            key={card.orderId} 
+                                            className="bg-white border border-[#D7CCC8] rounded-sm p-3 shadow-sm hover:shadow-md transition-all relative group"
+                                        >
+                                            {/* Tarja lateral de status */}
+                                            <div className={cn(
+                                                "absolute left-0 top-0 bottom-0 w-1 rounded-l-sm transition-colors",
+                                                deliveryInfo?.isLate ? "bg-[#C62828]" : deliveryInfo?.isUrgent ? "bg-[#F57F17]" : "bg-[#D7CCC8] group-hover:bg-[#E53935]"
+                                            )}></div>
+
+                                            <div className="pl-2">
+                                                {/* Cabeçalho do Card */}
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="font-mono text-xs font-bold text-[#5D4037] bg-[#FAF7F5] px-1.5 rounded border border-[#EFEBE9]">
+                                                        #{card.orderNumber}
+                                                    </span>
+                                                    {deliveryInfo && (
+                                                        <span className={cn(
+                                                            "text-[9px] font-bold px-1.5 rounded-sm uppercase border",
+                                                            deliveryInfo.isLate ? "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]" : 
+                                                            deliveryInfo.isUrgent ? "bg-[#FFF8E1] text-[#F57F17] border-[#FFE0B2]" : "bg-white text-[#8D6E63] border-[#EFEBE9]"
+                                                        )}>
+                                                            {deliveryInfo.isLate ? "Atrasado" : deliveryInfo.isUrgent ? "Urgente" : deliveryInfo.formatted}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Nome do Cliente */}
+                                                <p className="font-bold text-sm text-[#5D4037] line-clamp-1 mb-2">
+                                                    {card.customerName}
+                                                </p>
+
+                                                {/* Itens */}
+                                                <ul className="text-xs text-[#8D6E63] space-y-1 mb-3 bg-[#FAF7F5] p-2 rounded-sm border border-[#EFEBE9]">
+                                                    {card.items.slice(0, 3).map((it, idx) => (
+                                                        <li key={idx} className="flex justify-between">
+                                                            <span className="truncate w-3/4">{it.name}</span>
+                                                            <span className="font-bold">x{it.quantity}</span>
+                                                        </li>
+                                                    ))}
+                                                    {card.items.length > 3 && (
+                                                        <li className="text-[9px] text-center opacity-70">+{card.items.length - 3} outros...</li>
+                                                    )}
+                                                </ul>
+
+                                                {/* Bloco de Notas */}
+                                                <div className="relative mb-3">
+                                                    <Textarea
+                                                        value={draft}
+                                                        onChange={(e) => setNotesDraft(prev => ({ ...prev, [card.orderId]: e.target.value }))}
+                                                        placeholder="Notas..."
+                                                        className="min-h-[40px] text-[10px] resize-none bg-white border-[#D7CCC8] focus:border-[#E53935] py-1 px-2 rounded-sm pr-6"
+                                                    />
+                                                    {draft !== (card.notes || "") && (
+                                                        <button
+                                                            className="absolute bottom-1 right-1 text-[#2E7D32] hover:text-[#1B5E20]"
+                                                            onClick={() => saveNotes.mutate({ orderId: card.orderId, notes: draft })}
+                                                            title="Salvar nota"
+                                                        >
+                                                            <CheckCircle size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Ações de Navegação */}
+                                                <div className="flex justify-between items-center pt-2 border-t border-dashed border-[#EFEBE9]">
+                                                    <button
+                                                        className="text-[#D7CCC8] hover:text-[#8D6E63] p-1"
+                                                        onClick={() => window.open(`/admin/orders/${card.orderId}/print`, "_blank")}
+                                                        title="Imprimir"
+                                                    >
+                                                        <FileText size={14} />
+                                                    </button>
+
+                                                    <div className="flex gap-1">
+                                                        <button
+                                                            onClick={() => movePrev.mutate(card.orderId)}
+                                                            disabled={col.key === "BORDADO" || movePrev.isPending}
+                                                            className="p-1 rounded-sm border border-[#D7CCC8] text-[#8D6E63] hover:bg-[#FAF7F5] disabled:opacity-30"
+                                                        >
+                                                            <ChevronLeft size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => moveNext.mutate(card.orderId)}
+                                                            disabled={col.key === "CONCLUIDO" || moveNext.isPending}
+                                                            className="p-1 rounded-sm bg-[#5D4037] text-white hover:bg-[#3E2723] disabled:opacity-30 disabled:bg-[#A1887F]"
+                                                        >
+                                                            <ChevronRight size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    );
+                })}
+            </div>
         )}
-      </div>
     </div>
   );
 }

@@ -24,8 +24,7 @@ function SocialCallback() {
       // 1. Salva o token
       setAuthToken(token);
 
-      // 2. Busca os dados do usuário (já que o social login só devolve o token na URL)
-      api.get("/users/me") // ou o endpoint que retorna os dados do usuário logado
+      api.get("/users/me")
         .then((res) => {
           const user = res.data;
           

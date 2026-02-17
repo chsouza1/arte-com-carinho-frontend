@@ -15,10 +15,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
-import { Address } from "./page";
+import { Loader2, MapPin, Truck, Home, Building2, CheckCircle2 } from "lucide-react";
+// Assumindo que a interface Address esteja disponível
+import { Address } from "./page"; 
 
 const addressSchema = z.object({
   zipCode: z.string().min(8, "CEP inválido"),
@@ -44,7 +44,7 @@ export function AddressFormDialog({ isOpen, onClose, addressToEdit, onSuccess }:
   const [isLoadingCEP, setIsLoadingCEP] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const form = useForm({
+  const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
       zipCode: "",
@@ -58,8 +58,9 @@ export function AddressFormDialog({ isOpen, onClose, addressToEdit, onSuccess }:
     }
   });
 
-  const { register, handleSubmit, setValue, reset, watch, control, formState: { errors } } = form;
+  const { register, handleSubmit, setValue, reset, watch, formState: { errors } } = form;
 
+  // Reset do formulário ao abrir
   useEffect(() => {
     if (isOpen) {
       if (addressToEdit) {
@@ -112,6 +113,7 @@ export function AddressFormDialog({ isOpen, onClose, addressToEdit, onSuccess }:
     setIsSaving(true);
     try {
       if (addressToEdit) {
+        // Se sua API espera um PUT para editar
         await api.put(`/addresses/${addressToEdit.id}`, data);
       } else {
         await api.post("/addresses", data);
@@ -128,76 +130,147 @@ export function AddressFormDialog({ isOpen, onClose, addressToEdit, onSuccess }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{addressToEdit ? "Editar Endereço" : "Novo Endereço"}</DialogTitle>
-          <DialogDescription>
-            Preencha os dados abaixo para entrega.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[550px] bg-[#FAF7F5] border-2 border-dashed border-[#D7CCC8] p-0 overflow-hidden shadow-2xl rounded-sm">
+        
+        {/* Cabeçalho Estilo Etiqueta */}
+        <DialogHeader className="bg-[#FFF8E1] border-b border-[#FFE0B2] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-2 rounded-full border border-[#FFE0B2] shadow-sm">
+                <Truck className="h-5 w-5 text-[#F57F17]" />
+            </div>
+            <div>
+                <DialogTitle className="text-xl font-serif font-bold text-[#5D4037]">
+                    {addressToEdit ? "Editar Endereço de Entrega" : "Novo Destino de Entrega"}
+                </DialogTitle>
+                <p className="text-xs text-[#8D6E63]">
+                    Preencha os dados com atenção para garantir que sua encomenda chegue certinho.
+                </p>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">CEP</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-6 space-y-5">
+          
+          {/* Linha 1: CEP e Estado */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2 space-y-1.5">
+              <Label htmlFor="zipCode" className="text-xs font-bold text-[#8D6E63] uppercase">CEP</Label>
               <div className="relative">
-                <Input id="zipCode" {...register("zipCode")} placeholder="00000-000" maxLength={9} />
-                {isLoadingCEP && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-rose-500" />}
+                <Input 
+                    id="zipCode" 
+                    {...register("zipCode")} 
+                    placeholder="00000-000" 
+                    maxLength={9} 
+                    className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm pl-9"
+                />
+                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-[#A1887F]" />
+                {isLoadingCEP && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#E53935]" />}
               </div>
-              {errors.zipCode && <p className="text-xs text-red-500">{errors.zipCode.message}</p>}
+              {errors.zipCode && <p className="text-[10px] text-[#C62828] font-bold">{errors.zipCode.message}</p>}
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="state">Estado (UF)</Label>
-                <Input id="state" {...register("state")} maxLength={2} placeholder="SP" />
-                {errors.state && <p className="text-xs text-red-500">{errors.state.message}</p>}
+            
+            <div className="col-span-1 space-y-1.5">
+                <Label htmlFor="state" className="text-xs font-bold text-[#8D6E63] uppercase">Estado (UF)</Label>
+                <Input 
+                    id="state" 
+                    {...register("state")} 
+                    maxLength={2} 
+                    placeholder="SP" 
+                    className="bg-[#EFEBE9] border-[#D7CCC8] text-[#5D4037] rounded-sm text-center font-bold"
+                />
+                {errors.state && <p className="text-[10px] text-[#C62828] font-bold">{errors.state.message}</p>}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="street">Rua / Avenida</Label>
-            <Input id="street" {...register("street")} />
-            {errors.street && <p className="text-xs text-red-500">{errors.street.message}</p>}
+          {/* Linha 2: Rua */}
+          <div className="space-y-1.5">
+            <Label htmlFor="street" className="text-xs font-bold text-[#8D6E63] uppercase">Rua / Avenida</Label>
+            <Input 
+                id="street" 
+                {...register("street")} 
+                className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm"
+            />
+            {errors.street && <p className="text-[10px] text-[#C62828] font-bold">{errors.street.message}</p>}
           </div>
 
+          {/* Linha 3: Número e Complemento */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="number">Número</Label>
-              <Input id="number" {...register("number")} />
-              {errors.number && <p className="text-xs text-red-500">{errors.number.message}</p>}
+            <div className="space-y-1.5">
+              <Label htmlFor="number" className="text-xs font-bold text-[#8D6E63] uppercase">Número</Label>
+              <div className="relative">
+                <Input 
+                    id="number" 
+                    {...register("number")} 
+                    className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm pl-9"
+                />
+                <Home className="absolute left-3 top-2.5 h-4 w-4 text-[#A1887F]" />
+              </div>
+              {errors.number && <p className="text-[10px] text-[#C62828] font-bold">{errors.number.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="complement">Complemento</Label>
-              <Input id="complement" {...register("complement")} placeholder="Apto, Bloco..." />
+            <div className="space-y-1.5">
+              <Label htmlFor="complement" className="text-xs font-bold text-[#8D6E63] uppercase">Complemento</Label>
+              <Input 
+                id="complement" 
+                {...register("complement")} 
+                placeholder="Apto, Bloco..." 
+                className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm"
+              />
             </div>
           </div>
 
+          {/* Linha 4: Bairro e Cidade */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="neighborhood">Bairro</Label>
-              <Input id="neighborhood" {...register("neighborhood")} />
-              {errors.neighborhood && <p className="text-xs text-red-500">{errors.neighborhood.message}</p>}
+            <div className="space-y-1.5">
+              <Label htmlFor="neighborhood" className="text-xs font-bold text-[#8D6E63] uppercase">Bairro</Label>
+              <Input 
+                id="neighborhood" 
+                {...register("neighborhood")} 
+                className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm"
+              />
+              {errors.neighborhood && <p className="text-[10px] text-[#C62828] font-bold">{errors.neighborhood.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="city">Cidade</Label>
-              <Input id="city" {...register("city")} />
-              {errors.city && <p className="text-xs text-red-500">{errors.city.message}</p>}
+            <div className="space-y-1.5">
+              <Label htmlFor="city" className="text-xs font-bold text-[#8D6E63] uppercase">Cidade</Label>
+              <div className="relative">
+                <Input 
+                    id="city" 
+                    {...register("city")} 
+                    className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm pl-9"
+                />
+                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-[#A1887F]" />
+              </div>
+              {errors.city && <p className="text-[10px] text-[#C62828] font-bold">{errors.city.message}</p>}
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 pt-2">
+          {/* Checkbox Padrão */}
+          <div className="flex items-center space-x-2 pt-2 bg-[#FFF8E1] p-3 rounded-sm border border-[#FFE0B2]">
             <Checkbox 
                 id="default" 
                 checked={watch("default")}
                 onCheckedChange={(checked) => setValue("default", checked === true)}
+                className="border-[#F57F17] data-[state=checked]:bg-[#F57F17] data-[state=checked]:text-white"
             />
-            <Label htmlFor="default" className="font-normal cursor-pointer">
-                Usar como endereço padrão
+            <Label htmlFor="default" className="text-sm font-bold text-[#F57F17] cursor-pointer flex items-center gap-1">
+                <CheckCircle2 size={14} /> Definir como endereço principal
             </Label>
           </div>
 
-          <div className="flex justify-end pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="mr-2">Cancelar</Button>
-            <Button type="submit" className="bg-rose-600 hover:bg-rose-700 font-bold" disabled={isSaving}>
+          {/* Botões de Ação */}
+          <div className="flex justify-end pt-4 gap-3 border-t border-dashed border-[#D7CCC8]">
+            <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={onClose} 
+                className="text-[#8D6E63] hover:text-[#5D4037] hover:bg-[#EFEBE9] font-bold uppercase tracking-widest text-xs"
+            >
+                Cancelar
+            </Button>
+            <Button 
+                type="submit" 
+                className="bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest text-xs px-6 rounded-sm shadow-md" 
+                disabled={isSaving}
+            >
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Salvar Endereço
             </Button>

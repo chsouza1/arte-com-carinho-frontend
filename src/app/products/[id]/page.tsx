@@ -2,15 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter, useParams } from "next/navigation"; // ADICIONADO: useParams
-import Image from "next/image";
+import { useRouter, useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useCartStore } from "@/lib/cart";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Check, ChevronLeft, Star, Ruler, Palette, AlertTriangle, Bug } from "lucide-react";
-
+import { ShoppingCart, Check, ChevronLeft, Star, Ruler, Palette, AlertTriangle, Bug, Scissors, Heart } from "lucide-react";
 
 type Product = {
   id: number;
@@ -27,13 +22,11 @@ type Product = {
   customizable: boolean;
 };
 
-
 export default function ProductDetailsPage() {
   const router = useRouter();
   const params = useParams(); 
   const { addItem } = useCartStore();
   
- 
   const productId = params?.id ? String(params.id) : null;
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -44,8 +37,6 @@ export default function ProductDetailsPage() {
     queryKey: ["product", productId],
     queryFn: async () => {
       if (!productId) throw new Error("ID do produto não encontrado");
-      
-      console.log(`Buscando produto ID: ${productId}`);
       try {
         const res = await api.get<Product>(`/products/${productId}`);
         return res.data;
@@ -80,38 +71,33 @@ export default function ProductDetailsPage() {
     
     router.push("/cart");
   };
+
   if (!productId || isLoading) return <ProductSkeleton />;
   
   if (isError || !product) {
+    // Tratamento de erro mantido, mas estilizado
     const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
-    const errorDetails = (error as any)?.response?.data ? JSON.stringify((error as any).response.data) : null;
-    const status = (error as any)?.response?.status;
-
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-6 p-8 bg-slate-50">
-        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-lg w-full border border-rose-100">
-            <div className="mx-auto w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="h-8 w-8 text-rose-500" />
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-6 p-8 bg-[#FAF7F5]">
+        <div className="bg-white p-10 rounded-sm shadow-xl max-w-lg w-full border border-[#D7CCC8]">
+            <div className="mx-auto w-16 h-16 bg-[#FFEBEE] rounded-full flex items-center justify-center mb-4 border border-[#FFCDD2]">
+                <Scissors className="h-8 w-8 text-[#E53935]" />
             </div>
+            <h2 className="text-2xl font-serif font-bold text-[#5D4037] mb-2">Ops! Algo deu errado.</h2>
+            <p className="text-[#8D6E63] mb-6">Não conseguimos encontrar este produto no ateliê.</p>
             
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Ops! Não conseguimos carregar.</h2>
-            <p className="text-slate-500 mb-6">Ocorreu um problema ao buscar o produto ID: <strong>{productId}</strong></p>
-            
-            {/* Área técnica para você identificar o problema */}
-            <div className="bg-slate-900 rounded-xl p-4 text-left mb-6 overflow-hidden">
-                <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase mb-2">
-                    <Bug size={12} /> Diagnóstico Técnico
+            <div className="bg-[#EFEBE9] rounded p-4 text-left mb-6 overflow-hidden border border-[#D7CCC8]">
+                <div className="flex items-center gap-2 text-[#5D4037] font-bold text-xs uppercase mb-2">
+                    <Bug size={12} /> Detalhes Técnicos
                 </div>
-                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
-                  Status: {status || 'N/A'}{"\n"}
-                  Erro: {errorMsg}{"\n"}
-                  {errorDetails && `Detalhes: ${errorDetails}`}
+                <pre className="text-xs text-[#8D6E63] font-mono whitespace-pre-wrap break-all">
+                  Erro: {errorMsg}
                 </pre>
             </div>
 
             <div className="flex gap-3 justify-center">
-                <Button onClick={() => window.location.reload()} variant="outline">Tentar Novamente</Button>
-                <Button onClick={() => router.back()} className="bg-rose-500 hover:bg-rose-600 text-white">Voltar para Loja</Button>
+                <button onClick={() => window.location.reload()} className="px-4 py-2 border border-[#8D6E63] text-[#5D4037] hover:bg-[#EFEBE9] font-bold uppercase text-xs tracking-widest rounded-sm">Tentar Novamente</button>
+                <button onClick={() => router.back()} className="px-4 py-2 bg-[#E53935] text-white hover:bg-[#C62828] font-bold uppercase text-xs tracking-widest rounded-sm shadow-md">Voltar para Loja</button>
             </div>
         </div>
       </div>
@@ -123,115 +109,124 @@ export default function ProductDetailsPage() {
   const isOutOfStock = product.stock <= 0;
 
   return (
-    <div className="min-h-screen bg-[#FBF7FF]">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    // FUNDO CREME
+    <div className="min-h-screen bg-[#FAF7F5] text-[#5D4037]">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         
+        {/* BREADCRUMB / VOLTAR */}
         <button 
           onClick={() => router.back()} 
-          className="group mb-6 flex items-center text-sm font-medium text-slate-500 hover:text-rose-600 transition-colors"
+          className="group mb-8 flex items-center text-sm font-bold text-[#8D6E63] hover:text-[#E53935] transition-colors uppercase tracking-widest"
         >
-          <div className="mr-2 rounded-full bg-white p-1 shadow-sm group-hover:bg-rose-100 transition-colors">
-            <ChevronLeft size={16} />
-          </div>
-          Voltar para loja
+          <ChevronLeft size={16} className="mr-1" />
+          Voltar para o ateliê
         </button>
 
-        <div className="grid grid-cols-1 gap-x-10 gap-y-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-12 gap-y-12 lg:grid-cols-2">
           
-          {/* GALERIA */}
-          <div className="flex flex-col gap-4">
-            <div className="relative aspect-square w-full overflow-hidden rounded-[2rem] border-2 border-rose-100 bg-white shadow-lg">
-              {mainImage ? (
-                <img
-                  src={mainImage}
-                  alt={product.name}
-                  className={`h-full w-full object-cover object-center transition-all duration-500 hover:scale-105 ${isOutOfStock ? 'grayscale opacity-80' : ''}`}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-slate-50 text-slate-300 font-medium">
-                  Sem imagem
-                </div>
-              )}
-              
-              {product.featured && (
-                <div className="absolute top-4 left-4">
-                  <Badge className="bg-amber-400 text-amber-900 hover:bg-amber-500 gap-1 px-3 py-1 text-xs border-2 border-white shadow-sm">
+          {/* COLUNA ESQUERDA: GALERIA DE IMAGENS */}
+          <div className="flex flex-col gap-6">
+            
+            {/* Imagem Principal estilo POLAROID */}
+            <div className="relative aspect-square w-full bg-white p-4 shadow-lg border border-[#EFEBE9] rotate-1 hover:rotate-0 transition-transform duration-500 rounded-sm">
+              <div className="relative w-full h-full overflow-hidden bg-[#F5F5F5]">
+                {mainImage ? (
+                  <img
+                    src={mainImage}
+                    alt={product.name}
+                    className={`h-full w-full object-cover transition-all duration-700 hover:scale-110 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[#D7CCC8]">
+                    <Scissors size={48} opacity={0.5} />
+                  </div>
+                )}
+                
+                {/* Badges Flutuantes */}
+                {product.featured && (
+                  <div className="absolute top-0 left-0 bg-[#FFC107] text-[#5D4037] px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1">
                     <Star size={12} fill="currentColor" /> Destaque
-                  </Badge>
-                </div>
-              )}
+                  </div>
+                )}
 
-              {isOutOfStock && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]">
-                     <span className="bg-neutral-800 text-white px-6 py-2 rounded-full text-lg font-bold shadow-xl">ESGOTADO</span>
-                </div>
-              )}
+                {isOutOfStock && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
+                       <span className="bg-[#5D4037] text-white px-6 py-2 text-lg font-bold uppercase tracking-widest border-2 border-white shadow-xl rotate-[-5deg]">Esgotado</span>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Miniaturas (Carretel) */}
             {hasImages && product.images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide py-2">
+              <div className="flex gap-4 overflow-x-auto pb-4 pt-2 justify-center lg:justify-start">
                 {product.images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(img)}
-                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition-all shadow-sm ${
+                    className={`relative h-20 w-20 flex-shrink-0 bg-white p-1 shadow-sm border transition-all ${
                       selectedImage === img 
-                        ? "border-rose-500 ring-2 ring-rose-200 ring-offset-1 scale-105" 
-                        : "border-transparent opacity-70 hover:opacity-100 hover:border-rose-200"
+                        ? "border-[#E53935] -translate-y-1 shadow-md" 
+                        : "border-[#EFEBE9] hover:border-[#D7CCC8]"
                     }`}
                   >
-                    <img src={img} alt={`Thumb ${idx}`} className="h-full w-full object-cover" />
+                    <img src={img} alt={`Ver detalhe ${idx}`} className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* INFORMAÇÕES */}
+          {/* COLUNA DIREITA: INFORMAÇÕES DO PRODUTO */}
           <div className="flex flex-col pt-2">
-            <div className="mb-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
-                {product.category?.replace(/_/g, " ")}
+            
+            {/* Categoria Etiqueta */}
+            <div className="mb-4">
+              <span className="inline-block border-b-2 border-dashed border-[#E53935] text-[#E53935] text-xs font-bold uppercase tracking-widest pb-1">
+                {product.category?.replace(/_/g, " ") || "Artesanato"}
               </span>
             </div>
 
-            <h1 className="text-3xl font-black text-slate-900 sm:text-4xl mb-4 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-serif text-[#5D4037] mb-4 leading-tight">
               {product.name}
             </h1>
 
-            <div className="mb-6 flex items-end gap-4 border-b border-slate-100 pb-6">
-              <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
+            {/* Preço e Estoque */}
+            <div className="mb-8 flex items-baseline gap-4 border-b border-dashed border-[#D7CCC8] pb-6">
+              <p className="text-4xl font-bold text-[#5D4037]">
                 {product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </p>
               
               {!isOutOfStock && product.stock <= 3 && (
-                 <span className="mb-2 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs font-bold text-amber-600 border border-amber-200 animate-pulse">
+                 <span className="flex items-center gap-1 text-xs font-bold text-[#E65100] bg-[#FFF3E0] px-2 py-1 rounded-sm border border-[#FFE0B2]">
                    <AlertTriangle size={12} />
-                   Restam {product.stock}
+                   Restam apenas {product.stock}
                  </span>
               )}
             </div>
 
-            <div className="prose prose-sm prose-slate mb-8 text-slate-600 leading-relaxed text-base">
-              <p className="whitespace-pre-line">{product.description || "Sem descrição disponível."}</p>
+            {/* Descrição */}
+            <div className="prose prose-stone mb-10 text-[#8D6E63] leading-relaxed">
+              <p className="whitespace-pre-line font-medium">{product.description || "Feito à mão com muito carinho e atenção aos detalhes."}</p>
             </div>
 
-            <div className="space-y-6 mt-auto">
+            {/* Seletores (Tamanho/Cor) */}
+            <div className="space-y-8 mt-auto">
               
               {product.colors && product.colors.length > 0 && (
                 <div>
-                  <h3 className="mb-3 text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Palette size={16} className="text-rose-500" /> Modelos / Cores
+                  <h3 className="mb-3 text-sm font-bold text-[#5D4037] uppercase tracking-wider flex items-center gap-2">
+                    <Palette size={16} /> Cores Disponíveis
                   </h3>
                   <div className="flex flex-wrap gap-3">
                     {product.colors.map((color) => (
                       <button
                         key={color}
                         onClick={() => setSelectedColor(color)}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                        className={`px-4 py-2 text-sm font-bold border transition-all rounded-sm ${
                           selectedColor === color
-                            ? "border-rose-500 bg-rose-50 text-rose-700"
-                            : "border-slate-100 bg-white text-slate-600 hover:border-rose-200"
+                            ? "border-[#E53935] bg-[#FFEBEE] text-[#C62828]"
+                            : "border-[#D7CCC8] bg-white text-[#8D6E63] hover:border-[#A1887F]"
                         }`}
                       >
                         {color}
@@ -241,30 +236,42 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              <div className="flex gap-4 pt-4">
-                <Button
-                  size="lg"
-                  className="h-14 flex-1 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 text-base font-bold text-white shadow-xl shadow-rose-200 transition-all hover:scale-[1.02] hover:shadow-rose-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              {/* Botão de Ação */}
+              <div className="pt-4">
+                <button
+                  className={`w-full py-4 text-base font-bold uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-3 rounded-sm
+                    ${isOutOfStock 
+                        ? "bg-[#EFEBE9] text-[#A1887F] cursor-not-allowed border border-[#D7CCC8]" 
+                        : "bg-[#E53935] text-white hover:bg-[#C62828] hover:shadow-xl hover:-translate-y-1 active:translate-y-0"
+                    }
+                  `}
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
                 >
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  {isOutOfStock ? "Produto Esgotado" : "Adicionar ao Carrinho"}
-                </Button>
+                  <ShoppingCart className="h-5 w-5" />
+                  {isOutOfStock ? "Indisponível no momento" : "Adicionar à Sacola"}
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm border border-slate-100">
-                  <div className="rounded-full bg-green-100 p-2 text-green-600">
-                    <Check size={16} />
+              {/* Garantias / Infos Extras */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-dashed border-[#D7CCC8]">
+                <div className="flex items-start gap-3">
+                  <div className="p-1 rounded-full bg-[#EFEBE9] text-[#5D4037] mt-1">
+                    <Scissors size={14} />
                   </div>
-                  <span className="text-xs font-bold text-slate-700">Produção Artesanal</span>
+                  <div>
+                    <span className="block text-xs font-bold text-[#5D4037] uppercase">Produção Artesanal</span>
+                    <span className="text-xs text-[#8D6E63]">Peças únicas feitas à mão</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm border border-slate-100">
-                  <div className="rounded-full bg-blue-100 p-2 text-blue-600">
-                    <Check size={16} />
+                <div className="flex items-start gap-3">
+                  <div className="p-1 rounded-full bg-[#EFEBE9] text-[#5D4037] mt-1">
+                    <Heart size={14} />
                   </div>
-                  <span className="text-xs font-bold text-slate-700">Compra Segura</span>
+                  <div>
+                    <span className="block text-xs font-bold text-[#5D4037] uppercase">Feito com Amor</span>
+                    <span className="text-xs text-[#8D6E63]">Qualidade e carinho em cada ponto</span>
+                  </div>
                 </div>
               </div>
 
@@ -276,21 +283,27 @@ export default function ProductDetailsPage() {
   );
 }
 
+// Skeleton de Carregamento (Estilizado)
 function ProductSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <Skeleton className="aspect-square w-full rounded-[2rem] bg-rose-100/50" />
+    <div className="mx-auto max-w-6xl px-4 py-12 bg-[#FAF7F5]">
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+        {/* Skeleton Imagem */}
+        <div className="aspect-square w-full bg-[#EFEBE9] animate-pulse rounded-sm border border-[#D7CCC8]"></div>
+        
+        {/* Skeleton Info */}
         <div className="flex flex-col gap-6 pt-4">
-          <Skeleton className="h-8 w-32 rounded-full" />
-          <Skeleton className="h-12 w-3/4 rounded-xl" />
-          <Skeleton className="h-16 w-1/3 rounded-xl" />
-          <div className="space-y-2 pt-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+          <div className="h-6 w-32 bg-[#EFEBE9] animate-pulse rounded"></div>
+          <div className="h-12 w-3/4 bg-[#EFEBE9] animate-pulse rounded"></div>
+          <div className="h-10 w-1/3 bg-[#EFEBE9] animate-pulse rounded border-b border-[#D7CCC8]"></div>
+          
+          <div className="space-y-3 pt-6">
+            <div className="h-4 w-full bg-[#EFEBE9] animate-pulse rounded"></div>
+            <div className="h-4 w-full bg-[#EFEBE9] animate-pulse rounded"></div>
+            <div className="h-4 w-2/3 bg-[#EFEBE9] animate-pulse rounded"></div>
           </div>
-          <Skeleton className="h-14 w-full rounded-2xl mt-8" />
+          
+          <div className="h-14 w-full bg-[#EFEBE9] animate-pulse rounded mt-8"></div>
         </div>
       </div>
     </div>

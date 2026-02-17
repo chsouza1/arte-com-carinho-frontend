@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Search, 
@@ -83,133 +82,112 @@ export default function AdminCustomersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        
-        {/* Cabeçalho */}
-        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-3 shadow-md">
-                <Users size={24} className="text-rose-600" />
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30">
-                {filteredUsers.length} {filteredUsers.length === 1 ? 'registro' : 'registros'}
-              </span>
-            </div>
-            
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Base de Usuários
-            </h1>
-            <p className="mt-3 text-base text-neutral-600 font-medium">
-              Gerencie os administradores, clientes e usuários do sistema.
-            </p>
+    <div className="space-y-8">
+      
+      {/* Cabeçalho */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-dashed border-[#D7CCC8] pb-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+             <Users className="h-6 w-6 text-[#5D4037]" />
           </div>
-        </section>
-
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Fichário de Clientes</h1>
+            <p className="text-[#8D6E63] italic">Gerencie os contatos do ateliê.</p>
+          </div>
+        </div>
+        
         {/* Barra de Busca */}
-        <section className="rounded-[2rem] bg-white/80 backdrop-blur-sm p-6 shadow-lg border-2 border-rose-200">
-          <Label htmlFor="search" className="text-xs font-bold text-slate-700 mb-2 block">
-             Buscar Usuário
-          </Label>
-          <div className="relative flex items-center">
-            <Search className="absolute left-4 h-5 w-5 text-rose-400" />
+        <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1887F]" />
             <Input
               id="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nome, email ou telefone..."
-              className="h-12 pl-12 rounded-2xl border-2 border-rose-200 text-sm font-medium focus:border-rose-400 transition-colors"
+              placeholder="Buscar por nome..."
+              className="pl-9 bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-10"
             />
-          </div>
-        </section>
-
-        {/* Lista de Clientes (Grid) */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isLoading ? (
-            [...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-3xl bg-rose-100/50" />
-            ))
-          ) : filteredUsers.length === 0 ? (
-            <div className="col-span-full rounded-[2rem] bg-white/50 p-16 text-center border-2 border-dashed border-rose-200">
-              <Users className="mx-auto h-12 w-12 text-rose-300 mb-4" />
-              <p className="text-slate-600 font-bold">Nenhum usuário encontrado.</p>
-            </div>
-          ) : (
-            filteredUsers.map((user) => (
-              <Card 
-                key={user.id} 
-                className="group relative overflow-hidden rounded-3xl border-2 border-rose-100 bg-white/90 hover:border-rose-300 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="absolute top-0 right-0 p-4">
-                    {/* Badge Traduzida */}
-                    <Badge variant="outline" className={
-                        user.role === 'ADMIN' 
-                        ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                        : user.role === 'CUSTOMER'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-blue-50 text-blue-700 border-blue-200'
-                    }>
-                        {user.role === 'ADMIN' ? <Shield size={10} className="mr-1"/> : 
-                         user.role === 'CUSTOMER' ? <ShoppingBag size={10} className="mr-1"/> :
-                         <UserIcon size={10} className="mr-1"/>}
-                        {ROLE_MAP[user.role] || user.role}
-                    </Badge>
-                </div>
-
-                <CardContent className="pt-8 pb-6 px-6">
-                    <div className="flex flex-col items-center text-center space-y-4">
-                        <Avatar className="h-20 w-20 border-4 border-rose-50 shadow-sm">
-                            <AvatarFallback className="bg-gradient-to-br from-rose-200 to-pink-200 text-rose-600 font-black text-xl">
-                                {user.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 group-hover:text-rose-600 transition-colors">
-                                {user.name}
-                            </h3>
-                            <div className="mt-3 space-y-2">
-                                <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 py-1.5 px-3 rounded-full">
-                                    <Mail size={12} />
-                                    <span className="truncate max-w-[200px]">{user.email}</span>
-                                </div>
-                                {user.phone ? (
-                                    <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 py-1.5 px-3 rounded-full">
-                                        <Phone size={12} />
-                                        <span>{user.phone}</span>
-                                    </div>
-                                ) : (
-                                    <span className="text-xs text-slate-400 italic">Sem telefone</span>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="w-full pt-4 border-t border-rose-50 mt-2">
-                            {user.phone ? (
-                                <Button 
-                                    className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-emerald-200 shadow-lg"
-                                    onClick={() => window.open(getWhatsAppLink(user.phone) || '#', '_blank')}
-                                >
-                                    <MessageCircle size={16} className="mr-2" />
-                                    WhatsApp
-                                </Button>
-                            ) : (
-                                <Button variant="outline" disabled className="w-full rounded-xl border-slate-200 text-slate-400">
-                                    Sem contato
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </section>
-
+        </div>
       </div>
+
+      {/* Lista de Clientes (Grid) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          [...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-48 rounded-sm bg-[#EFEBE9]" />
+          ))
+        ) : filteredUsers.length === 0 ? (
+          <div className="col-span-full border-2 border-dashed border-[#D7CCC8] bg-[#FAF7F5] p-16 text-center rounded-sm">
+            <Users className="mx-auto h-12 w-12 text-[#D7CCC8] mb-4" />
+            <p className="text-[#5D4037] font-bold">Nenhum usuário encontrado.</p>
+          </div>
+        ) : (
+          filteredUsers.map((user) => (
+            <Card 
+              key={user.id} 
+              className="group relative overflow-hidden rounded-sm border border-[#D7CCC8] bg-white shadow-sm hover:shadow-md transition-all duration-300"
+            >
+              {/* Faixa decorativa no topo */}
+              <div className="h-1 w-full bg-[#E53935] absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+              <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                      <Avatar className="h-12 w-12 border border-[#D7CCC8]">
+                          <AvatarFallback className="bg-[#FAF7F5] text-[#5D4037] font-serif font-bold text-lg">
+                              {user.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                      </Avatar>
+                      
+                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-sm border flex items-center gap-1 ${
+                          user.role === 'ADMIN' ? 'bg-[#F3E5F5] text-[#7B1FA2] border-[#E1BEE7]' : 
+                          user.role === 'CUSTOMER' ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]' : 
+                          'bg-[#E3F2FD] text-[#1565C0] border-[#BBDEFB]'
+                      }`}>
+                          {user.role === 'ADMIN' ? <Shield size={10}/> : 
+                           user.role === 'CUSTOMER' ? <ShoppingBag size={10}/> :
+                           <UserIcon size={10}/>}
+                          {ROLE_MAP[user.role] || user.role}
+                      </span>
+                  </div>
+
+                  <div className="space-y-4">
+                      <div>
+                          <h3 className="text-lg font-bold text-[#5D4037] truncate" title={user.name}>
+                              {user.name}
+                          </h3>
+                      </div>
+
+                      <div className="space-y-2 text-xs text-[#8D6E63]">
+                          <div className="flex items-center gap-2 bg-[#FAF7F5] p-2 rounded-sm border border-[#EFEBE9]">
+                              <Mail size={12} className="shrink-0" />
+                              <span className="truncate" title={user.email}>{user.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2 bg-[#FAF7F5] p-2 rounded-sm border border-[#EFEBE9]">
+                              <Phone size={12} className="shrink-0" />
+                              <span>{user.phone || "Sem telefone"}</span>
+                          </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-dashed border-[#D7CCC8]">
+                          {user.phone ? (
+                              <Button 
+                                  className="w-full rounded-sm bg-[#25D366] hover:bg-[#128C7E] text-white font-bold uppercase tracking-widest text-xs h-9 shadow-sm flex items-center gap-2 transition-all hover:-translate-y-0.5"
+                                  onClick={() => window.open(getWhatsAppLink(user.phone) || '#', '_blank')}
+                              >
+                                  <MessageCircle size={14} /> WhatsApp
+                              </Button>
+                          ) : (
+                              <Button variant="outline" disabled className="w-full rounded-sm border-[#D7CCC8] text-[#A1887F] bg-[#FAF7F5] text-xs uppercase tracking-widest h-9">
+                                  Sem contato
+                              </Button>
+                          )}
+                      </div>
+                  </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
     </div>
   );
 }

@@ -6,7 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, BarChart3, LineChart as LineChartIcon, TrendingUp, DollarSign, ShoppingBag, Sparkles } from "lucide-react";
+import { 
+  Calendar, BarChart3, LineChart as LineChartIcon, TrendingUp, 
+  DollarSign, ShoppingBag, Sparkles, Filter 
+} from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -17,6 +20,9 @@ import {
   Tooltip,
   BarChart,
   Bar,
+  Cell,
+  PieChart,
+  Pie
 } from "recharts";
 
 type SummaryStats = {
@@ -49,6 +55,9 @@ const STATUS_MAP: Record<string, string> = {
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
 };
+
+// Cores do gráfico de pizza/barras
+const CHART_COLORS = ["#E53935", "#F57F17", "#5D4037", "#1B5E20", "#1565C0"];
 
 async function fetchStatusDistribution(): Promise<StatusPoint[]> {
   const res = await api.get("/orders/stats/status-distribution");
@@ -130,61 +139,59 @@ export function AdminReportsPageClient() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
+    <div className="min-h-screen bg-[#FAF7F5] p-8 font-sans text-[#5D4037]">
       <div className="mx-auto max-w-7xl space-y-8">
-        {/* Header */}
-        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-3 shadow-md">
-                <BarChart3 size={24} className="text-rose-600" />
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30">
-                <Sparkles size={14} className="animate-pulse" />
-                Análise de dados
-              </span>
+        
+        {/* Cabeçalho */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-dashed border-[#D7CCC8] pb-6">
+            <div className="flex items-center gap-4">
+                <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+                    <BarChart3 className="h-6 w-6 text-[#5D4037]" />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Relatórios do Ateliê</h1>
+                    <p className="text-[#8D6E63] italic">Análise de desempenho e vendas.</p>
+                </div>
             </div>
             
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Relatórios e Análises
-            </h1>
-            <p className="mt-3 text-base text-neutral-600 font-medium">
-              Visualize vendas, ticket médio e os produtos mais queridos da Arte com Carinho.
-            </p>
-          </div>
-        </section>
+            <div className="flex items-center gap-3 bg-[#FFF8E1] px-4 py-2 rounded-sm border border-[#FFE0B2] shadow-sm">
+                <Sparkles size={16} className="text-[#F57F17]" />
+                <span className="text-sm font-bold text-[#F57F17] uppercase tracking-wider">
+                    Dados em tempo real
+                </span>
+            </div>
+        </div>
 
         {/* Filtros de período */}
-        <section className="rounded-[2rem] bg-white/80 backdrop-blur-sm p-6 shadow-lg border-2 border-rose-200">
+        <div className="bg-white border border-[#D7CCC8] p-6 rounded-sm shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-rose-500" />
-              <span className="text-sm font-bold text-slate-700">Período para análise</span>
+            <div className="flex items-center gap-2 text-[#8D6E63]">
+              <Filter className="h-4 w-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Filtrar Período</span>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">De</span>
+            
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2 bg-[#FAF7F5] px-3 py-1.5 rounded-sm border border-[#EFEBE9]">
+                <span className="text-xs font-bold text-[#8D6E63]">De:</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="h-10 rounded-xl border-2 border-rose-200 bg-white px-3 text-sm font-medium"
+                  className="bg-transparent text-sm font-bold text-[#5D4037] outline-none"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">Até</span>
+              <div className="flex items-center gap-2 bg-[#FAF7F5] px-3 py-1.5 rounded-sm border border-[#EFEBE9]">
+                <span className="text-xs font-bold text-[#8D6E63]">Até:</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="h-10 rounded-xl border-2 border-rose-200 bg-white px-3 text-sm font-medium"
+                  className="bg-transparent text-sm font-bold text-[#5D4037] outline-none"
                 />
               </div>
               <button
                 type="button"
-                className="rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-4 py-2 text-xs font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30"
+                className="bg-[#E53935] hover:bg-[#C62828] text-white px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest shadow-sm transition-all"
                 onClick={() => {
                   const now = new Date();
                   setStartDate(formatDateISO(addDays(now, -30)));
@@ -195,110 +202,95 @@ export function AdminReportsPageClient() {
               </button>
             </div>
           </div>
-        </section>
+        </div>
 
         {/* Cards resumo */}
-        <section className="grid gap-6 sm:grid-cols-3">
-          <Card className="rounded-3xl border-2 border-emerald-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-100 pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold text-slate-700">
-                  Faturamento no período
-                </CardTitle>
-                <div className="rounded-xl bg-white p-2 shadow-md">
-                  <DollarSign className="h-5 w-5 text-emerald-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {loadingSummary ? (
-                <Skeleton className="h-10 w-32 rounded-lg bg-emerald-100" />
-              ) : (
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">
-                  {totalRevenueBRL}
-                </div>
-              )}
+        <div className="grid gap-6 sm:grid-cols-3">
+          <Card className="bg-[#E8F5E9] border border-[#C8E6C9] rounded-sm shadow-sm relative overflow-hidden">
+            <div className="absolute right-0 top-0 p-3 opacity-20">
+                <DollarSign size={64} className="text-[#1B5E20]" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-xs font-bold text-[#2E7D32] uppercase tracking-wider mb-2">Faturamento</p>
+                {loadingSummary ? (
+                    <Skeleton className="h-8 w-32 bg-[#C8E6C9]" />
+                ) : (
+                    <p className="text-3xl font-serif font-bold text-[#1B5E20]">{totalRevenueBRL}</p>
+                )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-2 border-blue-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 border-b-2 border-blue-100 pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold text-slate-700">
-                  Número de pedidos
-                </CardTitle>
-                <div className="rounded-xl bg-white p-2 shadow-md">
-                  <ShoppingBag className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {loadingSummary ? (
-                <Skeleton className="h-10 w-20 rounded-lg bg-blue-100" />
-              ) : (
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-600">
-                  {summary?.totalOrders ?? 0}
-                </div>
-              )}
+          <Card className="bg-[#E3F2FD] border border-[#BBDEFB] rounded-sm shadow-sm relative overflow-hidden">
+            <div className="absolute right-0 top-0 p-3 opacity-20">
+                <ShoppingBag size={64} className="text-[#0D47A1]" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-xs font-bold text-[#1565C0] uppercase tracking-wider mb-2">Total de Pedidos</p>
+                {loadingSummary ? (
+                    <Skeleton className="h-8 w-20 bg-[#BBDEFB]" />
+                ) : (
+                    <p className="text-3xl font-serif font-bold text-[#0D47A1]">{summary?.totalOrders ?? 0}</p>
+                )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-2 border-purple-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50 border-b-2 border-purple-100 pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold text-slate-700">
-                  Ticket médio
-                </CardTitle>
-                <div className="rounded-xl bg-white p-2 shadow-md">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {loadingSummary ? (
-                <Skeleton className="h-10 w-28 rounded-lg bg-purple-100" />
-              ) : (
-                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-violet-600">
-                  {avgTicketBRL}
-                </div>
-              )}
+          <Card className="bg-[#FFF8E1] border border-[#FFE0B2] rounded-sm shadow-sm relative overflow-hidden">
+            <div className="absolute right-0 top-0 p-3 opacity-20">
+                <TrendingUp size={64} className="text-[#E65100]" />
+            </div>
+            <CardContent className="p-6">
+                <p className="text-xs font-bold text-[#F57F17] uppercase tracking-wider mb-2">Ticket Médio</p>
+                {loadingSummary ? (
+                    <Skeleton className="h-8 w-28 bg-[#FFE0B2]" />
+                ) : (
+                    <p className="text-3xl font-serif font-bold text-[#E65100]">{avgTicketBRL}</p>
+                )}
             </CardContent>
           </Card>
-        </section>
+        </div>
 
         {/* Gráficos */}
-        <section className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          
           {/* Faturamento por mês */}
-          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white border border-[#D7CCC8] rounded-sm shadow-sm col-span-1 xl:col-span-2">
+            <CardHeader className="bg-[#FAF7F5] border-b border-[#EFEBE9] py-4 px-6 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <LineChartIcon className="h-5 w-5 text-rose-500" />
-                  <CardTitle className="text-sm font-bold text-slate-800">
-                    Faturamento por mês
+                  <LineChartIcon className="h-4 w-4 text-[#5D4037]" />
+                  <CardTitle className="text-sm font-bold text-[#5D4037] uppercase">
+                    Evolução Mensal
                   </CardTitle>
                 </div>
                 <select
                   value={year}
                   onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                  className="h-9 rounded-xl border-2 border-rose-200 bg-white px-3 text-xs font-bold"
+                  className="h-8 rounded-sm border border-[#D7CCC8] bg-white px-2 text-xs font-bold text-[#5D4037] outline-none"
                 >
                   <option value={currentYear - 1}>{currentYear - 1}</option>
                   <option value={currentYear}>{currentYear}</option>
                   <option value={currentYear + 1}>{currentYear + 1}</option>
                 </select>
-              </div>
             </CardHeader>
-            <CardContent className="h-64 pt-6">
+            <CardContent className="h-80 pt-6 px-6 pb-2">
               {loadingMonthly ? (
-                <Skeleton className="h-full w-full rounded-2xl bg-rose-100" />
+                <div className="h-full flex items-center justify-center text-[#D7CCC8]">Carregando gráfico...</div>
               ) : monthly && monthly.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthly}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={11} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EFEBE9" />
+                    <XAxis 
+                        dataKey="month" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tick={{fill: '#8D6E63'}} 
+                        dy={10}
+                    />
                     <YAxis
                       fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{fill: '#8D6E63'}}
                       tickFormatter={(value) =>
                         value.toLocaleString("pt-BR", {
                           style: "currency",
@@ -308,6 +300,7 @@ export function AdminReportsPageClient() {
                       }
                     />
                     <Tooltip
+                      contentStyle={{ backgroundColor: '#FFF', borderColor: '#D7CCC8', borderRadius: '4px', fontSize: '12px' }}
                       formatter={(value: any) =>
                         Number(value).toLocaleString("pt-BR", {
                           style: "currency",
@@ -318,108 +311,113 @@ export function AdminReportsPageClient() {
                     <Line
                       type="monotone"
                       dataKey="revenue"
-                      stroke="#fb7185"
+                      stroke="#E53935"
                       strokeWidth={3}
-                      dot={{ r: 4, fill: "#fb7185" }}
+                      dot={{ r: 4, fill: "#E53935", stroke: "#FFF", strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-xs text-slate-500 text-center">
-                  Não há dados suficientes para este ano.
+                <p className="text-xs text-[#8D6E63] text-center pt-20">
+                  Sem dados para este ano.
                 </p>
               )}
             </CardContent>
           </Card>
 
           {/* Pedidos por status */}
-          <Card className="rounded-3xl border-2 border-blue-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 border-b-2 border-blue-100">
+          <Card className="bg-white border border-[#D7CCC8] rounded-sm shadow-sm">
+            <CardHeader className="bg-[#FAF7F5] border-b border-[#EFEBE9] py-4 px-6">
               <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-500" />
-                <CardTitle className="text-sm font-bold text-slate-800">
-                  Pedidos por status
+                <BarChart3 className="h-4 w-4 text-[#5D4037]" />
+                <CardTitle className="text-sm font-bold text-[#5D4037] uppercase">
+                  Status dos Pedidos
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="h-64 pt-6">
+            <CardContent className="h-80 pt-6">
               {loadingStatus ? (
-                <Skeleton className="h-full w-full rounded-2xl bg-blue-100" />
+                <div className="h-full flex items-center justify-center text-[#D7CCC8]">Carregando...</div>
               ) : statusDistribution && statusDistribution.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={statusDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis 
-                        dataKey="status" 
-                        fontSize={11} 
-                        tickLine={false} 
-                        tickFormatter={(value) => STATUS_MAP[value] || value} 
-                    />
-                    <YAxis allowDecimals={false} fontSize={11} />
+                  <PieChart>
+                    <Pie
+                        data={statusDistribution}
+                        dataKey="count"
+                        nameKey="status"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        // FIX: Removido 'status' do destructuring e adicionado tipagem para percent
+                        label={({ percent }: { percent?: number }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
+                    >
+                        {statusDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                    </Pie>
                     <Tooltip 
-                        labelFormatter={(label) => STATUS_MAP[label] || label}
+                        contentStyle={{ backgroundColor: '#FFF', borderColor: '#D7CCC8', borderRadius: '4px', fontSize: '12px' }}
+                        formatter={(value: any, name: any, props: any) => [value, STATUS_MAP[props.payload.status] || props.payload.status]} 
                     />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
+                  </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-xs text-slate-500 text-center">
-                  Ainda não há pedidos cadastrados.
+                <p className="text-xs text-[#8D6E63] text-center pt-20">
+                  Nenhum pedido encontrado.
                 </p>
               )}
             </CardContent>
           </Card>
 
           {/* Produtos mais vendidos */}
-          <Card className="rounded-3xl border-2 border-purple-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50 border-b-2 border-purple-100">
+          <Card className="bg-white border border-[#D7CCC8] rounded-sm shadow-sm col-span-1 xl:col-span-3">
+            <CardHeader className="bg-[#FAF7F5] border-b border-[#EFEBE9] py-4 px-6">
               <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-purple-500" />
-                <CardTitle className="text-sm font-bold text-slate-800">
-                  Produtos mais vendidos
+                <ShoppingBag className="h-4 w-4 text-[#5D4037]" />
+                <CardTitle className="text-sm font-bold text-[#5D4037] uppercase">
+                  Top 5 Produtos
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="h-64 pt-6">
+            <CardContent className="h-64 pt-6 px-6">
               {loadingTop ? (
-                <Skeleton className="h-full w-full rounded-2xl bg-purple-100" />
+                <div className="h-full flex items-center justify-center text-[#D7CCC8]">Carregando ranking...</div>
               ) : topProducts && topProducts.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topProducts}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis
-                      dataKey="productName"
-                      fontSize={10}
-                      tickLine={false}
-                      tickFormatter={(value) =>
-                        String(value).length > 10
-                          ? String(value).slice(0, 10) + "…"
-                          : value
-                      }
+                  <BarChart data={topProducts} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#EFEBE9" />
+                    <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tick={{fill: '#8D6E63'}} />
+                    <YAxis 
+                        type="category" 
+                        dataKey="productName" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        width={150}
+                        tick={{fill: '#5D4037', fontWeight: 'bold'}}
+                        tickFormatter={(value) => String(value).length > 20 ? String(value).slice(0, 20) + "…" : value}
                     />
-                    <YAxis fontSize={11} />
                     <Tooltip
+                      cursor={{fill: '#FAF7F5'}}
+                      contentStyle={{ backgroundColor: '#FFF', borderColor: '#D7CCC8', borderRadius: '4px', fontSize: '12px' }}
                       formatter={(value: any, name: any) =>
                         name === "totalSold"
-                          ? `${value} un.`
-                          : Number(value).toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })
+                          ? [`${value} un.`, "Vendas"]
+                          : [Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), "Receita"]
                       }
-                      labelFormatter={(label) => label}
                     />
-                    <Bar dataKey="totalSold" fill="#a855f7" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="totalSold" fill="#5D4037" radius={[0, 4, 4, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-xs text-slate-500 text-center">
-                  Ainda não há dados de vendas para o período selecionado.
+                <p className="text-xs text-[#8D6E63] text-center pt-20">
+                  Sem dados de vendas.
                 </p>
               )}
             </CardContent>
           </Card>
-        </section>
+        </div>
       </div>
     </div>
   );

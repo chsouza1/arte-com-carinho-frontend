@@ -1,8 +1,8 @@
 "use client";
+
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Baby, Home, Sparkles, Heart, Package } from "lucide-react";
+import { CheckCircle2, Baby, Home, Sparkles, Heart, Package, Printer, Scissors } from "lucide-react";
 
 export function OrderSuccessClientAdmin() {
   const searchParams = useSearchParams();
@@ -11,115 +11,109 @@ export function OrderSuccessClientAdmin() {
   const orderNumber = searchParams.get("orderNumber");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl rounded-[2rem] border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-2xl overflow-hidden">
-        <CardHeader className="relative bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100 pb-8 pt-10">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-xl"></div>
-          
-          <div className="relative z-10 flex flex-col items-center space-y-5">
-            {/* Icon with animation */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-green-100 shadow-lg border-4 border-white">
-                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-              </div>
-            </div>
+    // Fundo Creme
+    <div className="min-h-screen bg-[#FAF7F5] flex items-center justify-center p-6 font-sans text-[#5D4037]">
+      
+      {/* Cartão Principal */}
+      <div className="w-full max-w-lg bg-white border border-[#D7CCC8] shadow-xl rounded-sm relative overflow-hidden">
+        
+        {/* Faixa Decorativa Superior */}
+        <div className="h-2 bg-[#E53935] w-full border-b border-dashed border-[#B71C1C]/30"></div>
 
-            {/* Badge */}
-            <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-500/30">
-              <Sparkles size={16} className="animate-pulse" />
-              Pedido confirmado
-            </span>
-
-            <CardTitle className="text-center text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Pedido recebido com carinho 💕
-            </CardTitle>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6 p-8 text-center">
-          <p className="text-base text-slate-700 font-medium leading-relaxed">
-            Recebemos o seu pedido e o ateliê já foi avisado para começar a
-            preparar tudo com muito cuidado.
-          </p>
-
-          {orderNumber && (
-            <div className="relative rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 p-6 border-2 border-rose-200 shadow-lg overflow-hidden">
-              {/* Decorative corner */}
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-xl"></div>
-              
-              <div className="relative z-10 space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                  <Package className="h-5 w-5 text-rose-500" />
-                  <p className="font-bold text-rose-600 text-sm">
-                    Número do seu pedido
-                  </p>
+        <div className="p-10 text-center">
+            
+            {/* Ícone de Sucesso */}
+            <div className="mx-auto mb-6 flex items-center justify-center w-20 h-20 bg-[#E8F5E9] rounded-full border border-[#C8E6C9] shadow-sm relative">
+                <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 border border-[#C8E6C9]">
+                    <Sparkles className="w-4 h-4 text-[#2E7D32]" />
                 </div>
+                <CheckCircle2 className="w-10 h-10 text-[#2E7D32]" />
+            </div>
+
+            <div className="space-y-2 mb-8">
+                <span className="inline-block px-3 py-1 bg-[#FFF8E1] border border-[#FFE0B2] rounded-sm text-[10px] font-bold text-[#F57F17] uppercase tracking-widest">
+                    Pedido Confirmado
+                </span>
+                <h1 className="text-3xl font-serif font-bold text-[#5D4037] leading-tight">
+                    Pedido Registrado! <Heart className="inline-block w-6 h-6 text-[#E53935] fill-current" />
+                </h1>
+                <p className="text-[#8D6E63] text-sm">
+                    O pedido foi salvo no sistema com sucesso.
+                </p>
+            </div>
+
+            {/* Box do Número do Pedido (Estilo Ticket) */}
+            {orderNumber && (
+                <div className="bg-[#FAF7F5] border-2 border-dashed border-[#D7CCC8] p-6 rounded-sm mb-8 relative group">
+                    {/* Detalhes de "corte" nas laterais */}
+                    <div className="absolute top-1/2 -left-2 w-4 h-4 bg-white rounded-full border-r-2 border-dashed border-[#D7CCC8]"></div>
+                    <div className="absolute top-1/2 -right-2 w-4 h-4 bg-white rounded-full border-l-2 border-dashed border-[#D7CCC8]"></div>
+
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-2 text-[#8D6E63] text-xs font-bold uppercase tracking-widest">
+                            <Package size={14} /> Código do Pedido
+                        </div>
+                        <p className="text-4xl font-mono font-bold text-[#5D4037] tracking-tighter">
+                            {orderNumber}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Próximos Passos */}
+            <div className="bg-[#EFEBE9]/50 p-4 rounded-sm border border-[#D7CCC8] mb-8 text-left">
+                <div className="flex gap-3">
+                    <div className="p-2 bg-white rounded-full border border-[#D7CCC8] h-fit">
+                        <Scissors size={16} className="text-[#E53935]" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-[#5D4037] text-sm">O que acontece agora?</h3>
+                        <p className="text-xs text-[#8D6E63] mt-1 leading-relaxed">
+                            O pedido entrou na fila de produção. Você pode acompanhar o status pelo painel administrativo ou imprimir a ficha de produção agora mesmo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Ações */}
+            <div className="flex flex-col gap-3">
+                <Button
+                    className="w-full bg-[#E53935] hover:bg-[#C62828] text-white h-12 text-xs font-bold uppercase tracking-widest rounded-sm shadow-md transition-all hover:-translate-y-1"
+                    onClick={() => router.push("/admin/orders")}
+                >
+                    <Package className="mr-2 h-4 w-4" />
+                    Ir para Lista de Pedidos
+                </Button>
                 
-                <p className="text-2xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 tracking-wide">
-                  {orderNumber}
-                </p>
-                
-                <p className="text-xs text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
-                  Guarde este número. Ele ajuda a identificar seu pedido caso você
-                  entre em contato pelo WhatsApp ou e-mail.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-50 p-6 border-2 border-blue-200">
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-white p-2 shadow-sm mt-0.5">
-                <Heart className="h-5 w-5 text-rose-500" />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-sm text-slate-700 font-semibold leading-relaxed">
-                  Em breve você receberá uma mensagem da{" "}
-                  <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
-                    Arte com Carinho
-                  </span>{" "}
-                  confirmando detalhes como nomes, cores e prazo de entrega.
-                </p>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <Button
+                        variant="outline"
+                        className="h-10 text-xs font-bold uppercase tracking-wider border-[#D7CCC8] text-[#5D4037] hover:bg-[#FAF7F5] rounded-sm"
+                        onClick={() => router.push("/admin/products")}
+                    >
+                        <Baby className="mr-2 h-4 w-4" />
+                        Produtos
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="h-10 text-xs font-bold uppercase tracking-wider border-[#D7CCC8] text-[#5D4037] hover:bg-[#FAF7F5] rounded-sm"
+                        onClick={() => router.push("/admin")}
+                    >
+                        <Home className="mr-2 h-4 w-4" />
+                        Início
+                    </Button>
+                </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <Baby className="h-5 w-5 text-rose-500" />
-              <span className="text-sm font-bold text-slate-700">
-                Seu enxoval está um passo mais perto de ficar prontinho! ✨
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-center">
-            <Button
-              className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95"
-              onClick={() => router.push("/products")}
-            >
-              <Baby className="h-5 w-5" />
-              Ver mais produtos
-            </Button>
-            <Button
-              variant="outline"
-              className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-2xl border-2 border-rose-200 text-sm font-bold text-rose-700 hover:bg-rose-50 hover:border-rose-300 transition-all"
-              onClick={() => router.push("/")}
-            >
-              <Home className="h-5 w-5" />
-              Voltar para o início
-            </Button>
-          </div>
-
-          <div className="pt-4 border-t-2 border-rose-100">
-            <p className="text-xs text-slate-500 font-medium leading-relaxed">
-              💡 No futuro, você poderá acompanhar o status do seu pedido em uma
-              área de cliente com login personalizado.
+        </div>
+        
+        {/* Rodapé Decorativo */}
+        <div className="bg-[#FAF7F5] p-3 text-center border-t border-[#D7CCC8]">
+            <p className="text-[10px] text-[#A1887F] font-serif italic">
+                Ateliê com Carinho • Sistema de Gestão
             </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

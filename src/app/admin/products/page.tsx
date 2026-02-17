@@ -1,33 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { 
+  Package, Edit, Trash2, Plus, Sparkles, Upload, Loader2, 
+  Image as ImageIcon, Save, X, Search, CheckCircle2 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Package, Edit, Trash2, Plus, Eye, Sparkles, CheckCircle2, XCircle, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 
 type ProductCategory =
   | "ROUPAS" 
   | "ENXOVAL_DE_BANHO" 
   | "ACESSORIOS" 
   | "DECORACAO_DE_CASA"
-  | "ENXOVAL_DE_BANHO"
   | "TOALHA_CAPUZ"
   | "NANINHAS"
   | "TOALHA_FRAUDA"
-  | "CADERNETAS_VACINACAO"
   | "BODYS"
+  | "CADERNETAS_VACINACAO"
   | "TOALHA_DE_BOCA"
   | "NECESSARIES"
   | "SAQUINHOS_TROCA"
@@ -80,19 +75,17 @@ type ProductFormData = {
 
 async function fetchProducts(): Promise<PageResponse<Product>> {
   const res = await api.get<PageResponse<Product>>("/products", {
-    params: { page: 0, size: 20, sort: "id,desc" },
+    params: { page: 0, size: 100, sort: "id,desc" },
   });
   return res.data;
 }
 
 export default function AdminProductsPage() {
-  const router = useRouter();
   const queryClient = useQueryClient();
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductFormData>({
     name: "",
     description: "",
@@ -106,19 +99,25 @@ export default function AdminProductsPage() {
   });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["admin", "products"],
     queryFn: fetchProducts,
   });
 
   const products = useMemo(() => data?.content ?? [], [data]);
 
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products;
+    const lower = searchTerm.toLowerCase();
+    return products.filter(p => p.name.toLowerCase().includes(lower));
+  }, [products, searchTerm]);
+
   const imagesArray = form.imageUrls
     .split("\n")
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  // --- Função de Upload para o Cloudinary ---
+  // --- Upload Cloudinary ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -130,15 +129,13 @@ export default function AdminProductsPage() {
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      setErrorMsg("Erro de configuração: Variáveis do Cloudinary não encontradas.");
+      setErrorMsg("Configuração de upload ausente.");
       setIsUploading(false);
       return;
     }
 
     try {
       const newUrls: string[] = [];
-
-      // Upload de cada arquivo selecionado
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
@@ -147,14 +144,10 @@ export default function AdminProductsPage() {
 
         const res = await fetch(
           `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          {
-            method: "POST",
-            body: formData,
-          }
+          { method: "POST", body: formData }
         );
 
-        if (!res.ok) throw new Error("Falha no upload da imagem");
-
+        if (!res.ok) throw new Error("Falha no upload");
         const data = await res.json();
         newUrls.push(data.secure_url);
       }
@@ -167,14 +160,11 @@ export default function AdminProductsPage() {
       }));
 
     } catch (error) {
-      console.error("Erro no upload:", error);
-      setErrorMsg("Erro ao fazer upload da imagem. Tente novamente.");
+      console.error(error);
+      setErrorMsg("Erro ao enviar imagem.");
     } finally {
       setIsUploading(false);
-      // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -195,21 +185,16 @@ export default function AdminProductsPage() {
       };
 
       if (form.id) {
-        const res = await api.put<Product>(`/products/${form.id}`, payload);
-        return res.data;
+        await api.put(`/products/${form.id}`, payload);
       } else {
-        const res = await api.post<Product>("/products", payload);
-        return res.data;
+        await api.post("/products", payload);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
       resetForm();
     },
-    onError: (error: any) => {
-      console.error("Erro ao salvar produto:", error?.response?.data || error);
-      setErrorMsg("Não foi possível salvar o produto. Verifique os campos.");
-    },
+    onError: () => setErrorMsg("Erro ao salvar produto."),
   });
 
   const deleteMutation = useMutation({
@@ -218,12 +203,11 @@ export default function AdminProductsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      resetForm();
+      if (form.id) resetForm();
     },
   });
 
   function resetForm() {
-    setSelectedProduct(null);
     setForm({
       name: "",
       description: "",
@@ -238,455 +222,297 @@ export default function AdminProductsPage() {
     setErrorMsg(null);
   }
 
-  function handleFormChange<K extends keyof ProductFormData>(
-    field: K,
-    value: ProductFormData[K]
-  ) {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  function handleFormChange<K extends keyof ProductFormData>(field: K, value: ProductFormData[K]) {
+    setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function handleEdit(product: Product) {
-    setSelectedProduct(product);
     setForm({
       id: product.id,
       name: product.name ?? "",
       description: product.description ?? "",
       price: product.price != null ? String(product.price) : "",
-      stockQuantity:
-        product.stock != null ? String(product.stock) : "",
+      stockQuantity: product.stock != null ? String(product.stock) : "",
       category: (product.category as ProductCategory) ?? "ROUPAS",
       active: product.active ?? true,
       featured: product.featured ?? false,
       customizable: product.customizable ?? false,
       imageUrls: (product.images ?? []).join("\n"),
     });
+    // Scroll suave para o formulário em mobile
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleDelete(id: number) {
-    if (!confirm("Deseja desativar este produto?")) return;
+    if (!confirm("Tem certeza que deseja remover este item?")) return;
     deleteMutation.mutate(id);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErrorMsg(null);
     saveMutation.mutate();
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-8 lg:grid-cols-[1.8fr,1.2fr]">
-          {/* Lista de produtos - MANTIDA IGUAL */}
-          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden">
-             {/* ... (conteúdo da lista de produtos mantido igual ao anterior) ... */}
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-white p-2.5 shadow-md">
-                    <Package className="h-5 w-5 text-rose-600" />
-                  </div>
-                  <div>
-                    <span className="text-base font-bold text-slate-800">
-                      Produtos do ateliê
-                    </span>
-                    <p className="text-xs font-medium text-slate-500 mt-0.5">
-                      {products.length} {products.length === 1 ? 'produto cadastrado' : 'produtos cadastrados'}
-                    </p>
-                  </div>
+    <div className="grid gap-8 lg:grid-cols-[1.5fr,1fr] items-start pb-20">
+      
+      {/* --- COLUNA ESQUERDA: LISTA DE PRODUTOS --- */}
+      <div className="space-y-6">
+        
+        {/* Barra de Busca e Filtros */}
+        <div className="bg-white border-2 border-[#D7CCC8] p-4 rounded-sm shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-[#FAF7F5] rounded-full border border-[#D7CCC8]">
+                    <Package size={20} className="text-[#5D4037]" />
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-xl border-2 border-rose-200 text-xs font-semibold hover:bg-rose-50 hover:border-rose-300 transition-all"
-                  onClick={() => router.push("/products")}
-                >
-                  <Eye className="h-3.5 w-3.5 mr-1.5" />
-                  Ver como cliente
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 max-h-[calc(100vh-16rem)] overflow-y-auto">
-              {isLoading && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-rose-500 border-r-transparent mb-3"></div>
-                    <p className="text-xs font-semibold text-neutral-600">Carregando produtos...</p>
-                  </div>
-                </div>
-              )}
+                <h2 className="text-xl font-serif font-bold text-[#5D4037]">Catálogo de Peças</h2>
+            </div>
+            
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1887F]" />
+                <Input 
+                    placeholder="Buscar pelo nome da peça..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-[#FAF7F5] border-[#D7CCC8] focus:border-[#E53935] rounded-sm text-sm"
+                />
+            </div>
+        </div>
 
-              {isError && (
-                <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 p-8 text-center border-2 border-rose-200">
-                  <p className="text-sm font-semibold text-rose-600">
-                    Não foi possível carregar os produtos.
-                  </p>
-                </div>
-              )}
+        {/* Lista */}
+        {isLoading ? (
+            <div className="text-center py-10 text-[#8D6E63]">
+                <Loader2 className="mx-auto h-8 w-8 animate-spin mb-2 text-[#D7CCC8]" />
+                Carregando catálogo...
+            </div>
+        ) : (
+            <div className="space-y-3">
+                {filteredProducts.map((product) => (
+                    <div 
+                        key={product.id} 
+                        className="group bg-white border border-[#D7CCC8] p-4 rounded-sm shadow-sm hover:shadow-md hover:border-[#A1887F] transition-all flex gap-4 relative overflow-hidden"
+                    >
+                        {/* Efeito Hover */}
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#E53935] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-              {!isLoading && !isError && products.length === 0 && (
-                <div className="rounded-2xl bg-gradient-to-br from-white to-rose-50/50 p-12 text-center border-2 border-rose-200">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
-                    <Package className="h-8 w-8 text-rose-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-neutral-700 mb-2">
-                    Nenhum produto cadastrado ainda
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    Use o formulário ao lado para criar seu primeiro produto
-                  </p>
-                </div>
-              )}
+                        {/* Thumb */}
+                        <div className="h-20 w-20 bg-[#FAF7F5] border border-[#EFEBE9] flex-shrink-0 rounded-sm overflow-hidden">
+                            {product.images?.[0] ? (
+                                <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-[#D7CCC8]"><Package size={24}/></div>
+                            )}
+                        </div>
 
-              <div className="space-y-3">
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="group relative rounded-2xl border-2 border-rose-100 bg-gradient-to-br from-white to-rose-50/30 p-5 hover:shadow-lg hover:border-rose-200 transition-all duration-300"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Miniatura da Imagem (Nova funcionalidade visual) */}
-                      {product.images && product.images.length > 0 && (
-                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-rose-100 bg-white">
-                          <img 
-                            src={product.images[0]} 
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                          />
+                        {/* Infos */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                            <div>
+                                <div className="flex justify-between items-start gap-2">
+                                    <h3 className="font-bold text-[#5D4037] truncate text-sm">{product.name}</h3>
+                                    <span className="font-serif font-bold text-[#E53935] text-sm whitespace-nowrap">
+                                        {product.price?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-[#8D6E63] uppercase tracking-wider">{product.category}</p>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm border uppercase ${product.active ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]' : 'bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]'}`}>
+                                    {product.active ? 'Ativo' : 'Inativo'}
+                                </span>
+                                {product.featured && (
+                                    <span className="text-[9px] font-bold text-[#F57F17] bg-[#FFF8E1] border border-[#FFE0B2] px-1.5 py-0.5 rounded-sm flex items-center gap-1 uppercase">
+                                        <Sparkles size={8}/> Destaque
+                                    </span>
+                                )}
+                                <span className="text-[10px] font-bold text-[#5D4037] ml-auto flex items-center gap-1 bg-[#FAF7F5] px-2 py-0.5 rounded-sm border border-[#EFEBE9]">
+                                    Estoque: {product.stock}
+                                </span>
+                            </div>
                         </div>
-                      )}
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <p className="font-bold text-sm text-slate-800 group-hover:text-rose-600 transition-colors truncate">
-                            {product.name}
-                          </p>
-                          {product.active ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                          )}
+
+                        {/* Ações */}
+                        <div className="flex flex-col gap-2 justify-center pl-2 border-l border-dashed border-[#D7CCC8]">
+                            <button onClick={() => handleEdit(product)} className="text-[#8D6E63] hover:text-[#5D4037] p-1" title="Editar">
+                                <Edit size={16}/>
+                            </button>
+                            <button onClick={() => handleDelete(product.id)} className="text-[#8D6E63] hover:text-[#E53935] p-1" title="Excluir">
+                                <Trash2 size={16}/>
+                            </button>
                         </div>
-                        
-                        <p className="text-xs text-slate-500 font-medium mb-2">
-                          {product.category ?? "Categoria não informada"}
-                        </p>
-                        
-                        <div className="flex items-center gap-3 text-xs mb-2">
-                          <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
-                            {product.price != null
-                              ? product.price.toLocaleString("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })
-                              : "-"}
-                          </span>
-                          <span className="text-slate-600 font-semibold">
-                            Estoque: {product.stock ?? "-"}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-1.5">
-                          {!product.active && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
-                              Inativo
-                            </span>
-                          )}
-                          {product.featured && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-100 to-yellow-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">
-                              <Sparkles className="h-2.5 w-2.5" />
-                              Destaque
-                            </span>
-                          )}
-                          {product.customizable && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 px-2.5 py-1 text-[10px] font-bold text-purple-700">
-                              <Sparkles className="h-2.5 w-2.5" />
-                              Personalizável
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-3 text-xs font-semibold rounded-xl border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-all"
-                          onClick={() => handleEdit(product)}
-                        >
-                          <Edit className="h-3.5 w-3.5 mr-1" />
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-3 text-xs font-semibold rounded-xl border-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-all"
-                          onClick={() => handleDelete(product.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Desativar
-                        </Button>
-                      </div>
                     </div>
-                  </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
+                {filteredProducts.length === 0 && (
+                    <div className="p-8 text-center border-2 border-dashed border-[#EFEBE9] rounded-sm text-[#8D6E63] text-sm">
+                        Nenhuma peça encontrada.
+                    </div>
+                )}
+            </div>
+        )}
+      </div>
 
-          {/* Formulário de cadastro/edição */}
-          <Card className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden lg:sticky lg:top-8 h-fit">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100">
-              <CardTitle className="flex items-center gap-3">
-                <div className="rounded-xl bg-white p-2.5 shadow-md">
-                  {form.id ? (
-                    <Edit className="h-5 w-5 text-rose-600" />
-                  ) : (
-                    <Plus className="h-5 w-5 text-rose-600" />
-                  )}
-                </div>
-                <span className="text-base font-bold text-slate-800">
-                  {form.id ? "Editar produto" : "Novo produto"}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                {/* --- INPUTS DO FORMULÁRIO (Nome e Descrição) --- */}
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-xs font-bold text-slate-700">Nome do produto *</Label>
-                  <Input
-                    id="name"
-                    value={form.name}
-                    onChange={(e) => handleFormChange("name", e.target.value)}
-                    required
-                    className="rounded-xl border-2 border-rose-200 h-10 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
-                  />
-                </div>
+      {/* --- COLUNA DIREITA: FORMULÁRIO (STICKY) --- */}
+      <div className="lg:sticky lg:top-24">
+        <div className="bg-white border-t-4 border-[#E53935] shadow-lg p-6 rounded-sm border-x border-b border-[#D7CCC8]">
+            <div className="flex items-center justify-between mb-6 border-b border-dashed border-[#D7CCC8] pb-4">
+                <h2 className="text-sm font-bold text-[#5D4037] uppercase tracking-wider flex items-center gap-2">
+                    {form.id ? <Edit size={16}/> : <Plus size={16}/>}
+                    {form.id ? "Editar Peça" : "Nova Peça"}
+                </h2>
+                {form.id && (
+                    <button onClick={resetForm} className="text-[10px] font-bold text-[#E53935] uppercase hover:underline flex items-center gap-1">
+                        <X size={12} /> Cancelar Edição
+                    </button>
+                )}
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-xs font-bold text-slate-700">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={form.description}
-                    onChange={(e) =>
-                      handleFormChange("description", e.target.value)
-                    }
-                    rows={3}
-                    className="rounded-xl border-2 border-rose-200 px-4 py-3 text-sm font-medium focus:border-rose-400 transition-colors resize-none"
-                  />
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Nome da Peça</Label>
+                    <Input 
+                        value={form.name} 
+                        onChange={e => handleFormChange("name", e.target.value)} 
+                        className="bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-9 text-sm rounded-sm"
+                        placeholder="Ex: Toalha de Banho Bordada"
+                    />
                 </div>
 
-                {/* --- SESSÃO DE IMAGENS ATUALIZADA --- */}
-                <div className="space-y-3 rounded-2xl border-2 border-rose-100 bg-rose-50/50 p-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="imageUrls" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <ImageIcon className="h-3.5 w-3.5" />
-                      Imagens do produto
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Preço (R$)</Label>
+                        <Input 
+                            type="number" 
+                            step="0.01" 
+                            value={form.price} 
+                            onChange={e => handleFormChange("price", e.target.value)} 
+                            className="bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-9 text-sm rounded-sm" 
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Estoque</Label>
+                        <Input 
+                            type="number" 
+                            value={form.stockQuantity} 
+                            onChange={e => handleFormChange("stockQuantity", e.target.value)} 
+                            className="bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-9 text-sm rounded-sm" 
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Categoria</Label>
+                    <select 
+                        value={form.category} 
+                        onChange={e => handleFormChange("category", e.target.value)}
+                        className="w-full h-9 px-3 bg-[#FAF7F5] border border-[#D7CCC8] rounded-sm text-sm text-[#5D4037] focus:outline-none focus:border-[#E53935] cursor-pointer"
+                    >
+                        <option value="ROUPAS">Roupas</option>
+                        <option value="ENXOVAL_DE_BANHO">Enxoval de Banho</option>
+                        <option value="ACESSORIOS">Acessórios</option>
+                        <option value="DECORACAO_DE_CASA">Decoração</option>
+                        <option value="TOALHA_CAPUZ">Toalha Capuz</option>
+                        <option value="NANINHAS">Naninhas</option>
+                        <option value="TOALHA_FRAUDA">Toalha Fralda</option>
+                        <option value="BODYS">Bodys</option>
+                        <option value="CADERNETAS_VACINACAO">Cadernetas</option>
+                        <option value="TOALHA_DE_BOCA">Toalha Boca</option>
+                        <option value="NECESSARIES">Necessaires</option>
+                        <option value="SAQUINHOS_TROCA">Saquinhos</option>
+                        <option value="MANTINHAS">Mantinhas</option>
+                        <option value="BATIZADO">Batizado</option>
+                        <option value="BOLSAS_MATERNIDADES">Bolsas</option>
+                        <option value="TROCADORES">Trocadores</option>
+                        <option value="PANO_COPA">Pano de Copa</option>
+                        <option value="SAIDA_MATERNIDADE">Saída Maternidade</option>
+                        <option value="KITS">Kits</option>
+                        <option value="ESTOJO_ESCOLAR">Estojo Escolar</option>
+                        <option value="OUTROS">Outros</option>
+                    </select>
+                </div>
+
+                <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Descrição</Label>
+                    <Textarea 
+                        value={form.description} 
+                        onChange={e => handleFormChange("description", e.target.value)} 
+                        className="bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] text-sm rounded-sm resize-none"
+                        rows={3}
+                    />
+                </div>
+
+                {/* Seção de Imagens */}
+                <div className="space-y-2 pt-2 border-t border-dashed border-[#D7CCC8]">
+                    <Label className="text-[10px] font-bold text-[#8D6E63] uppercase flex items-center gap-2">
+                        <ImageIcon size={12}/> Fotos
                     </Label>
                     
-                    {/* Botão de Upload Customizado */}
-                    <div className="relative">
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        id="file-upload"
-                      />
-                      <label 
-                        htmlFor="file-upload"
-                        className={cn(
-                          "flex items-center gap-2 cursor-pointer rounded-xl bg-white border-2 border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600 shadow-sm hover:bg-rose-50 transition-all",
-                          isUploading && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        {isUploading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="h-3.5 w-3.5" />
-                        )}
-                        {isUploading ? "Enviando..." : "Fazer Upload"}
-                      </label>
+                    <div className="flex gap-2">
+                        <label className={`flex-1 flex items-center justify-center gap-2 bg-[#EFEBE9] hover:bg-[#D7CCC8] text-[#5D4037] text-xs font-bold py-2 rounded-sm cursor-pointer border border-[#D7CCC8] border-dashed transition-colors ${isUploading ? 'opacity-50' : ''}`}>
+                            {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 
+                            {isUploading ? "Enviando..." : "Carregar Foto"}
+                            <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*" multiple disabled={isUploading} ref={fileInputRef} />
+                        </label>
                     </div>
-                  </div>
 
-                  {/* Campo de URLs (Mantido para edição manual ou visualização) */}
-                  <Textarea
-                    id="imageUrls"
-                    placeholder="URLs aparecerão aqui após o upload..."
-                    value={form.imageUrls}
-                    onChange={(e) => handleFormChange("imageUrls", e.target.value)}
-                    rows={4}
-                    className="rounded-xl border-2 border-rose-200 px-4 py-3 text-xs font-medium focus:border-rose-400 transition-colors resize-none bg-white"
-                  />
-                  
-                  {/* Preview das imagens (Visualização rápida) */}
-                  {imagesArray.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                      {imagesArray.map((url, idx) => (
-                        <div key={idx} className="relative h-16 w-16 shrink-0 rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm group">
-                          <img src={url} alt={`Preview ${idx}`} className="h-full w-full object-cover" />
+                    <Textarea 
+                        placeholder="Ou cole URLs aqui (uma por linha)"
+                        value={form.imageUrls}
+                        onChange={e => handleFormChange("imageUrls", e.target.value)}
+                        className="text-xs min-h-[60px] bg-[#FAF7F5] border-[#D7CCC8] rounded-sm"
+                    />
+
+                    {imagesArray.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                            {imagesArray.map((url, idx) => (
+                                <div key={idx} className="h-12 w-12 flex-shrink-0 border border-[#D7CCC8] rounded-sm overflow-hidden bg-white">
+                                    <img src={url} className="h-full w-full object-cover" />
+                                </div>
+                            ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                {/* --- RESTO DO FORMULÁRIO (Preço, Estoque, etc) --- */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price" className="text-xs font-bold text-slate-700">Preço (R$) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={form.price}
-                      onChange={(e) => handleFormChange("price", e.target.value)}
-                      required
-                      className="rounded-xl border-2 border-rose-200 h-10 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="stock" className="text-xs font-bold text-slate-700">Estoque *</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      min="0"
-                      value={form.stockQuantity}
-                      onChange={(e) =>
-                        handleFormChange("stockQuantity", e.target.value)
-                      }
-                      required
-                      className="rounded-xl border-2 border-rose-200 h-10 px-4 text-sm font-medium focus:border-rose-400 transition-colors"
-                    />
-                  </div>
+                    )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category" className="text-xs font-bold text-slate-700">Categoria *</Label>
-                  <select
-                    id="category"
-                    className="h-10 w-full rounded-xl border-2 border-rose-200 bg-white px-4 text-sm font-semibold focus:border-rose-400 transition-colors cursor-pointer"
-                    value={form.category}
-                    onChange={(e) =>
-                      handleFormChange("category", e.target.value as ProductCategory)
-                    }
-                  >
-                    <option value="ROUPAS">Roupas</option>
-                    <option value="ENXOVAL_DE_BANHO">Enxoval de Banho</option>
-                    <option value="ACESSORIOS">Acessorios</option>
-                    <option value="DECORACAO_DE_CASA">Decoração de Casa</option>
-                    <option value="TOALHA_CAPUZ">Toalha com Capuz</option>
-                    <option value="NANINHAS">Naninhas</option>
-                    <option value="TOALHA_FRAUDA">Toalha Frauda</option>
-                    <option value="BODYS">Bodys</option>
-                    <option value="CADERNETAS_VACINACAO">Cadernetas de Vacinação</option>
-                    <option value="TOALHA_DE_BOCA">Toalha de Boca</option>
-                    <option value="NECESSARIES">Necessaires</option>
-                    <option value="SAQUINHOS_TROCA">Saquinhos de Troca</option>
-                    <option value="MANTINHAS">Mantinhas</option>
-                    <option value="BATIZADO">Toalha Batizado</option>
-                    <option value="BOLSAS_MATERNIDADES">Bolsas Maternidades</option>
-                    <option value="TROCADORES">Trocadores</option>
-                    <option value="PANO_COPA">Pano de Copa</option>
-                    <option value="SAIDA_MATERNIDADE">Saída Maternidade</option>
-                    <option value="KITS">Kits</option>
-                    <option value="ESTOJO_ESCOLAR">Estojo Escolar</option>
-                    <option value="OUTROS">Outros</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold text-slate-700">Opções</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <TogglePill
-                      label="Ativo"
-                      active={form.active}
-                      onToggle={() => handleFormChange("active", !form.active)}
-                    />
-                    <TogglePill
-                      label="Destaque"
-                      active={form.featured}
-                      onToggle={() =>
-                        handleFormChange("featured", !form.featured)
-                      }
-                    />
-                    <TogglePill
-                      label="Personalizável"
-                      active={form.customizable}
-                      onToggle={() =>
-                        handleFormChange("customizable", !form.customizable)
-                      }
-                    />
-                  </div>
+                {/* Opções (Toggles) */}
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                    <button 
+                        type="button" 
+                        onClick={() => handleFormChange("active", !form.active)} 
+                        className={`py-2 text-[10px] font-bold uppercase border rounded-sm transition-all ${form.active ? 'bg-[#E8F5E9] border-[#C8E6C9] text-[#2E7D32]' : 'bg-white border-[#D7CCC8] text-[#A1887F] opacity-70'}`}
+                    >
+                        Ativo
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => handleFormChange("featured", !form.featured)} 
+                        className={`py-2 text-[10px] font-bold uppercase border rounded-sm transition-all ${form.featured ? 'bg-[#FFF8E1] border-[#FFE0B2] text-[#F57F17]' : 'bg-white border-[#D7CCC8] text-[#A1887F] opacity-70'}`}
+                    >
+                        Destaque
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => handleFormChange("customizable", !form.customizable)} 
+                        className={`py-2 text-[10px] font-bold uppercase border rounded-sm transition-all ${form.customizable ? 'bg-[#E3F2FD] border-[#BBDEFB] text-[#1565C0]' : 'bg-white border-[#D7CCC8] text-[#A1887F] opacity-70'}`}
+                    >
+                        Personalizável
+                    </button>
                 </div>
 
                 {errorMsg && (
-                  <div className="rounded-xl bg-rose-50 border-2 border-rose-200 p-3">
-                    <p className="text-xs font-semibold text-rose-600">{errorMsg}</p>
-                  </div>
+                    <div className="text-xs text-[#C62828] bg-[#FFEBEE] p-2 rounded-sm border border-[#FFCDD2] text-center font-bold">
+                        {errorMsg}
+                    </div>
                 )}
 
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    type="submit"
-                    className="h-11 flex-1 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40"
-                    disabled={saveMutation.isPending || isUploading}
-                  >
-                    {saveMutation.isPending
-                      ? "Salvando..."
-                      : form.id
-                      ? "Salvar alterações"
-                      : "Cadastrar produto"}
-                  </Button>
-                  {form.id && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-11 flex-1 rounded-xl border-2 border-rose-200 text-sm font-bold hover:bg-rose-50 hover:border-rose-300 transition-all"
-                      onClick={resetForm}
-                    >
-                      Novo produto
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                <Button 
+                    type="submit" 
+                    disabled={saveMutation.isPending || isUploading} 
+                    className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest rounded-sm shadow-md h-11 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                >
+                    {saveMutation.isPending ? <Loader2 className="animate-spin" /> : <><Save size={16} className="mr-2"/> Salvar Produto</>}
+                </Button>
+            </form>
         </div>
       </div>
     </div>
-  );
-}
-
-type TogglePillProps = {
-  label: string;
-  active: boolean;
-  onToggle: () => void;
-};
-
-function TogglePill({ label, active, onToggle }: TogglePillProps) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn(
-        "inline-flex h-9 items-center justify-center rounded-full border-2 px-4 text-xs font-bold transition-all hover:scale-105 active:scale-95",
-        active
-          ? "border-rose-500 bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
-          : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
-      )}
-    >
-      {label}
-    </button>
   );
 }

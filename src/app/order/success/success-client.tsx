@@ -1,40 +1,25 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useOrderDetail } from "@/lib/orders";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { 
   CheckCircle2, 
   ShoppingBag, 
-  Package, 
-  Sparkles, 
   Heart, 
   ArrowRight,
   MessageCircle,
-  AlertTriangle,
   Copy,
-  Check
+  Check,
+  Scissors,
+  Smartphone,
+  Gift
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
-// ⚠️ NÚMERO DA ARTESÃ
-const WHATSAPP_NUMBER = "5541988091516"; 
+// --- CONSTANTES ---
+const WHATSAPP_NUMBER = "5541999932625"; // Atualizado conforme seu contexto
 const PIX_KEY = "simonearmin@hotmail.com";
-
-const EMOJI = {
-    FESTA: "\uD83C\uDF89",     // 🎉
-    CLIENTE: "\uD83D\uDC64",   // 👤
-    CELULAR: "\uD83D\uDCF1",   // 📱
-    CARRINHO: "\uD83D\uDED2",  // 🛒
-    SACO_DINHEIRO: "\uD83D\uDCB0", // 💰
-    CARTAO: "\uD83D\uDCB3",    // 💳
-    LAPIS: "\uD83D\uDCDD",     // 📝
-    ALERTA: "\u26A0\uFE0F",    // ⚠️
-    CAMERA: "\uD83D\uDCF8",    // 📸
-    CORACAO: "\uD83D\uDC96"    // 💖
-};
 
 export function OrderSuccessClient() {
   const searchParams = useSearchParams();
@@ -44,19 +29,21 @@ export function OrderSuccessClient() {
   const { data: order } = useOrderDetail(orderId);
   const [copied, setCopied] = useState(false);
 
+  // Efeito de Confete (Mantido, pois celebra a compra)
   useEffect(() => {
     if (order) {
-      const duration = 3 * 1000;
+      const duration = 3000;
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
+      
       const interval: any = setInterval(function () {
         const timeLeft = animationEnd - Date.now();
         if (timeLeft <= 0) return clearInterval(interval);
         const particleCount = 50 * (timeLeft / duration);
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        // Cores personalizadas: Vermelho, Dourado e Creme
+        confetti({ ...defaults, particleCount, colors: ['#E53935', '#FFD700', '#FAF7F5'], origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, colors: ['#E53935', '#FFD700', '#FAF7F5'], origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
     }
   }, [order]);
@@ -69,156 +56,190 @@ export function OrderSuccessClient() {
 
   const getWhatsAppLink = () => {
     if (!order) return "#";
-
+    
+    // Formatação da Mensagem para o WhatsApp
     const itemsList = order.items
-      ?.map((item) => `• ${item.quantity}x ${item.productName || "Produto"}`)
+      ?.map((item: any) => `• ${item.quantity}x ${item.productName || "Peça Personalizada"}`)
       .join("\n") || "";
-
-    const rawTotal = order.total || (order as any).totalAmount || 0;
-    const totalValue = Number(rawTotal).toLocaleString("pt-BR", { 
+      
+    const totalValue = Number(order.total || 0).toLocaleString("pt-BR", { 
         style: "currency", 
         currency: "BRL" 
     });
 
-    const clientName = order.customerName || order.user?.name || order.customer?.name || "Cliente";
-    const clientPhone = order.customerPhone || order.user?.phone || order.customer?.phone || "Não informado";
-
     const message = 
-`*Olá! Acabei de fazer o pedido #${order.code || order.id} no site.* ${EMOJI.FESTA}
+`*Olá, Simone!* ❤️
+Acabei de fazer o pedido *#${order.code || order.id}* no site.
 
-*${EMOJI.CLIENTE} Cliente:* ${clientName}
-*${EMOJI.CELULAR} Contato:* ${clientPhone}
-
-*${EMOJI.CARRINHO} Resumo:*
+*🛒 Minhas Escolhas:*
 ${itemsList}
 
-*${EMOJI.SACO_DINHEIRO} Total:* ${totalValue}
-*${EMOJI.CARTAO} Pagamento:* ${order.paymentMethod || "Não informado"}
+*💰 Total:* ${totalValue}
+*💳 Pagamento:* ${order.paymentMethod === 'PIX' ? 'Pix' : 'A Combinar'}
 
-${order.notes ? `*${EMOJI.LAPIS} Detalhes e Personalização:* \n${order.notes}` : ""}
+*📝 Detalhes do Pedido:*
+${order.notes || "Sem observações extras."}
 
-*${EMOJI.ALERTA} Estou ciente do pagamento de 50% para iniciar a produção e envio o comprovante a seguir.*
-
-_Aguardo a confirmação!_`;
+*⚠️ Comprovante:*
+Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
 
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl rounded-[2rem] border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-2xl overflow-hidden">
-        <CardHeader className="relative bg-gradient-to-r from-rose-50 to-pink-50 border-b-2 border-rose-100 pb-8 pt-10">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-xl"></div>
-          
-          <div className="relative z-10 flex flex-col items-center space-y-5">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-green-100 shadow-lg border-4 border-white">
-                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-              </div>
+    // FUNDO CREME
+    <div className="min-h-screen bg-[#FAF7F5] flex items-center justify-center p-4 sm:p-6 font-sans text-[#5D4037]">
+      
+      {/* CARTÃO PRINCIPAL ESTILO PAPELARIA */}
+      <div className="w-full max-w-lg bg-white relative rounded-sm shadow-xl border border-[#D7CCC8] overflow-hidden">
+        
+        {/* Detalhe Superior (Fita/Costura) */}
+        <div className="h-2 bg-[#E53935] w-full border-b border-dashed border-[#B71C1C]/30"></div>
+
+        {/* CABEÇALHO */}
+        <div className="text-center pt-10 pb-6 px-8 bg-[url('/paper-texture.png')]">
+            <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 bg-[#FFEBEE] rounded-full animate-ping opacity-75"></div>
+                <div className="relative bg-[#E53935] text-white p-4 rounded-full shadow-lg border-4 border-white">
+                    <Heart className="h-8 w-8 fill-current animate-pulse" />
+                </div>
             </div>
-
-            <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30">
-              <Heart size={16} className="animate-pulse" />
-              Pedido realizado com carinho
-            </span>
-
-            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight text-center">
-              Obrigada pela sua compra! {EMOJI.CORACAO}
+            
+            <h1 className="text-3xl font-serif font-bold text-[#5D4037] mb-2">
+              Pedido Recebido!
             </h1>
-          </div>
-        </CardHeader>
+            <p className="text-[#8D6E63] font-medium italic">
+              Obrigada por escolher a Arte com Carinho.
+            </p>
+        </div>
 
-        <CardContent className="space-y-6 p-8">
-          {order ? (
-            <div className="space-y-6">
-              <div className="relative rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 p-6 border-2 border-rose-200 shadow-sm overflow-hidden text-center">
-                 <p className="text-sm font-bold text-rose-600 mb-1">Número do pedido</p>
-                 <p className="text-2xl font-black font-mono text-slate-800">#{order.code ?? order.id}</p>
-              </div>
+        {/* CONTEÚDO PRINCIPAL */}
+        <div className="px-8 pb-10 space-y-8">
+            
+            {order ? (
+                <>
+                    {/* CARTÃO DE PEDIDO (TICKET) */}
+                    <div className="bg-[#FAF7F5] border-2 border-dashed border-[#D7CCC8] p-6 rounded-sm text-center relative">
+                        {/* Recorte decorativo */}
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-r border-[#D7CCC8]"></div>
+                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-l border-[#D7CCC8]"></div>
 
-              <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/50 p-5 space-y-4">
-                 <div className="flex items-start gap-3">
-                    <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
-                    <div>
-                        <h3 className="text-sm font-bold text-amber-800 mb-1">
-                            Atenção: Início da Produção
-                        </h3>
-                        <p className="text-sm text-amber-900 leading-relaxed">
-                            A produção do seu bordado personalizado só será iniciada após o pagamento de <strong>50% do valor total</strong>.
-                        </p>
+                        <p className="text-xs font-bold text-[#8D6E63] uppercase tracking-widest mb-1">Número do Pedido</p>
+                        <p className="text-3xl font-serif font-bold text-[#5D4037] tracking-tight">#{order.code ?? order.id}</p>
                     </div>
-                 </div>
 
-                 <div className="bg-white rounded-xl border border-amber-200 p-4 flex flex-col gap-2 shadow-sm">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Chave Pix (E-mail)</span>
-                    <div className="flex items-center justify-between gap-2">
-                        <code className="text-sm sm:text-base font-mono font-bold text-slate-700 truncate">
-                            {PIX_KEY}
-                        </code>
-                        <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-8 px-3 text-amber-700 hover:text-amber-800 hover:bg-amber-100" 
-                            onClick={handleCopyPix}
-                        >
-                            {copied ? (
-                                <span className="flex items-center gap-1 text-green-600 font-bold"><Check size={14}/> Copiado!</span>
-                            ) : (
-                                <span className="flex items-center gap-1"><Copy size={14}/> Copiar</span>
-                            )}
-                        </Button>
+                    {/* ÁREA DE PAGAMENTO (PIX) */}
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3 bg-[#FFF8E1] p-4 rounded-sm border border-[#FFE0B2]">
+                            <div className="bg-[#FFECB3] p-2 rounded-full text-[#F57F17]">
+                                <Scissors size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-[#5D4037] mb-1">Para iniciar a produção...</h3>
+                                <p className="text-xs text-[#8D6E63] leading-relaxed">
+                                    Como são peças personalizadas, preciso da confirmação de <strong>50% do valor</strong> para comprar os materiais e começar a bordar.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Caixa do Pix */}
+                        <div className="border border-[#D7CCC8] rounded-sm p-4 bg-white shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider flex items-center gap-1">
+                                    <Gift size={12} /> Chave Pix (E-mail)
+                                </span>
+                                {copied && <span className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 size={12} /> Copiado!</span>}
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                <div className="flex-1 bg-[#FAF7F5] border border-[#EFEBE9] p-3 rounded-sm font-mono text-sm text-[#5D4037] truncate font-bold select-all">
+                                    {PIX_KEY}
+                                </div>
+                                <Button 
+                                    onClick={handleCopyPix}
+                                    className="bg-[#5D4037] hover:bg-[#3E2723] text-white px-4 rounded-sm"
+                                >
+                                    <Copy size={16} />
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                 </div>
-                 
-                 <p className="text-xs text-center text-amber-800 font-medium">
-                    {EMOJI.CAMERA} Por favor, envie o comprovante junto com o pedido no botão abaixo.
-                 </p>
-              </div>
 
-              <div className="space-y-2">
-                <a 
-                    href={getWhatsAppLink()} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 text-white font-bold shadow-lg shadow-green-500/30 transition-transform hover:scale-[1.02] active:scale-95 text-lg"
+                    {/* BOTÃO WHATSAPP (AÇÃO PRINCIPAL) */}
+                    <a 
+                        href={getWhatsAppLink()} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-center py-4 rounded-sm shadow-md transition-all hover:-translate-y-1 active:translate-y-0 group"
+                    >
+                        <div className="flex items-center justify-center gap-2 text-lg font-bold uppercase tracking-wide">
+                            <MessageCircle size={24} className="group-hover:animate-bounce" />
+                            Enviar Comprovante
+                        </div>
+                        <span className="text-[10px] font-medium opacity-90 block mt-1">
+                            Vou te atender pessoalmente no WhatsApp!
+                        </span>
+                    </a>
+                </>
+            ) : (
+                <div className="text-center py-10">
+                    <Loader2 className="h-8 w-8 text-[#D7CCC8] animate-spin mx-auto mb-4" />
+                    <p className="text-[#8D6E63]">Buscando seu pedido no ateliê...</p>
+                </div>
+            )}
+
+            {/* AÇÕES SECUNDÁRIAS */}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dashed border-[#D7CCC8]">
+                <Button
+                    variant="outline"
+                    className="h-auto py-3 border-[#D7CCC8] text-[#8D6E63] hover:text-[#5D4037] hover:bg-[#FAF7F5] text-xs font-bold uppercase tracking-widest rounded-sm"
+                    onClick={() => router.push("/account/orders")}
                 >
-                    <MessageCircle size={24} />
-                    Enviar Pedido + Comprovante
-                </a>
-              </div>
-
+                    <ShoppingBag size={16} className="mr-2" />
+                    Meus Pedidos
+                </Button>
+                <Button
+                    variant="ghost"
+                    className="h-auto py-3 text-[#8D6E63] hover:text-[#E53935] hover:bg-[#FFEBEE] text-xs font-bold uppercase tracking-widest rounded-sm"
+                    onClick={() => router.push("/")}
+                >
+                    <ArrowRight size={16} className="mr-2" />
+                    Voltar a Loja
+                </Button>
             </div>
-          ) : (
-            <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 p-6 border-2 border-rose-200 shadow-lg text-center">
-              <Sparkles className="h-8 w-8 text-rose-500 mx-auto mb-4" />
-              <p className="text-base font-semibold text-slate-700">
-                Carregando detalhes do pedido...
-              </p>
-            </div>
-          )}
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-rose-100">
-            <Button
-              variant="outline"
-              className="flex-1 h-12 rounded-2xl border-2 border-rose-200 text-sm font-bold text-rose-700 hover:bg-rose-50"
-              onClick={() => router.push("/account/orders")}
-            >
-              <ShoppingBag className="h-5 w-5 mr-2" />
-              Ver meus pedidos
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex-1 h-12 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50"
-              onClick={() => router.push("/")}
-            >
-              <ArrowRight className="h-5 w-5 mr-2" />
-              Voltar para a loja
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Rodapé Decorativo */}
+        <div className="bg-[#FAF7F5] py-3 text-center border-t border-[#D7CCC8]">
+            <p className="text-[10px] text-[#A1887F] font-serif italic">
+                Feito à mão com amor em cada ponto.
+            </p>
+        </div>
+      </div>
+
+      <div className="hidden">
+        <Check />
+      </div>
     </div>
   );
+}
+
+// Componente Loader2 manual caso não tenha no lucide-react importado
+function Loader2({ className }: { className?: string }) {
+    return (
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className={className}
+        >
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+    )
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Store, UserCircle2, ShoppingBag, Menu, X, LogOut, Heart, Sparkles } from "lucide-react";
+import { Store, UserCircle2, ShoppingBag, Menu, X, LogOut, Heart, Scissors } from "lucide-react";
 
 import type { AuthSession } from "@/lib/auth";
 import { getAuthSession, clearAuthSession, isAdmin } from "@/lib/auth";
@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navItems = [
   { href: "/", label: "Início" },
-  { href: "/products", label: "Produtos" },
+  { href: "/products", label: "Peças" }, // Mudado de "Produtos" para "Peças" (mais artesanal)
 ];
 
 export function MainNav() {
@@ -48,34 +48,34 @@ export function MainNav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-rose-200/50 bg-white/80 backdrop-blur-xl shadow-lg shadow-rose-100/20">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-        {/* Logo */}
+    // HEADER: Fundo Creme (#FAF7F5) com borda pontilhada imitando costura
+    <header className="sticky top-0 z-50 bg-[#FAF7F5]/90 backdrop-blur-md border-b-2 border-dashed border-[#D7CCC8]">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3">
+        
+        {/* LOGO E IDENTIDADE */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-pink-400 rounded-full blur-md opacity-30 group-hover:opacity-50 transition-opacity"></div>
+          <div className="relative p-1 border border-[#D7CCC8] rounded-full bg-white group-hover:border-[#E53935] transition-colors">
             <Image
-              src="/logo.jpg"
+              src="/logo.jpg" // Certifique-se que o logo existe ou use um placeholder
               alt="Arte com Carinho"
-              width={48}
-              height={48}
-              className="relative rounded-full ring-4 ring-white shadow-lg group-hover:scale-105 transition-transform"
+              width={42}
+              height={42}
+              className="rounded-full object-cover"
               priority
             />
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500">
+          <div className="flex flex-col leading-none">
+            <span className="text-xl font-serif font-bold text-[#5D4037] tracking-tight group-hover:text-[#E53935] transition-colors">
               Arte com Carinho
             </span>
-            <span className="text-xs font-semibold text-rose-500 flex items-center gap-1">
-              <Heart className="h-3 w-3" />
-              Ateliê & enxoval bordado
+            <span className="text-xs font-medium text-[#8D6E63] italic flex items-center gap-1">
+              By Simone <Heart className="h-2 w-2 fill-[#E53935] text-[#E53935]" />
             </span>
           </div>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-3 lg:flex">
+        {/* NAVEGAÇÃO DESKTOP */}
+        <nav className="hidden items-center gap-6 lg:flex">
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
@@ -83,13 +83,18 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "rounded-2xl px-5 py-2.5 text-sm font-bold transition-all",
+                  "relative px-2 py-1 text-sm font-medium transition-all group",
                   active
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
-                    : "text-slate-700 hover:bg-rose-50 border-2 border-transparent hover:border-rose-200"
+                    ? "text-[#E53935] font-bold"
+                    : "text-[#5D4037] hover:text-[#E53935]"
                 )}
               >
                 {item.label}
+                {/* Linha pontilhada animada no hover ou active */}
+                <span className={cn(
+                  "absolute bottom-0 left-0 h-[2px] w-full border-b-2 border-dashed border-[#E53935] transition-all duration-300",
+                  active ? "opacity-100" : "opacity-0 group-hover:opacity-50"
+                )}></span>
               </Link>
             );
           })}
@@ -99,61 +104,57 @@ export function MainNav() {
               variant="outline"
               size="sm"
               className={cn(
-                "ml-2 h-10 rounded-2xl border-2 border-purple-200 text-sm font-bold text-purple-700 hover:bg-purple-50 transition-all",
-                pathname?.startsWith("/admin") && "bg-gradient-to-r from-purple-100 to-violet-100 border-purple-300"
+                "ml-2 h-9 rounded-full border border-[#8D6E63] text-[#5D4037] hover:bg-[#5D4037] hover:text-white transition-all text-xs uppercase tracking-widest",
+                pathname?.startsWith("/admin") && "bg-[#5D4037] text-white"
               )}
               onClick={() => router.push("/admin")}
             >
-              <Store className="mr-2 h-4 w-4" />
-              Painel do Ateliê
+              <Store className="mr-2 h-3 w-3" />
+              Painel
             </Button>
           )}
         </nav>
 
-        <div className="flex items-center gap-3">
-          {/* Cart */}
+        {/* ÍCONES E AÇÕES */}
+        <div className="flex items-center gap-4">
+          
+          {/* Carrinho de Compras */}
           <button
-            className={cn(
-              "relative flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200 hover:from-rose-100 hover:to-pink-100 transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95",
-              pathname === "/cart" && "ring-2 ring-rose-400 bg-gradient-to-br from-rose-100 to-pink-100"
-            )}
+            className="relative p-2 text-[#5D4037] hover:text-[#E53935] transition-colors group"
             onClick={() => router.push("/cart")}
             aria-label="Carrinho"
           >
-            <ShoppingBag className="h-5 w-5 text-rose-700" />
+            <ShoppingBag className="h-6 w-6 stroke-[1.5px]" />
             {cartCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-1.5 text-[10px] font-black text-white shadow-lg shadow-rose-500/40 animate-pulse">
+              <span className="absolute top-0 right-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#E53935] px-1 text-[10px] font-bold text-white shadow-sm group-hover:scale-110 transition-transform">
                 {cartCount}
               </span>
             )}
           </button>
 
-          {/* Desktop user */}
-          <div className="hidden lg:flex items-center gap-3">
+          {/* Usuário Desktop */}
+          <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-dashed border-[#D7CCC8]">
             {session ? (
               <>
-                <button
-                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-50 border-2 border-blue-200 px-4 py-2.5 text-sm font-bold text-slate-800 hover:from-blue-100 hover:to-sky-100 transition-all shadow-md hover:shadow-lg"
-                  onClick={() => router.push("/account/orders")}
-                >
-                  <UserCircle2 className="h-5 w-5 text-blue-600" />
-                  <span className="max-w-[140px] truncate">{session.name}</span>
-                </button>
-
+                <div className="flex flex-col items-end text-right mr-1">
+                    <span className="text-xs font-bold text-[#5D4037] max-w-[100px] truncate">{session.name}</span>
+                    <button onClick={() => router.push("/account/orders")} className="text-[10px] text-[#8D6E63] hover:underline">Meus Pedidos</button>
+                </div>
+                
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="h-10 rounded-2xl border-2 border-rose-200 text-sm font-bold text-rose-700 hover:bg-rose-50 transition-all"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full p-0 hover:bg-[#EFEBE9] text-[#5D4037]"
                   onClick={handleLogout}
+                  title="Sair"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sair
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </>
             ) : (
               <Button
                 size="sm"
-                className="h-10 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 px-6 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:scale-105 active:scale-95"
+                className="h-9 rounded-full bg-[#5D4037] px-6 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#E53935] transition-colors shadow-sm"
                 onClick={() => router.push("/auth/login")}
               >
                 Entrar
@@ -161,154 +162,93 @@ export function MainNav() {
             )}
           </div>
 
-          {/* Mobile menu */}
+          {/* MENU MOBILE */}
           <div className="lg:hidden">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <button
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-rose-200 bg-white hover:bg-rose-50 transition-all shadow-md"
+                  className="p-2 text-[#5D4037] hover:bg-[#EFEBE9] rounded-md transition-colors"
                   aria-label="Abrir menu"
                 >
-                  <Menu className="h-6 w-6 text-rose-700" />
+                  <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
 
-              <SheetContent side="right" className="w-[340px] bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 border-l-4 border-rose-300">
-                {/* Header do menu mobile */}
-                <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-rose-200">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-pink-400 rounded-full blur-md opacity-40"></div>
-                      <Image
-                        src="/logo.jpg"
-                        alt="Arte com Carinho"
-                        width={48}
-                        height={48}
-                        className="relative rounded-full ring-4 ring-white shadow-lg"
-                      />
-                    </div>
-                    <div className="leading-tight">
-                      <div className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
-                        Arte com Carinho
-                      </div>
-                      <div className="text-xs font-semibold text-rose-500 flex items-center gap-1">
-                        <Heart className="h-3 w-3" />
-                        Ateliê & enxoval
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    className="rounded-full p-2 hover:bg-rose-100 transition-colors"
-                    onClick={() => setMobileOpen(false)}
-                    aria-label="Fechar"
-                  >
-                    <X className="h-6 w-6 text-rose-700" />
-                  </button>
-                </div>
-
-                {/* Links de navegação */}
-                <div className="space-y-3 mb-6">
-                  {navItems.map((item) => {
-                    const active = pathname === item.href;
-                    return (
-                      <button
-                        key={item.href}
-                        onClick={() => go(item.href)}
-                        className={cn(
-                          "w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all border-2 shadow-md",
-                          active
-                            ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
-                            : "bg-white/90 text-slate-700 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
+              <SheetContent side="right" className="w-[300px] bg-[#FAF7F5] border-l border-[#D7CCC8] p-0">
+                <div className="flex flex-col h-full">
+                    {/* Header do Menu */}
+                    <div className="p-6 border-b border-dashed border-[#D7CCC8] bg-[#F5F5F5]">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="h-10 w-10 rounded-full bg-white border border-[#D7CCC8] overflow-hidden p-0.5">
+                                <Image src="/logo.jpg" alt="Logo" width={40} height={40} className="rounded-full" />
+                            </div>
+                            <div>
+                                <h3 className="font-serif text-[#5D4037] font-bold">Arte com Carinho</h3>
+                                <p className="text-xs text-[#8D6E63]">Ateliê & Enxoval</p>
+                            </div>
+                        </div>
+                        {session && (
+                            <div className="bg-white p-3 rounded-lg border border-[#EFEBE9]">
+                                <p className="text-sm font-bold text-[#5D4037] truncate">{session.name}</p>
+                                <p className="text-xs text-[#A1887F] truncate mb-2">{session.email}</p>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="w-full text-xs h-7 border-[#D7CCC8] text-[#5D4037]"
+                                    onClick={() => go("/account/orders")}
+                                >
+                                    Meus Pedidos
+                                </Button>
+                            </div>
                         )}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    onClick={() => go("/cart")}
-                    className="w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all border-2 border-rose-200 bg-white/90 hover:bg-rose-50 hover:border-rose-300 shadow-md flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      <ShoppingBag className="h-4 w-4 text-rose-600" />
-                      Carrinho
-                    </span>
-                    {cartCount > 0 && (
-                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-2 text-xs font-black text-white shadow-lg">
-                        {cartCount}
-                      </span>
-                    )}
-                  </button>
-
-                  {admin && (
-                    <button
-                      onClick={() => go("/admin")}
-                      className={cn(
-                        "w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all border-2 shadow-md flex items-center gap-2",
-                        pathname?.startsWith("/admin")
-                          ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-700 border-purple-300"
-                          : "bg-white/90 text-slate-700 border-rose-200 hover:bg-purple-50 hover:border-purple-300"
-                      )}
-                    >
-                      <Store className="h-4 w-4" />
-                      Painel do Ateliê
-                    </button>
-                  )}
-                </div>
-
-                {/* Card do usuário */}
-                <div className="rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm p-5 shadow-xl">
-                  {session ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 pb-4 border-b-2 border-rose-100">
-                        <div className="rounded-full bg-gradient-to-br from-blue-100 to-sky-100 p-2">
-                          <UserCircle2 className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-slate-900 truncate">
-                            {session.name}
-                          </div>
-                          <div className="text-xs text-slate-500 truncate">
-                            {session.email}
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        className="w-full h-11 rounded-2xl border-2 border-blue-200 text-sm font-bold text-blue-700 hover:bg-blue-50 transition-all"
-                        onClick={() => go("/account/orders")}
-                      >
-                        <ShoppingBag className="mr-2 h-4 w-4" />
-                        Meus pedidos
-                      </Button>
-
-                      <Button
-                        className="w-full h-11 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30"
-                        onClick={handleLogout}
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sair
-                      </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 pb-4 border-b-2 border-rose-100">
-                        <Sparkles className="h-5 w-5 text-rose-500" />
-                        <div className="text-sm font-semibold text-slate-700">
-                          Entre para acompanhar seus pedidos
-                        </div>
-                      </div>
-                      <Button
-                        className="w-full h-11 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-sm font-bold text-white hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30"
-                        onClick={() => go("/auth/login")}
-                      >
-                        Entrar
-                      </Button>
+
+                    {/* Links */}
+                    <div className="flex-1 p-6 space-y-2">
+                        {navItems.map((item) => (
+                            <button
+                                key={item.href}
+                                onClick={() => go(item.href)}
+                                className={cn(
+                                    "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-colors border",
+                                    pathname === item.href
+                                        ? "bg-white border-[#E53935] text-[#E53935] font-bold shadow-sm"
+                                        : "bg-transparent border-transparent text-[#5D4037] hover:bg-white hover:border-[#D7CCC8]"
+                                )}
+                            >
+                                {item.label}
+                                {pathname === item.href && <Heart className="h-3 w-3 fill-current" />}
+                            </button>
+                        ))}
+
+                        {admin && (
+                             <button
+                                onClick={() => go("/admin")}
+                                className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-sm bg-[#5D4037] text-white mt-4"
+                             >
+                                <Store className="h-4 w-4" /> Painel do Ateliê
+                             </button>
+                        )}
                     </div>
-                  )}
+
+                    {/* Footer / Logout */}
+                    <div className="p-6 border-t border-dashed border-[#D7CCC8]">
+                        {session ? (
+                            <button 
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 text-sm text-[#E53935] font-bold hover:underline"
+                            >
+                                <LogOut className="h-4 w-4" /> Sair da conta
+                            </button>
+                        ) : (
+                            <Button
+                                className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold"
+                                onClick={() => go("/auth/login")}
+                            >
+                                Entrar / Cadastrar
+                            </Button>
+                        )}
+                    </div>
                 </div>
               </SheetContent>
             </Sheet>

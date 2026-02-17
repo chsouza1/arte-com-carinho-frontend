@@ -8,11 +8,10 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Save, User, Lock, Phone } from "lucide-react";
-import { useNotifications } from "@/components/ui/notifications";
+import { Loader2, Save, User, Lock, Phone, Mail, Sparkles, Scissors } from "lucide-react";
+import { useNotifications } from "@/components/ui/notifications"; // Supondo que você tenha esse hook ou similar
 
-// Schema de validação
+// Schema de validação (Mantido igual)
 const profileSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
   email: z.string().email().readonly(),
@@ -36,7 +35,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   
-  const { notify } = useNotifications(); 
+  // Ajuste conforme seu sistema de notificação
+  const { notify } = useNotifications ? useNotifications() : { notify: (msg: string, type: string) => alert(msg) }; 
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -67,7 +67,7 @@ export default function ProfilePage() {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        role: "CUSTOMER",
+        role: "CUSTOMER", // Garante que o usuário não muda a role
       };
 
       if (data.password && data.password.length > 0) {
@@ -83,7 +83,7 @@ export default function ProfilePage() {
       
     } catch (error) {
       console.error(error);
-      notify("Erro ao atualizar perfil. Verifique os dados e tente novamente.", "error");
+      notify("Erro ao atualizar perfil.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -97,101 +97,148 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+      <div className="flex flex-col justify-center items-center h-64 text-[#D7CCC8]">
+        <Loader2 className="h-8 w-8 animate-spin mb-2" />
+        <p className="text-sm font-medium">Buscando sua ficha...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-black text-slate-800">Meus Dados</h1>
-        <p className="text-slate-500">Gerencie suas informações pessoais e de acesso.</p>
+    <div className="max-w-3xl mx-auto space-y-8">
+      
+      {/* Cabeçalho da Página */}
+      <div className="flex items-center gap-4 border-b border-dashed border-[#D7CCC8] pb-6">
+        <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+            <User className="h-6 w-6 text-[#E53935]" />
+        </div>
+        <div>
+            <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Meus Dados</h1>
+            <p className="text-[#8D6E63] italic">Mantenha suas informações sempre atualizadas para facilitar a entrega.</p>
+        </div>
       </div>
 
-      <Card className="border-rose-100 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl flex items-center gap-2">
-            <User className="h-5 w-5 text-rose-500" />
-            Informações Pessoais
-          </CardTitle>
-          <CardDescription>Atualize seu nome e telefone de contato.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Cartão do Formulário - Estilo Papel de Carta */}
+      <div className="bg-white border border-[#D7CCC8] shadow-sm rounded-sm relative overflow-hidden">
+        {/* Detalhe decorativo no topo */}
+        <div className="h-1 bg-[#E53935] w-full opacity-80"></div>
+        
+        <div className="p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             
-            {/* Nome */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input id="name" {...register("name")} className={errors.name ? "border-red-500" : ""} />
-              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-            </div>
-
-            {/* Email (Leitura) */}
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail (Não pode ser alterado)</Label>
-              <Input id="email" {...register("email")} disabled className="bg-slate-50 text-slate-500" />
-            </div>
-
-            {/* Telefone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">WhatsApp / Celular</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input 
-                  id="phone" 
-                  {...register("phone")} 
-                  onChange={(e) => {
-                    register("phone").onChange(e);
-                    handlePhoneChange(e);
-                  }}
-                  className={`pl-10 ${errors.phone ? "border-red-500" : ""}`} 
-                  placeholder="11999999999"
-                />
-              </div>
-              {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
-            </div>
-
-            <div className="my-6 border-t border-slate-100 pt-6">
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                    <Lock className="h-4 w-4 text-rose-500" />
-                    Alterar Senha
+            {/* Seção 1: Dados Pessoais */}
+            <div className="space-y-5">
+                <h3 className="text-sm font-bold text-[#5D4037] uppercase tracking-wider flex items-center gap-2 border-b border-[#EFEBE9] pb-2">
+                    <Sparkles size={14} className="text-[#E53935]" /> Informações Básicas
                 </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Nome */}
                     <div className="space-y-2">
-                        <Label htmlFor="password">Nova Senha</Label>
+                        <Label htmlFor="name" className="text-xs font-bold text-[#8D6E63] uppercase">Nome Completo</Label>
                         <Input 
-                            id="password" 
-                            type="password" 
-                            placeholder="Deixe em branco para manter"
-                            {...register("password")} 
+                            id="name" 
+                            {...register("name")} 
+                            className={`bg-[#FAF7F5] border-[#D7CCC8] focus:border-[#E53935] text-[#5D4037] h-11 rounded-sm ${errors.name ? "border-[#E53935]" : ""}`} 
                         />
+                        {errors.name && <p className="text-xs text-[#E53935] font-bold">{errors.name.message}</p>}
                     </div>
+
+                    {/* Telefone */}
                     <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                        <Input 
-                            id="confirmPassword" 
-                            type="password" 
-                            placeholder="Repita a nova senha"
-                            {...register("confirmPassword")} 
-                            className={errors.confirmPassword ? "border-red-500" : ""}
-                        />
-                        {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>}
+                        <Label htmlFor="phone" className="text-xs font-bold text-[#8D6E63] uppercase">WhatsApp / Celular</Label>
+                        <div className="relative">
+                            <Phone className="absolute left-3 top-3.5 h-4 w-4 text-[#A1887F]" />
+                            <Input 
+                            id="phone" 
+                            {...register("phone")} 
+                            onChange={(e) => {
+                                register("phone").onChange(e);
+                                handlePhoneChange(e);
+                            }}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] focus:border-[#E53935] text-[#5D4037] h-11 rounded-sm ${errors.phone ? "border-[#E53935]" : ""}`} 
+                            placeholder="(XX) 99999-9999"
+                            />
+                        </div>
+                        {errors.phone && <p className="text-xs text-[#E53935] font-bold">{errors.phone.message}</p>}
+                    </div>
+
+                    {/* Email (Leitura) */}
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="email" className="text-xs font-bold text-[#8D6E63] uppercase">E-mail de Acesso</Label>
+                        <div className="relative opacity-70">
+                            <Mail className="absolute left-3 top-3.5 h-4 w-4 text-[#A1887F]" />
+                            <Input 
+                                id="email" 
+                                {...register("email")} 
+                                disabled 
+                                className="pl-10 bg-[#EFEBE9] border-[#D7CCC8] text-[#8D6E63] h-11 rounded-sm cursor-not-allowed font-mono text-sm" 
+                            />
+                        </div>
+                        <p className="text-[10px] text-[#A1887F] italic">* O e-mail não pode ser alterado por segurança.</p>
                     </div>
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4">
-              <Button type="submit" className="bg-rose-600 hover:bg-rose-700 w-full md:w-auto font-bold" disabled={isSaving}>
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Salvar Alterações
+            {/* Seção 2: Segurança */}
+            <div className="pt-2 space-y-5">
+                <h3 className="text-sm font-bold text-[#5D4037] uppercase tracking-wider flex items-center gap-2 border-b border-[#EFEBE9] pb-2">
+                    <Lock size={14} className="text-[#E53935]" /> Segurança
+                </h3>
+                
+                <div className="bg-[#FAF7F5] p-5 rounded-sm border border-dashed border-[#D7CCC8]">
+                    <p className="text-xs text-[#8D6E63] mb-4 font-medium">
+                        Preencha apenas se desejar alterar sua senha atual.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="password" className="text-xs font-bold text-[#8D6E63] uppercase">Nova Senha</Label>
+                            <Input 
+                                id="password" 
+                                type="password" 
+                                placeholder="••••••••"
+                                {...register("password")} 
+                                className="bg-white border-[#D7CCC8] focus:border-[#E53935] text-[#5D4037] rounded-sm"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword" className="text-xs font-bold text-[#8D6E63] uppercase">Confirmar Nova Senha</Label>
+                            <Input 
+                                id="confirmPassword" 
+                                type="password" 
+                                placeholder="••••••••"
+                                {...register("confirmPassword")} 
+                                className={`bg-white border-[#D7CCC8] focus:border-[#E53935] text-[#5D4037] rounded-sm ${errors.confirmPassword ? "border-[#E53935]" : ""}`}
+                            />
+                            {errors.confirmPassword && <p className="text-xs text-[#E53935] font-bold">{errors.confirmPassword.message}</p>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Botão de Salvar */}
+            <div className="pt-4 flex justify-end border-t border-dashed border-[#D7CCC8]">
+              <Button 
+                type="submit" 
+                className="bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest px-8 py-6 rounded-sm shadow-md transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0" 
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Costurando dados...
+                    </>
+                ) : (
+                    <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar Alterações
+                    </>
+                )}
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

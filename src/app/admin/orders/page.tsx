@@ -23,6 +23,7 @@ import {
   FileText,
   Search,
   Sparkles,
+  Scissors
 } from "lucide-react";
 
 type OrderStatus = "PENDING" | "IN_PRODUCTION" | "SHIPPED" | "DELIVERED" | "CANCELLED";
@@ -117,188 +118,161 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="space-y-8 pb-20">
         {/* Cabeçalho */}
-        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-2xl"></div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-3 shadow-md">
-                <ShoppingBag size={24} className="text-rose-600" />
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30">
-                <Sparkles size={14} className="animate-pulse" /> {filteredOrders.length} {filteredOrders.length === 1 ? 'pedido' : 'pedidos'}
-              </span>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-dashed border-[#D7CCC8] pb-6">
+            <div className="flex items-center gap-4">
+                <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+                    <ShoppingBag className="h-6 w-6 text-[#5D4037]" />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Pedidos do Ateliê</h1>
+                    <p className="text-[#8D6E63] italic">Gerencie o fluxo de encomendas.</p>
+                </div>
             </div>
             
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Pedidos do Ateliê
-            </h1>
-            <p className="mt-3 text-base text-neutral-600 font-medium">
-              Acompanhe o fluxo de pedidos, atualize o status e mantenha o cliente informado.
-            </p>
-          </div>
-        </section>
+            <div className="flex items-center gap-3 bg-[#FFF8E1] px-4 py-2 rounded-sm border border-[#FFE0B2] shadow-sm">
+                <Sparkles size={16} className="text-[#F57F17]" />
+                <span className="text-sm font-bold text-[#F57F17] uppercase tracking-wider">
+                {filteredOrders.length} {filteredOrders.length === 1 ? 'pedido' : 'pedidos'}
+                </span>
+            </div>
+        </div>
 
         {/* Filtros */}
-        <section className="rounded-[2rem] bg-white/80 backdrop-blur-sm p-6 shadow-lg border-2 border-rose-200">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
-              <Label htmlFor="search" className="text-xs font-bold text-slate-700 mb-2 block">
-                Buscar pedido
-              </Label>
-              <div className="relative flex items-center">
-                <Search className="absolute left-4 h-5 w-5 text-rose-400" />
-                <Input
-                  id="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Procure por número do pedido ou cliente..."
-                  className="h-12 pl-12 rounded-2xl border-2 border-rose-200 text-sm font-medium focus:border-rose-400 transition-colors"
-                />
-              </div>
-            </div>
+        <div className="bg-white border border-[#D7CCC8] p-6 rounded-sm shadow-sm space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6 justify-between items-end">
+                <div className="w-full lg:w-1/3">
+                    <Label htmlFor="search" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider mb-2 block">
+                        Buscar pedido
+                    </Label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1887F]" />
+                        <Input
+                            id="search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Número ou nome do cliente..."
+                            className="pl-9 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-10"
+                        />
+                    </div>
+                </div>
 
-            <div className="lg:w-auto">
-              <div className="flex items-center gap-2 mb-2">
-                <Filter className="h-4 w-4 text-rose-500" />
-                <Label className="text-xs font-bold text-slate-700">
-                  Filtrar por status
-                </Label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <StatusFilterButton label="Todos" active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} />
-                <StatusFilterButton label="Pendentes" active={statusFilter === "PENDING"} onClick={() => setStatusFilter("PENDING")} />
-                <StatusFilterButton label="Produção" active={statusFilter === "IN_PRODUCTION"} onClick={() => setStatusFilter("IN_PRODUCTION")} />
-                <StatusFilterButton label="Enviados" active={statusFilter === "SHIPPED"} onClick={() => setStatusFilter("SHIPPED")} />
-                <StatusFilterButton label="Entregues" active={statusFilter === "DELIVERED"} onClick={() => setStatusFilter("DELIVERED")} />
-                <StatusFilterButton label="Cancelados" active={statusFilter === "CANCELLED"} onClick={() => setStatusFilter("CANCELLED")} />
-              </div>
+                <div className="w-full lg:w-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Filter className="h-3 w-3 text-[#E53935]" />
+                        <Label className="text-xs font-bold text-[#8D6E63] uppercase">
+                            Filtrar por status
+                        </Label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <StatusFilterButton label="Todos" active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} />
+                        <StatusFilterButton label="Pendentes" active={statusFilter === "PENDING"} onClick={() => setStatusFilter("PENDING")} />
+                        <StatusFilterButton label="Produção" active={statusFilter === "IN_PRODUCTION"} onClick={() => setStatusFilter("IN_PRODUCTION")} />
+                        <StatusFilterButton label="Enviados" active={statusFilter === "SHIPPED"} onClick={() => setStatusFilter("SHIPPED")} />
+                        <StatusFilterButton label="Entregues" active={statusFilter === "DELIVERED"} onClick={() => setStatusFilter("DELIVERED")} />
+                        <StatusFilterButton label="Cancelados" active={statusFilter === "CANCELLED"} onClick={() => setStatusFilter("CANCELLED")} />
+                    </div>
+                </div>
             </div>
-          </div>
-        </section>
+        </div>
 
         {/* Lista de pedidos */}
-        <section className="space-y-5">
+        <div className="space-y-4">
           {isLoading && (
             <div className="space-y-4">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-32 rounded-3xl bg-rose-100" />
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-sm bg-[#EFEBE9]" />
               ))}
             </div>
           )}
 
           {!isLoading && filteredOrders.length === 0 && (
-            <div className="rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-16 shadow-xl backdrop-blur-sm border border-white/50 text-center">
-              <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-4">
-                <ShoppingBag className="h-10 w-10 text-rose-400" />
-              </div>
-              <p className="text-base font-semibold text-neutral-700 mb-2">Nenhum pedido encontrado</p>
-              <p className="text-sm text-neutral-500">Ajuste os filtros ou faça uma nova busca</p>
+            <div className="p-12 text-center border-2 border-dashed border-[#D7CCC8] rounded-sm bg-[#FAF7F5]">
+                <Package className="mx-auto h-12 w-12 text-[#D7CCC8] mb-4" />
+                <p className="text-lg font-serif text-[#5D4037]">Nenhum pedido encontrado</p>
+                <p className="text-sm text-[#8D6E63]">Tente ajustar os filtros.</p>
             </div>
           )}
 
           {!isLoading &&
             filteredOrders.map((order) => (
-              <Card
+              <div
                 key={order.id}
-                className="group rounded-3xl border-2 border-rose-200 bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-2xl hover:border-rose-300 transition-all duration-300"
+                className="group relative bg-white border border-[#D7CCC8] rounded-sm shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
               >
-                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b-2 border-rose-100 bg-gradient-to-r from-rose-50/50 to-pink-50/50">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-white p-2 shadow-md">
-                        <Package className="h-5 w-5 text-rose-600" />
-                      </div>
-                      <CardTitle className="text-base font-black text-slate-900 group-hover:text-rose-600 transition-colors">
-                        {order.orderNumber}
-                      </CardTitle>
-                    </div>
-                    <p className="text-sm text-slate-600 font-semibold pl-12">
-                      {order.customerName || "Cliente não informado"}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
-                      {order.totalAmount.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </span>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                </CardHeader>
+                {/* Faixa lateral decorativa */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#E53935] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-                <CardContent className="space-y-5 pt-6">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-50 to-pink-50 px-4 py-2 border-2 border-rose-100">
-                      <Calendar className="h-4 w-4 text-rose-500" />
-                      <span className="text-xs font-bold text-slate-700">
-                        Pedido em {formatDate(order.orderDate)}
-                      </span>
-                    </div>
-                    {order.expectedDeliveryDate && (
-                      <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-2 border-2 border-emerald-100">
-                        <Truck className="h-4 w-4 text-emerald-500" />
-                        <span className="text-xs font-bold text-slate-700">
-                          Previsão: {formatDate(order.expectedDeliveryDate)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex flex-col lg:flex-row">
+                    {/* Cabeçalho do Card */}
+                    <div className="flex-1 p-6 border-b lg:border-b-0 lg:border-r border-[#EFEBE9]">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                                <span className="font-mono text-lg font-bold text-[#5D4037] bg-[#FAF7F5] px-2 py-1 rounded-sm border border-[#EFEBE9]">
+                                    #{order.orderNumber}
+                                </span>
+                                <OrderStatusBadge status={order.status} />
+                            </div>
+                            <span className="text-xl font-serif font-bold text-[#E53935]">
+                                {order.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            </span>
+                        </div>
 
-                  <div className="flex flex-col gap-3 pt-3 border-t-2 border-rose-100 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-100 to-sky-100 px-4 py-2 border-2 border-blue-200">
-                        <ShoppingBag className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs font-bold text-blue-700">
-                          {order.status === "PENDING" ? "Aguardando produção" : "Em fluxo"}
-                        </span>
-                      </span>
+                        <div className="space-y-1">
+                            <p className="font-bold text-[#5D4037] text-lg">{order.customerName || "Cliente não informado"}</p>
+                            <div className="flex flex-wrap gap-4 text-xs text-[#8D6E63] mt-2">
+                                <span className="flex items-center gap-1 bg-[#FAF7F5] px-2 py-1 rounded-sm">
+                                    <Calendar size={12} /> {formatDate(order.orderDate)}
+                                </span>
+                                {order.expectedDeliveryDate && (
+                                    <span className="flex items-center gap-1 bg-[#FFF8E1] text-[#F57F17] px-2 py-1 rounded-sm border border-[#FFE0B2]">
+                                        <Truck size={12} /> Previsão: {formatDate(order.expectedDeliveryDate)}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 rounded-xl border-2 border-slate-200 text-xs font-bold hover:bg-slate-50 hover:border-slate-300 transition-all"
-                        onClick={() => window.open(`/admin/orders/${order.id}/print`, "_blank")}
-                      >
-                        <FileText className="mr-1.5 h-3.5 w-3.5" />
-                        Ver PDF
-                      </Button>
-                      <StatusActionButtons
-                        order={order}
-                        onChangeStatus={handleChangeStatus}
-                        onCancel={handleCancel}
-                        loading={
-                          updateStatusMutation.isPending ||
-                          cancelOrderMutation.isPending
-                        }
-                      />
+                    {/* Ações */}
+                    <div className="p-4 lg:w-64 bg-[#FAF7F5]/50 flex flex-col justify-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start h-9 text-xs border-[#D7CCC8] text-[#5D4037] hover:bg-white"
+                            onClick={() => window.open(`/admin/orders/${order.id}/print`, "_blank")}
+                        >
+                            <FileText className="mr-2 h-3.5 w-3.5" />
+                            Imprimir Ficha
+                        </Button>
+                        
+                        <div className="h-px bg-[#D7CCC8] border-dashed my-1"></div>
+
+                        <StatusActionButtons
+                            order={order}
+                            onChangeStatus={handleChangeStatus}
+                            onCancel={handleCancel}
+                            loading={updateStatusMutation.isPending || cancelOrderMutation.isPending}
+                        />
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
-        </section>
-      </div>
+        </div>
     </div>
   );
 }
+
 function StatusFilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center rounded-full px-4 py-2 text-xs font-bold transition-all border-2",
+        "px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border transition-all",
         active
-          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30 border-transparent scale-105"
-          : "bg-white text-slate-600 hover:bg-rose-50 border-rose-200 hover:border-rose-300"
+          ? "bg-[#5D4037] text-white border-[#5D4037]"
+          : "bg-white text-[#8D6E63] border-[#D7CCC8] hover:border-[#5D4037] hover:text-[#5D4037]"
       )}
     >
       {label}
@@ -308,15 +282,15 @@ function StatusFilterButton({ label, active, onClick }: { label: string; active:
 
 function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const map: Record<OrderStatus, { label: string; className: string }> = {
-    PENDING: { label: "Pendente", className: "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border-amber-200" },
-    IN_PRODUCTION: { label: "Em produção", className: "bg-gradient-to-r from-sky-100 to-blue-100 text-sky-700 border-sky-200" },
-    SHIPPED: { label: "Enviado", className: "bg-gradient-to-r from-violet-100 to-purple-100 text-violet-700 border-violet-200" },
-    DELIVERED: { label: "Entregue", className: "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border-emerald-200" },
-    CANCELLED: { label: "Cancelado", className: "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-600 border-slate-200" },
+    PENDING: { label: "Pendente", className: "bg-[#FFF8E1] text-[#F57F17] border-[#FFE0B2]" },
+    IN_PRODUCTION: { label: "Em produção", className: "bg-[#E3F2FD] text-[#1565C0] border-[#BBDEFB]" },
+    SHIPPED: { label: "Enviado", className: "bg-[#F3E5F5] text-[#7B1FA2] border-[#E1BEE7]" },
+    DELIVERED: { label: "Entregue", className: "bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]" },
+    CANCELLED: { label: "Cancelado", className: "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]" },
   };
 
   const cfg = map[status];
-  return <Badge className={cn("border-2 px-4 py-1.5 text-xs font-bold shadow-sm", cfg.className)}>{cfg.label}</Badge>;
+  return <span className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-sm border", cfg.className)}>{cfg.label}</span>;
 }
 
 function StatusActionButtons({
@@ -331,56 +305,54 @@ function StatusActionButtons({
   loading: boolean;
 }) {
   const disabled = loading || order.status === "CANCELLED";
+  
   return (
     <>
       {order.status === "PENDING" && (
         <Button
-          variant="outline"
           size="sm"
-          className="h-9 rounded-xl border-2 border-sky-200 bg-gradient-to-r from-sky-50 to-blue-50 text-xs font-bold text-sky-700 hover:from-sky-100 hover:to-blue-100 transition-all shadow-sm"
+          className="w-full justify-start h-9 text-xs bg-[#E3F2FD] text-[#1565C0] border border-[#BBDEFB] hover:bg-[#BBDEFB] font-bold"
           disabled={disabled}
           onClick={() => onChangeStatus(order, "IN_PRODUCTION")}
         >
-          <Clock className="mr-1.5 h-3.5 w-3.5" />
-          Iniciar Produção
+          <Scissors className="mr-2 h-3.5 w-3.5" />
+          Produzir
         </Button>
       )}
 
       {order.status === "IN_PRODUCTION" && (
         <Button
-          variant="outline"
           size="sm"
-          className="h-9 rounded-xl border-2 border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50 text-xs font-bold text-violet-700 hover:from-violet-100 hover:to-purple-100 transition-all shadow-sm"
+          className="w-full justify-start h-9 text-xs bg-[#F3E5F5] text-[#7B1FA2] border border-[#E1BEE7] hover:bg-[#E1BEE7] font-bold"
           disabled={disabled}
           onClick={() => onChangeStatus(order, "SHIPPED")}
         >
-          <Truck className="mr-1.5 h-3.5 w-3.5" />
-          Marcar Enviado
+          <Truck className="mr-2 h-3.5 w-3.5" />
+          Enviar
         </Button>
       )}
 
       {order.status === "SHIPPED" && (
         <Button
-          variant="outline"
           size="sm"
-          className="h-9 rounded-xl border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 text-xs font-bold text-emerald-700 hover:from-emerald-100 hover:to-green-100 transition-all shadow-sm"
+          className="w-full justify-start h-9 text-xs bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9] hover:bg-[#C8E6C9] font-bold"
           disabled={disabled}
           onClick={() => onChangeStatus(order, "DELIVERED")}
         >
-          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-          Confirmar Entrega
+          <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+          Entregar
         </Button>
       )}
 
       {order.status !== "CANCELLED" && order.status !== "DELIVERED" && (
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="h-9 rounded-xl border-2 border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 text-xs font-bold text-rose-700 hover:from-rose-100 hover:to-pink-100 transition-all shadow-sm"
+          className="w-full justify-start h-9 text-xs text-[#C62828] hover:bg-[#FFEBEE] font-bold"
           disabled={disabled}
           onClick={() => onCancel(order)}
         >
-          <XCircle className="mr-1.5 h-3.5 w-3.5" />
+          <XCircle className="mr-2 h-3.5 w-3.5" />
           Cancelar
         </Button>
       )}

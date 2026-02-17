@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, MapPin, Trash2, Edit, CheckCircle2, Loader2 } from "lucide-react";
+import { Plus, MapPin, Trash2, Edit2, Loader2, Home, Truck, CheckCircle2 } from "lucide-react";
 import { AddressFormDialog } from "./address-form-dialog";
 
 export type Address = {
@@ -42,10 +41,10 @@ export default function AddressesPage() {
   }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir este endereço?")) return;
+    if (!confirm("Tem certeza que deseja remover este endereço da sua agenda?")) return;
     try {
       await api.delete(`/addresses/${id}`);
-      fetchAddresses(); // Recarrega lista
+      fetchAddresses(); 
     } catch (error) {
       alert("Erro ao excluir endereço.");
     }
@@ -62,69 +61,119 @@ export default function AddressesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800">Endereços</h1>
-          <p className="text-slate-500">Gerencie seus locais de entrega.</p>
+    <div className="space-y-8">
+      
+      {/* Cabeçalho da Seção */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-dashed border-[#D7CCC8] pb-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+             <Truck className="h-6 w-6 text-[#E53935]" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Meus Endereços</h1>
+            <p className="text-[#8D6E63] italic">Gerencie os locais para envio das suas encomendas.</p>
+          </div>
         </div>
-        <Button onClick={handleAddNew} className="bg-rose-600 hover:bg-rose-700 font-bold shadow-lg shadow-rose-200">
-          <Plus className="mr-2 h-5 w-5" /> Adicionar Endereço
+        
+        <Button 
+          onClick={handleAddNew} 
+          className="bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest px-6 py-6 rounded-sm shadow-md transition-all hover:-translate-y-1"
+        >
+          <Plus className="mr-2 h-5 w-5" /> Novo Endereço
         </Button>
       </div>
 
+      {/* Conteúdo Principal */}
       {isLoading ? (
-        <div className="flex justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+        <div className="flex flex-col items-center justify-center py-20 text-[#8D6E63]">
+            <Loader2 className="h-10 w-10 animate-spin mb-4 text-[#D7CCC8]" />
+            <p className="text-sm font-bold uppercase tracking-widest">Consultando agenda...</p>
         </div>
       ) : addresses.length === 0 ? (
-        <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="bg-white p-4 rounded-full shadow-sm mb-4">
-                <MapPin className="h-8 w-8 text-slate-300" />
+        // Empty State - Estilo "Folha em Branco"
+        <div className="border-2 border-dashed border-[#D7CCC8] bg-[#FAF7F5] rounded-sm p-12 text-center">
+            <div className="bg-white p-4 rounded-full shadow-sm mb-6 inline-block border border-[#EFEBE9]">
+                <MapPin className="h-8 w-8 text-[#D7CCC8]" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700">Nenhum endereço cadastrado</h3>
-            <p className="text-slate-500 mb-6 max-w-xs mx-auto">Cadastre um endereço para agilizar suas compras futuras.</p>
-            <Button variant="outline" onClick={handleAddNew}>Cadastrar Agora</Button>
-          </CardContent>
-        </Card>
+            <h3 className="text-xl font-serif font-bold text-[#5D4037] mb-2">Nenhum endereço salvo</h3>
+            <p className="text-[#8D6E63] mb-8 max-w-sm mx-auto">Cadastre seu endereço principal para agilizar a entrega dos seus mimos.</p>
+            <Button variant="outline" onClick={handleAddNew} className="border-[#E53935] text-[#E53935] hover:bg-[#FFEBEE] font-bold uppercase tracking-widest">
+                Cadastrar Agora
+            </Button>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {addresses.map((addr) => (
-            <Card key={addr.id} className={`relative group overflow-hidden border-2 transition-all hover:shadow-lg ${addr.default ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100 hover:border-rose-100'}`}>
-              <CardContent className="p-5">
+            <div 
+              key={addr.id} 
+              className={`
+                group relative bg-white border-2 rounded-sm transition-all duration-300 overflow-hidden hover:shadow-lg
+                ${addr.default ? 'border-[#E53935] shadow-md' : 'border-[#EFEBE9] hover:border-[#D7CCC8]'}
+              `}
+            >
+              {/* Faixa Decorativa Superior */}
+              <div className={`h-1 w-full ${addr.default ? 'bg-[#E53935]' : 'bg-[#D7CCC8]'}`}></div>
+
+              <div className="p-6">
+                
+                {/* Badge de Padrão */}
                 {addr.default && (
-                  <div className="absolute top-0 right-0 bg-rose-100 text-rose-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center gap-1">
-                    <CheckCircle2 size={12} /> Padrão
+                  <div className="absolute top-4 right-4 bg-[#FFEBEE] text-[#C62828] px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border border-[#FFCDD2]">
+                    <CheckCircle2 size={12} /> Principal
                   </div>
                 )}
                 
-                <div className="flex items-start gap-3 mb-3">
-                    <MapPin className={`h-5 w-5 mt-0.5 ${addr.default ? 'text-rose-500' : 'text-slate-400'}`} />
-                    <div>
-                        <h4 className="font-bold text-slate-800">{addr.street}, {addr.number}</h4>
-                        <p className="text-sm text-slate-600">{addr.neighborhood}</p>
-                        <p className="text-sm text-slate-600">{addr.city} - {addr.state}</p>
-                        <p className="text-xs text-slate-400 mt-1">CEP: {addr.zipCode}</p>
-                        {addr.complement && <p className="text-xs text-slate-500 italic mt-1">{addr.complement}</p>}
+                {/* Ícone e Rua */}
+                <div className="flex items-start gap-4 mb-4">
+                    <div className={`p-2 rounded-full border ${addr.default ? 'bg-[#FFEBEE] border-[#FFCDD2] text-[#E53935]' : 'bg-[#FAF7F5] border-[#EFEBE9] text-[#A1887F]'}`}>
+                        <Home size={20} />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-bold text-[#5D4037] text-lg leading-tight mb-1">
+                            {addr.street}, {addr.number}
+                        </h4>
+                        {addr.complement && (
+                            <p className="text-xs text-[#8D6E63] italic mb-1">({addr.complement})</p>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleEdit(addr)}>
-                    <Edit className="mr-1.5 h-3 w-3" /> Editar
+                {/* Detalhes do Endereço */}
+                <div className="space-y-1 pl-[3.25rem] border-l-2 border-dashed border-[#EFEBE9] ml-5">
+                    <p className="text-sm text-[#8D6E63]">{addr.neighborhood}</p>
+                    <p className="text-sm text-[#8D6E63] font-medium">{addr.city} - {addr.state}</p>
+                    <p className="text-xs text-[#A1887F] font-mono mt-2 bg-[#FAF7F5] inline-block px-2 py-0.5 rounded-sm border border-[#EFEBE9]">
+                        CEP: {addr.zipCode}
+                    </p>
+                </div>
+
+                {/* Ações (Aparecem suavemente ou sempre visíveis em mobile) */}
+                <div className="flex gap-3 mt-6 pt-4 border-t border-[#EFEBE9]">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1 h-9 text-xs font-bold uppercase tracking-wider text-[#8D6E63] hover:text-[#5D4037] hover:bg-[#FAF7F5]" 
+                    onClick={() => handleEdit(addr)}
+                  >
+                    <Edit2 className="mr-2 h-3 w-3" /> Editar
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(addr.id)}>
-                    <Trash2 className="h-3 w-3" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-9 w-9 p-0 text-[#E53935] hover:bg-[#FFEBEE] rounded-sm" 
+                    onClick={() => handleDelete(addr.id)}
+                    title="Excluir endereço"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Modal de Formulário */}
+      {/* Modal de Formulário*/}
       <AddressFormDialog 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 

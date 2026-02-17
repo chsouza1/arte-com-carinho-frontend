@@ -1,68 +1,51 @@
-// src/app/admin/layout.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { AuthSession } from "@/lib/auth";
-import {
-  getSession,
-  isAdmin,
-  clearAuthSession,
-} from "@/lib/auth";
+import { getSession, isAdmin, clearAuthSession } from "@/lib/auth";
 import { applyAuthFromStorage, setAuthToken } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LogOut, Scissors } from "lucide-react";
 
 type AdminLayoutProps = {
   children: ReactNode;
 };
 
 const adminNavItems = [
-  { href: "/admin", label: "Visão geral" },
+  { href: "/admin", label: "Visão Geral" },
   { href: "/admin/products", label: "Produtos" },
-  { href: "/admin/products/featured", label: "Destaques" },
   { href: "/admin/orders", label: "Pedidos" },
-  { href: "/admin/reports", label: "Relatórios" },
-  { href: "/admin/stock", label: "Estoque" },
-  { href: "/admin/stock/critical", label: "Estoque crítico" },
-  { href: "/admin/customers", label: "Clientes" },
   { href: "/admin/production", label: "Produção" },
+  { href: "/admin/stock", label: "Estoque" },
+  { href: "/admin/customers", label: "Clientes" },
+  { href: "/admin/reports", label: "Relatórios" },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [status, setStatus] = useState<"checking" | "allowed" | "blocked">(
-    "checking"
-  );
+  const [status, setStatus] = useState<"checking" | "allowed" | "blocked">("checking");
 
   useEffect(() => {
-    // aplica token com base no storage
     applyAuthFromStorage();
-
     const s = getSession();
-    console.log("[ADMIN LAYOUT] sessão lida:", s);
-
 
     if (!s) {
       setStatus("blocked");
-      const from = pathname || "/admin";
-      router.replace(`/auth/login?from=${encodeURIComponent(from)}`);
+      router.replace(`/auth/login?from=${encodeURIComponent(pathname || "/admin")}`);
       return;
     }
-
   
     if (!isAdmin(s)) {
-      console.warn("[ADMIN LAYOUT] sessão não admin/employee, role=", s.role);
       setStatus("blocked");
-      const from = pathname || "/admin";
-      router.replace(`/auth/login?from=${encodeURIComponent(from)}`);
+      router.replace(`/auth/login?from=${encodeURIComponent(pathname || "/admin")}`);
       return;
     }
 
-    // sessão válida
     setSession(s);
     setStatus("allowed");
   }, [router, pathname]);
@@ -73,43 +56,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push("/");
   };
 
-  if (status === "checking") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-slate-500">
-          Carregando painel do ateliê...
-        </p>
-      </div>
-    );
-  }
+  if (status === "checking" || status === "blocked") return null;
 
-  if (status === "blocked") {
-    // já está redirecionando pro login
-    return null;
-  }
-
-  // se chegou aqui, TEM sessão e é admin/employee
   return (
-    <div className="min-h-screen bg-rose-50/40">
-      {/* Topo */}
-      <header className="border-b border-rose-100 bg-white/90">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold uppercase tracking-wide text-rose-500">
-              Painel do ateliê
-            </span>
-            <span className="text-sm font-medium text-slate-800">
-              Arte com Carinho — gestão de pedidos e estoque
-            </span>
+    // Fundo Creme (Mesa de Trabalho)
+    <div className="min-h-screen bg-[#FAF7F5] font-sans text-[#5D4037]">
+      
+      {/* Header Estilo Papelaria */}
+      <header className="bg-white border-b-2 border-dashed border-[#D7CCC8] sticky top-0 z-50">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          
+          {/* Logo / Título */}
+          <div className="flex items-center gap-3">
+            <div className="bg-[#FAF7F5] p-2 rounded-full border border-[#D7CCC8]">
+                <Scissors className="h-5 w-5 text-[#E53935]" />
+            </div>
+            <div className="flex flex-col">
+                <span className="text-lg font-serif font-bold text-[#5D4037] leading-none">
+                Painel do Ateliê
+                </span>
+                <span className="text-[10px] uppercase tracking-widest text-[#8D6E63] font-bold">
+                Arte com Carinho
+                </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Usuário e Logout */}
+          <div className="flex items-center gap-4">
             {session && (
-              <div className="flex flex-col text-right">
-                <span className="text-xs font-semibold text-slate-700">
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-xs font-bold text-[#5D4037]">
                   {session.name}
                 </span>
-                <span className="text-[11px] uppercase tracking-wide text-rose-500">
+                <span className="text-[10px] text-[#E53935] font-bold uppercase tracking-wider bg-[#FFEBEE] px-2 py-0.5 rounded-sm">
                   {String(session.role)}
                 </span>
               </div>
@@ -118,37 +97,42 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <Button
               size="sm"
               variant="outline"
-              className="border-rose-200 text-xs text-rose-700 hover:bg-rose-50"
+              className="h-8 border-[#D7CCC8] text-[#8D6E63] hover:text-[#E53935] hover:bg-[#FAF7F5] uppercase text-[10px] font-bold tracking-widest rounded-sm"
               onClick={handleLogout}
             >
-              Sair
+              <LogOut className="mr-2 h-3 w-3" /> Sair
             </Button>
           </div>
         </div>
 
-        {/* Navegação interna */}
-        <nav className="mx-auto max-w-6xl px-4 pb-2">
-          <div className="flex gap-2 overflow-x-auto py-1 text-xs">
-            {adminNavItems.map((item) => (
-              <button
-                key={item.href}
-                className={cn(
-                  "rounded-full px-3 py-1",
-                  pathname === item.href
-                    ? "bg-rose-500 text-white"
-                    : "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                )}
-                onClick={() => router.push(item.href)}
-              >
-                {item.label}
-              </button>
-            ))}
+        {/* Navegação (Tabs / Pastas) */}
+        <nav className="mx-auto max-w-7xl px-6">
+          <div className="flex gap-1 overflow-x-auto pt-2 scrollbar-hide">
+            {adminNavItems.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href));
+                return (
+                <button
+                    key={item.href}
+                    className={cn(
+                    "px-5 py-2.5 text-xs font-bold uppercase tracking-wide rounded-t-lg border-t-2 border-x-2 transition-all relative top-[2px]",
+                    isActive
+                        ? "bg-[#FAF7F5] border-[#D7CCC8] text-[#E53935] z-10 border-b-[#FAF7F5]"
+                        : "bg-white text-[#8D6E63] border-transparent hover:bg-[#F5F5F5]"
+                    )}
+                    onClick={() => router.push(item.href)}
+                >
+                    {item.label}
+                </button>
+                );
+            })}
           </div>
         </nav>
       </header>
 
-      {/* Conteúdo */}
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      {/* Conteúdo Principal (Folha de Papel) */}
+      <main className="mx-auto max-w-7xl p-6 md:p-8">
+        {children}
+      </main>
     </div>
   );
 }

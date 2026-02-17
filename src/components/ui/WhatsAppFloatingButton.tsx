@@ -9,7 +9,7 @@ type Props = {
 
 export default function WhatsAppFloatingButton({
   phone = "5541999932625",
-  message = "Olá! Vim pelo site Arte Com Carinho 😊",
+  message = "Olá! Vim pelo site Arte Com Carinho 😊, gostaria de fazer um pedido!",
 }: Props) {
   const url =
     `https://wa.me/${phone}` + (message ? `?text=${encodeURIComponent(message)}` : "");

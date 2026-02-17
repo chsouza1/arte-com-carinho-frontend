@@ -6,7 +6,8 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Package, Search, Download, Filter, Sparkles, X, AlertTriangle } from "lucide-react";
+import { Package, Search, Download, Filter, Sparkles, X, AlertTriangle, Layers } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type ProductLine =
   | "TOWEL_BATH"
@@ -34,28 +35,23 @@ async function fetchInventory(): Promise<Product[]> {
 
 function lineLabel(line?: ProductLine) {
   switch (line) {
-    case "TOWEL_BATH":
-      return "Toalha de banho";
-    case "TOWEL_FACE":
-      return "Toalha de rosto / boca";
-    case "TOWEL_HAND":
-      return "Toalha de mão / lavabo";
-    case "TOWEL_BABY":
-      return "Linha baby (fralda / boca infantil)";
-    case "KIT":
-      return "Kits / jogos de toalhas";
-    default:
-      return "Outros produtos";
+    case "TOWEL_BATH": return "Toalhas de Banho";
+    case "TOWEL_FACE": return "Toalhas de Rosto/Boca";
+    case "TOWEL_HAND": return "Toalhas de Mão/Lavabo";
+    case "TOWEL_BABY": return "Linha Baby";
+    case "KIT": return "Kits e Jogos";
+    default: return "Outros Produtos";
   }
 }
 
-const lineColors: Record<string, { from: string; to: string; border: string; icon: string }> = {
-  TOWEL_BATH: { from: "blue-50", to: "sky-50", border: "blue-200", icon: "blue-600" },
-  TOWEL_FACE: { from: "purple-50", to: "violet-50", border: "purple-200", icon: "purple-600" },
-  TOWEL_HAND: { from: "amber-50", to: "yellow-50", border: "amber-200", icon: "amber-600" },
-  TOWEL_BABY: { from: "pink-50", to: "rose-50", border: "pink-200", icon: "pink-600" },
-  KIT: { from: "emerald-50", to: "green-50", border: "emerald-200", icon: "emerald-600" },
-  OTHER: { from: "slate-50", to: "gray-50", border: "slate-200", icon: "slate-600" },
+// Cores temáticas para as categorias (Tons pastéis/terrosos)
+const lineStyles: Record<string, { bg: string; border: string; text: string; icon: string }> = {
+  TOWEL_BATH: { bg: "bg-[#E3F2FD]", border: "border-[#BBDEFB]", text: "text-[#1565C0]", icon: "text-[#1976D2]" },
+  TOWEL_FACE: { bg: "bg-[#F3E5F5]", border: "border-[#E1BEE7]", text: "text-[#7B1FA2]", icon: "text-[#8E24AA]" },
+  TOWEL_HAND: { bg: "bg-[#FFF8E1]", border: "border-[#FFE0B2]", text: "text-[#F57F17]", icon: "text-[#FFA000]" },
+  TOWEL_BABY: { bg: "bg-[#FFEBEE]", border: "border-[#FFCDD2]", text: "text-[#C62828]", icon: "text-[#E53935]" },
+  KIT: { bg: "bg-[#E8F5E9]", border: "border-[#C8E6C9]", text: "text-[#2E7D32]", icon: "text-[#43A047]" },
+  OTHER: { bg: "bg-[#F5F5F5]", border: "border-[#E0E0E0]", text: "text-[#616161]", icon: "text-[#757575]" },
 };
 
 export default function AdminStockPage() {
@@ -70,34 +66,16 @@ export default function AdminStockPage() {
 
   const grouped = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-
-    const result: Record<
-      string,
-      {
-        plain: Product[];
-        customizable: Product[];
-        total: number;
-        totalVisible: number;
-      }
-    > = {};
+    const result: Record<string, { plain: Product[]; customizable: Product[]; total: number; totalVisible: number; }> = {};
 
     for (const p of data) {
       const key = p.line ?? "OTHER";
-
-      const nameMatches =
-        term.length === 0 ||
-        p.name.toLowerCase().includes(term);
-
+      const nameMatches = term.length === 0 || p.name.toLowerCase().includes(term);
       const isLow = (p.stock ?? 0) <= lowStockThreshold;
       const passesLowFilter = !showLowOnly || isLow;
 
       if (!result[key]) {
-        result[key] = {
-          plain: [],
-          customizable: [],
-          total: 0,
-          totalVisible: 0,
-        };
+        result[key] = { plain: [], customizable: [], total: 0, totalVisible: 0 };
       }
       result[key].total += p.stock ?? 0;
 
@@ -108,390 +86,223 @@ export default function AdminStockPage() {
 
       result[key].totalVisible += p.stock ?? 0;
     }
-
     return result;
   }, [data, searchTerm, showLowOnly, lowStockThreshold]);
 
   const flattenedVisibleProducts = useMemo(() => {
-    const rows: {
-      id: number;
-      name: string;
-      line: string;
-      stock: number;
-      customizable: string;
-    }[] = [];
-
+    const rows: any[] = [];
     for (const [lineKey, info] of Object.entries(grouped)) {
       const lineName = lineLabel(lineKey as ProductLine);
-
-      for (const p of info.plain) {
-        rows.push({
-          id: p.id,
-          name: p.name,
-          line: lineName + " (lisa)",
-          stock: p.stock ?? 0,
-          customizable: "Não",
-        });
-      }
-
-      for (const p of info.customizable) {
-        rows.push({
-          id: p.id,
-          name: p.name,
-          line: lineName + " (personalizável)",
-          stock: p.stock ?? 0,
-          customizable: "Sim",
-        });
-      }
+      for (const p of info.plain) rows.push({ ...p, lineName, type: "Lisa" });
+      for (const p of info.customizable) rows.push({ ...p, lineName, type: "Personalizável" });
     }
-
     return rows;
   }, [grouped]);
 
   const handleExportCsv = useCallback(() => {
     if (flattenedVisibleProducts.length === 0) {
-      alert("Não há itens visíveis com os filtros atuais para exportar.");
+      alert("Nada para exportar com os filtros atuais.");
       return;
     }
-
-    const header = ["ID", "Nome", "Linha", "Estoque", "Personalizável"];
-
+    const header = ["ID", "Nome", "Linha", "Tipo", "Estoque"];
     const lines = flattenedVisibleProducts.map((p) => [
       p.id,
       `"${p.name.replace(/"/g, '""')}"`,
-      `"${p.line.replace(/"/g, '""')}"`,
+      `"${p.lineName}"`,
+      p.type,
       p.stock,
-      p.customizable,
     ]);
-
-    const csvContent =
-      header.join(";") +
-      "\n" +
-      lines.map((row) => row.join(";")).join("\n");
-
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-
+    const csvContent = header.join(";") + "\n" + lines.map((row) => row.join(";")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .slice(0, 19)
-      .replace(/[:T]/g, "-");
     link.href = url;
-    link.setAttribute(
-      "download",
-      `estoque-arte-com-carinho-${timestamp}.csv`,
-    );
+    link.setAttribute("download", `estoque-atelie-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   }, [flattenedVisibleProducts]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 text-center">
-            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-rose-500 border-r-transparent mb-4"></div>
-            <p className="text-sm font-semibold text-neutral-600">
-              Carregando visão de estoque...
-            </p>
-          </div>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#8D6E63]">
+        <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-[#D7CCC8] border-r-[#E53935] mb-3"></div>
+        <p className="text-sm font-bold uppercase tracking-widest">Abrindo almoxarifado...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Header */}
-        <section className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-10 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-3 shadow-md">
-                <Package size={24} className="text-rose-600" />
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-500/30">
-                <Sparkles size={14} className="animate-pulse" />
-                Inventário completo
-              </span>
-            </div>
-            
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500 leading-tight">
-              Visão Geral de Estoque
-            </h1>
-            <p className="mt-3 text-base text-neutral-600 font-medium">
-              Consulta rápida de toalhas lisas e personalizáveis organizadas por linha.
-            </p>
+    <div className="space-y-8 pb-20">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-dashed border-[#D7CCC8] pb-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
+             <Layers className="h-6 w-6 text-[#5D4037]" />
           </div>
-        </section>
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Controle de Estoque</h1>
+            <p className="text-[#8D6E63] italic">Visão geral dos materiais e peças.</p>
+          </div>
+        </div>
+        
+        <div className="bg-[#FFF8E1] px-4 py-2 rounded-sm border border-[#FFE0B2] shadow-sm flex items-center gap-2">
+            <Sparkles size={16} className="text-[#F57F17]" />
+            <span className="text-sm font-bold text-[#F57F17] uppercase tracking-wider">
+                Inventário Ativo
+            </span>
+        </div>
+      </div>
 
-        {/* Filtros e Controles */}
-        <section className="rounded-[2rem] bg-white/80 backdrop-blur-sm p-6 shadow-lg border-2 border-rose-200">
-          <div className="flex flex-col gap-6">
-            {/* Linha 1: Busca e Exportar */}
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1 max-w-xl">
-                <label className="block text-xs font-bold text-slate-700 mb-2">
-                  Buscar por nome do produto
-                </label>
-                <div className="relative flex items-center">
-                  <Search className="absolute left-4 h-5 w-5 text-rose-400" />
-                  <Input
-                    placeholder="Ex.: toalha de banho lisa, toalha de boca, kit..."
-                    className="h-12 pl-12 pr-10 rounded-2xl border-2 border-rose-200 text-sm font-medium focus:border-rose-400 transition-colors"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="absolute right-3 p-1 hover:bg-rose-100 rounded-full transition-colors"
-                    >
-                      <X className="h-4 w-4 text-rose-500" />
-                    </button>
-                  )}
+      {/* Painel de Controle */}
+      <div className="bg-white border border-[#D7CCC8] rounded-sm p-6 shadow-sm space-y-6">
+        <div className="flex flex-col lg:flex-row gap-6 justify-between items-end">
+            {/* Busca */}
+            <div className="w-full lg:w-1/3">
+                <label className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider mb-2 block">Buscar Item</label>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1887F]" />
+                    <Input 
+                        value={searchTerm} 
+                        onChange={e => setSearchTerm(e.target.value)} 
+                        placeholder="Nome do produto..." 
+                        className="pl-9 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-10 rounded-sm"
+                    />
+                    {searchTerm && (
+                        <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E53935]">
+                            <X size={14}/>
+                        </button>
+                    )}
                 </div>
-              </div>
-
-              <Button
-                size="sm"
-                className="h-12 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-sm font-bold text-white hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg shadow-emerald-500/30 hover:shadow-xl"
-                onClick={handleExportCsv}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exportar CSV
-              </Button>
             </div>
 
-            {/* Linha 2: Filtros Avançados */}
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-sky-50 border-2 border-blue-200">
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-blue-600" />
-                <span className="text-sm font-bold text-slate-800">Filtros</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-3 rounded-xl bg-white border-2 border-blue-300 px-4 py-2.5 shadow-sm">
-                  <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                    Estoque baixo ≤
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    className="h-9 w-20 border-2 border-blue-300 text-sm font-bold text-center rounded-xl"
-                    value={lowStockThreshold}
-                    onChange={(e) =>
-                      setLowStockThreshold(
-                        Math.max(1, Number(e.target.value) || 1),
-                      )
-                    }
-                  />
+            {/* Filtros e Ações */}
+            <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+                
+                {/* Limite de Estoque */}
+                <div className="flex items-center gap-2 bg-[#FAF7F5] border border-[#D7CCC8] px-3 py-2 rounded-sm">
+                    <span className="text-xs font-bold text-[#8D6E63]">Alerta Baixo ≤</span>
+                    <input 
+                        type="number" 
+                        min="1" 
+                        value={lowStockThreshold} 
+                        onChange={e => setLowStockThreshold(Math.max(1, Number(e.target.value)))} 
+                        className="w-12 text-center bg-white border border-[#D7CCC8] rounded-sm text-sm font-bold text-[#5D4037] outline-none focus:border-[#E53935]"
+                    />
                 </div>
 
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-white border-2 border-blue-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 transition-colors shadow-sm">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded accent-blue-600 cursor-pointer"
-                    checked={showLowOnly}
-                    onChange={(e) => setShowLowOnly(e.target.checked)}
-                  />
-                  Apenas estoque baixo
+                {/* Toggle Filtro */}
+                <label className="flex items-center gap-2 cursor-pointer select-none border border-[#D7CCC8] px-3 py-2 rounded-sm hover:bg-[#FAF7F5] transition-colors bg-white">
+                    <input 
+                        type="checkbox" 
+                        checked={showLowOnly} 
+                        onChange={e => setShowLowOnly(e.target.checked)} 
+                        className="accent-[#E53935]" 
+                    />
+                    <span className="text-xs font-bold text-[#5D4037] uppercase">Apenas Críticos</span>
                 </label>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-10 px-4 rounded-xl border-2 border-rose-200 text-sm font-bold text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-all"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setShowLowOnly(false);
-                    setLowStockThreshold(5);
-                  }}
+                {/* Botão Exportar */}
+                <Button 
+                    onClick={handleExportCsv} 
+                    className="bg-[#E53935] hover:bg-[#C62828] text-white text-xs font-bold uppercase tracking-widest h-10 px-6 rounded-sm shadow-md transition-all hover:-translate-y-0.5"
                 >
-                  Limpar filtros
+                    <Download className="mr-2 h-4 w-4" /> Exportar CSV
                 </Button>
-              </div>
             </div>
+        </div>
+      </div>
 
-            {/* Info sobre exportação */}
-            <p className="text-xs text-center text-slate-500 font-medium">
-              💡 A exportação considera apenas os itens visíveis com os filtros aplicados
-            </p>
-          </div>
-        </section>
+      {/* Empty State */}
+      {Object.entries(grouped).length === 0 && (
+        <div className="p-16 text-center border-2 border-dashed border-[#D7CCC8] rounded-sm bg-[#FAF7F5]">
+            <Package className="mx-auto h-12 w-12 text-[#D7CCC8] mb-4" />
+            <p className="text-lg font-serif text-[#5D4037]">Nenhum item encontrado</p>
+            <p className="text-sm text-[#8D6E63]">Tente ajustar os filtros de busca.</p>
+        </div>
+      )}
 
-        {/* Mensagem se vazio */}
-        {Object.entries(grouped).length === 0 && (
-          <div className="rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-16 shadow-xl backdrop-blur-sm border border-white/50 text-center">
-            <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 flex items-center justify-center mb-4">
-              <Package className="h-10 w-10 text-slate-400" />
-            </div>
-            <p className="text-base font-semibold text-slate-700">
-              Nenhum item encontrado
-            </p>
-            <p className="text-sm text-slate-500 mt-2">
-              Ajuste os filtros para ver os produtos
-            </p>
-          </div>
-        )}
+      {/* Cards de Categorias */}
+      <div className="space-y-6">
+        {Object.entries(grouped).map(([line, info]) => {
+            if (info.plain.length === 0 && info.customizable.length === 0) return null;
 
-        {/* Cards por linha */}
-        <div className="space-y-6">
-          {Object.entries(grouped).map(([line, info]) => {
-            if (info.plain.length === 0 && info.customizable.length === 0) {
-              return null;
-            }
-
-            const colors = lineColors[line] || lineColors.OTHER;
+            const style = lineStyles[line] || lineStyles.OTHER;
 
             return (
-              <Card key={line} className={`rounded-3xl border-2 border-${colors.border} bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden`}>
-                <CardHeader className={`bg-gradient-to-r from-${colors.from} to-${colors.to} border-b-2 border-${colors.border} pb-5`}>
-                  <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-white p-2.5 shadow-md">
-                        <Package className={`h-5 w-5 text-${colors.icon}`} />
-                      </div>
-                      <span className="text-base font-bold text-slate-800">
-                        {lineLabel(line as ProductLine)}
-                      </span>
-                    </div>
+                <Card key={line} className={`border border-[#D7CCC8] shadow-sm rounded-sm bg-white overflow-hidden`}>
                     
-                    <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white border-2 border-slate-300 px-4 py-1.5 text-xs font-bold text-slate-700 shadow-sm">
-                        <Package className="h-3 w-3" />
-                        Total: {info.total ?? 0}
-                      </span>
-                      {info.totalVisible !== info.total && (
-                        <span className={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-${colors.from} to-${colors.to} border-2 border-${colors.border} px-4 py-1.5 text-xs font-bold text-${colors.icon} shadow-sm`}>
-                          <Filter className="h-3 w-3" />
-                          Visível: {info.totalVisible ?? 0}
-                        </span>
-                      )}
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 grid gap-6 md:grid-cols-2">
-                  {/* Lisas */}
-                  <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-gray-50 p-4 border-2 border-slate-200">
-                    <p className="text-sm font-black text-slate-800 mb-3 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-slate-600"></span>
-                      Peças lisas (sem bordado)
-                    </p>
-                    <div className="overflow-x-auto rounded-xl border border-slate-200">
-                      <table className="w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-white">
-                            <th className="py-2 px-3 text-left font-bold text-slate-700">Produto</th>
-                            <th className="py-2 px-3 text-right font-bold text-slate-700">Estoque</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {info.plain.map((p) => {
-                            const isLow = (p.stock ?? 0) <= lowStockThreshold;
-                            return (
-                              <tr
-                                key={p.id}
-                                className={`border-t border-slate-100 hover:bg-slate-50 transition-colors ${
-                                  isLow ? "bg-rose-50/80" : "bg-white"
-                                }`}
-                              >
-                                <td className="py-2 px-3">
-                                  <span className={`font-medium ${isLow ? "text-rose-700" : "text-slate-700"}`}>
-                                    {p.name}
-                                  </span>
-                                </td>
-                                <td className="py-2 px-3 text-right">
-                                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-                                    isLow
-                                      ? "bg-rose-100 text-rose-700 border border-rose-300"
-                                      : "bg-slate-100 text-slate-700"
-                                  }`}>
-                                    {isLow && <AlertTriangle className="h-3 w-3" />}
-                                    {p.stock}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          {info.plain.length === 0 && (
-                            <tr>
-                              <td colSpan={2} className="py-4 px-3 text-center text-xs text-slate-400">
-                                Nenhum item nessa categoria
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                    {/* Header da Categoria */}
+                    <CardHeader className={`${style.bg} border-b ${style.border} py-3 px-6 flex flex-row items-center justify-between`}>
+                        <div className="flex items-center gap-3">
+                            <Package className={`h-5 w-5 ${style.icon}`} />
+                            <CardTitle className={`text-sm font-bold uppercase tracking-wider ${style.text}`}>
+                                {lineLabel(line as ProductLine)}
+                            </CardTitle>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="bg-white/80 px-2 py-1 rounded-sm text-[10px] font-bold border border-white/50 text-[#5D4037]">
+                                Total: {info.total}
+                            </span>
+                            {info.totalVisible !== info.total && (
+                                <span className="bg-white/80 px-2 py-1 rounded-sm text-[10px] font-bold border border-white/50 text-[#8D6E63] flex items-center gap-1">
+                                    <Filter size={8} /> Visível: {info.totalVisible}
+                                </span>
+                            )}
+                        </div>
+                    </CardHeader>
 
-                  {/* Personalizáveis */}
-                  <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 p-4 border-2 border-purple-200">
-                    <p className="text-sm font-black text-slate-800 mb-3 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-600" />
-                      Peças personalizáveis
-                    </p>
-                    <div className="overflow-x-auto rounded-xl border border-purple-200">
-                      <table className="w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-white">
-                            <th className="py-2 px-3 text-left font-bold text-slate-700">Produto</th>
-                            <th className="py-2 px-3 text-right font-bold text-slate-700">Estoque</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {info.customizable.map((p) => {
-                            const isLow = (p.stock ?? 0) <= lowStockThreshold;
-                            return (
-                              <tr
-                                key={p.id}
-                                className={`border-t border-purple-100 hover:bg-purple-50 transition-colors ${
-                                  isLow ? "bg-rose-50/80" : "bg-white"
-                                }`}
-                              >
-                                <td className="py-2 px-3">
-                                  <span className={`font-medium ${isLow ? "text-rose-700" : "text-slate-700"}`}>
-                                    {p.name}
-                                  </span>
-                                </td>
-                                <td className="py-2 px-3 text-right">
-                                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-                                    isLow
-                                      ? "bg-rose-100 text-rose-700 border border-rose-300"
-                                      : "bg-purple-100 text-purple-700 border border-purple-200"
-                                  }`}>
-                                    {isLow && <AlertTriangle className="h-3 w-3" />}
-                                    {p.stock}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          {info.customizable.length === 0 && (
-                            <tr>
-                              <td colSpan={2} className="py-4 px-3 text-center text-xs text-slate-400">
-                                Nenhum item personalizável
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <CardContent className="p-0 grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#EFEBE9]">
+                        
+                        {/* Coluna: Peças Lisas */}
+                        <div className="p-4">
+                            <h4 className="text-xs font-bold text-[#8D6E63] mb-3 flex items-center gap-2 border-b border-dashed border-[#D7CCC8] pb-1 uppercase tracking-wider">
+                                <div className="w-2 h-2 bg-[#A1887F] rounded-full"></div> Peças Lisas
+                            </h4>
+                            <div className="space-y-1">
+                                {info.plain.map((p) => {
+                                    const isLow = (p.stock ?? 0) <= lowStockThreshold;
+                                    return (
+                                        <div key={p.id} className={cn("flex justify-between items-center text-sm py-1.5 px-2 rounded-sm transition-colors", isLow ? "bg-[#FFEBEE]" : "hover:bg-[#FAF7F5]")}>
+                                            <span className={cn("font-medium", isLow ? "text-[#C62828]" : "text-[#5D4037]")}>{p.name}</span>
+                                            <span className={cn("font-mono font-bold px-2 py-0.5 rounded-sm text-xs border", isLow ? "bg-white border-[#FFCDD2] text-[#C62828]" : "bg-[#FAF7F5] border-[#EFEBE9] text-[#8D6E63]")}>
+                                                {isLow && <AlertTriangle size={10} className="inline mr-1"/>}
+                                                {p.stock}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                                {info.plain.length === 0 && <p className="text-xs text-[#D7CCC8] italic px-2">Nenhum item.</p>}
+                            </div>
+                        </div>
+
+                        {/* Coluna: Peças Personalizáveis */}
+                        <div className="p-4 bg-[#FFFDE7]/30">
+                            <h4 className="text-xs font-bold text-[#F57F17] mb-3 flex items-center gap-2 border-b border-dashed border-[#FFE0B2] pb-1 uppercase tracking-wider">
+                                <Sparkles size={12} /> Personalizáveis
+                            </h4>
+                            <div className="space-y-1">
+                                {info.customizable.map((p) => {
+                                    const isLow = (p.stock ?? 0) <= lowStockThreshold;
+                                    return (
+                                        <div key={p.id} className={cn("flex justify-between items-center text-sm py-1.5 px-2 rounded-sm transition-colors", isLow ? "bg-[#FFEBEE]" : "hover:bg-[#FFF9C4]/50")}>
+                                            <span className={cn("font-medium", isLow ? "text-[#C62828]" : "text-[#5D4037]")}>{p.name}</span>
+                                            <span className={cn("font-mono font-bold px-2 py-0.5 rounded-sm text-xs border", isLow ? "bg-white border-[#FFCDD2] text-[#C62828]" : "bg-[#FFF8E1] border-[#FFE0B2] text-[#E65100]")}>
+                                                {isLow && <AlertTriangle size={10} className="inline mr-1"/>}
+                                                {p.stock}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                                {info.customizable.length === 0 && <p className="text-xs text-[#D7CCC8] italic px-2">Nenhum item.</p>}
+                            </div>
+                        </div>
+
+                    </CardContent>
+                </Card>
             );
-          })}
-        </div>
+        })}
       </div>
     </div>
   );

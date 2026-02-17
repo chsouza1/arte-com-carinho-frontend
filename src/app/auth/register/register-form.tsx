@@ -10,19 +10,17 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, UserPlus, Phone } from "lucide-react";
+import { Loader2, User, Phone, Mail, Lock, Sparkles, Scissors } from "lucide-react";
 
 const registerSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
   email: z.string().email("Digite um e-mail válido"),
-  phone: z.string().min(10, "Informe um telefone válido (Ex: 11999999999)"), 
+  phone: z.string().min(10, "Informe um telefone válido (apenas números)"), 
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-// --- ATENÇÃO AQUI: export default function ---
 export default function RegisterForm() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -49,12 +47,13 @@ export default function RegisterForm() {
         password: data.password,
         role: "CUSTOMER",
       });
+      // Redireciona para login com flag de sucesso
       router.push("/auth/login?registered=true");
     } catch (err: any) {
       if (err.response?.status === 409) {
         setError("Este e-mail já está cadastrado.");
       } else {
-        setError("Ocorreu um erro ao criar a conta.");
+        setError("Ocorreu um erro ao criar a conta. Tente novamente.");
       }
     } finally {
       setIsLoading(false);
@@ -68,93 +67,126 @@ export default function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md border-2 border-rose-100 bg-white/90 backdrop-blur-sm shadow-xl">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-rose-100">
-            <UserPlus className="h-6 w-6 text-rose-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-slate-800">
-            Crie sua conta
-          </CardTitle>
-          <p className="text-sm text-slate-500">
-            Preencha os dados abaixo para começar a comprar
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                placeholder="Seu nome"
-                {...register("name")}
-                className={errors.name ? "border-red-500" : ""}
-              />
-              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+    <div className="w-full max-w-md bg-white border border-[#D7CCC8] shadow-xl rounded-sm relative overflow-hidden">
+        
+        {/* Faixa Decorativa Superior */}
+        <div className="h-1 bg-[#E53935] w-full absolute top-0 left-0"></div>
+
+        <div className="p-8">
+            {/* Cabeçalho */}
+            <div className="text-center mb-8">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF7F5] border border-[#EFEBE9]">
+                    <Sparkles className="h-6 w-6 text-[#E53935]" />
+                </div>
+                <h1 className="text-3xl font-serif font-bold text-[#5D4037]">
+                    Bem-vindo(a)!
+                </h1>
+                <p className="text-sm text-[#8D6E63] mt-2">
+                    Crie sua conta para encomendar peças exclusivas e acompanhar seus pedidos.
+                </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                {...register("email")}
-                className={errors.email ? "border-red-500" : ""}
-              />
-              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            {/* Formulário */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                
+                {/* Nome */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="name" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider">Nome Completo</Label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-[#A1887F]" />
+                        <Input
+                            id="name"
+                            placeholder="Seu nome"
+                            {...register("name")}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.name ? "border-[#E53935]" : ""}`}
+                        />
+                    </div>
+                    {errors.name && <p className="text-[10px] text-[#E53935] font-bold">{errors.name.message}</p>}
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider">E-mail</Label>
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-[#A1887F]" />
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="seu@email.com"
+                            {...register("email")}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.email ? "border-[#E53935]" : ""}`}
+                        />
+                    </div>
+                    {errors.email && <p className="text-[10px] text-[#E53935] font-bold">{errors.email.message}</p>}
+                </div>
+
+                {/* Telefone */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="phone" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider">WhatsApp / Celular</Label>
+                    <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-[#A1887F]" />
+                        <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="11999999999 (Apenas números)"
+                            {...register("phone")}
+                            onChange={(e) => {
+                                register("phone").onChange(e);
+                                handlePhoneChange(e);
+                            }}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.phone ? "border-[#E53935]" : ""}`}
+                        />
+                    </div>
+                    {errors.phone && <p className="text-[10px] text-[#E53935] font-bold">{errors.phone.message}</p>}
+                </div>
+
+                {/* Senha */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="password" className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider">Senha</Label>
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-[#A1887F]" />
+                        <Input
+                            id="password"
+                            type="password"
+                            placeholder="Mínimo 6 caracteres"
+                            {...register("password")}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.password ? "border-[#E53935]" : ""}`}
+                        />
+                    </div>
+                    {errors.password && <p className="text-[10px] text-[#E53935] font-bold">{errors.password.message}</p>}
+                </div>
+
+                {/* Mensagem de Erro */}
+                {error && (
+                    <div className="rounded-sm bg-[#FFEBEE] p-3 text-xs font-bold text-[#C62828] border border-[#FFCDD2] flex items-center gap-2">
+                        <span className="text-lg">⚠️</span> {error}
+                    </div>
+                )}
+
+                {/* Botão de Cadastro */}
+                <Button 
+                    type="submit" 
+                    className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest h-12 rounded-sm shadow-md transition-all hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0" 
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Costurando cadastro...
+                        </>
+                    ) : (
+                        "Criar minha conta"
+                    )}
+                </Button>
+            </form>
+
+            {/* Rodapé do Card */}
+            <div className="mt-8 pt-6 border-t border-dashed border-[#D7CCC8] text-center text-sm">
+                <p className="text-[#8D6E63] mb-2">Já faz parte do nosso ateliê?</p>
+                <Link href="/auth/login" className="font-bold text-[#5D4037] hover:text-[#E53935] uppercase text-xs tracking-widest border-b-2 border-[#E53935] pb-0.5 transition-colors">
+                    Fazer Login
+                </Link>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">WhatsApp / Celular</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="Ex: 11999999999 (Apenas números)"
-                  {...register("phone")}
-                  onChange={(e) => {
-                      register("phone").onChange(e);
-                      handlePhoneChange(e);
-                  }}
-                  className={`pl-10 ${errors.phone ? "border-red-500" : ""}`}
-                />
-              </div>
-              {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="******"
-                {...register("password")}
-                className={errors.password ? "border-red-500" : ""}
-              />
-              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
-            </div>
-
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 border border-red-200">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 font-bold" disabled={isLoading}>
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando conta...</> : "Cadastrar"}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center text-sm">
-            Já tem uma conta?{" "}
-            <Link href="/login" className="font-semibold text-rose-600 hover:underline">
-              Fazer Login
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+    </div>
   );
 }
