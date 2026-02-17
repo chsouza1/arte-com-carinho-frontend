@@ -96,10 +96,12 @@ export default function OrderPrintPage() {
         <div className="flex justify-between items-start border-b-2 border-[#5D4037] pb-6 mb-8">
             <div className="flex items-center gap-4">
                 
-                <div className="h-20 w-20 relative overflow-hidden rounded-full border-2 border-[#5D4037] bg-white p-1">
+                <div className="h-20 w-20 relative overflow-hidden rounded-full border-2 border-[#5D4037] bg-white">
                     <img 
                         src={logoImg.src} 
                         alt="Logo Arte com Carinho" 
+                        // object-cover: Preenche todo o círculo (bom para fotos/fundos cheios)
+                        // object-contain: Mostra a logo inteira sem cortar (pode sobrar borda branca)
                         className="h-full w-full object-contain" 
                     />
                 </div>
