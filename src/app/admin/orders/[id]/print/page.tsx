@@ -97,7 +97,7 @@ export default function OrderPrintPage() {
                 
                 <div className="h-20 w-20 relative overflow-hidden rounded-full border-2 border-[#5D4037] bg-white p-1">
                     <img 
-                        src="/public/logo.png" 
+                        src="/logo.png" 
                         alt="Logo Arte com Carinho" 
                         className="h-full w-full object-contain" 
                     />
