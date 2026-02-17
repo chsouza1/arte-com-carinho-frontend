@@ -73,7 +73,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <div className="flex flex-col">
                 <span className="text-lg font-serif font-bold text-[#5D4037] leading-none">
-                Painel do Ateliê
+                Painel Administrativo do Ateliê
                 </span>
                 <span className="text-[10px] uppercase tracking-widest text-[#8D6E63] font-bold">
                 Arte com Carinho

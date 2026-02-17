@@ -11,7 +11,7 @@ export function SiteFooter() {
       <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="grid gap-10 md:grid-cols-3 md:gap-16">
           
-          {/* Coluna 1: Sobre a Marca */}
+          
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="p-2 border-2 border-[#D7CCC8] rounded-full bg-white">
@@ -24,7 +24,7 @@ export function SiteFooter() {
             </div>
             
             <p className="text-sm text-[#8D6E63] leading-relaxed font-medium">
-              Transformando tecidos em memórias. Enxoval bordado sob medida, toalhas e mimos para recém-nascidos feitos à mão com amor em cada ponto.
+              Transformando tecidos em memórias. Enxoval bordado sob medida, toalhas e mimos feitos à mão com amor em cada ponto.
             </p>
 
             <div className="flex items-center gap-2 pt-2 text-[#E53935] font-serif italic">

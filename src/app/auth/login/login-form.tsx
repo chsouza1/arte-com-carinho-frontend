@@ -3,13 +3,13 @@
 import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import ReCAPTCHA from "react-google-recaptcha"; 
+import HCaptcha from "@hcaptcha/react-hcaptcha"; 
 import { api, setAuthToken } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { saveSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, Sparkles, AlertCircle, Clock, Heart, ArrowRight } from "lucide-react";
+import { Mail, Lock, AlertCircle, Clock, Heart } from "lucide-react";
 
 type AuthResponse = {
   token: string;
@@ -34,7 +34,7 @@ export function LoginForm() {
 
   // --- ESTADOS DO CAPTCHA ---
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const hcaptchaRef = useRef<HCaptcha>(null);
 
   const loginMutation = useMutation({
     mutationFn: async () => {
@@ -68,7 +68,8 @@ export function LoginForm() {
     onError: (error: any) => {
       console.error("Erro ao fazer login:", error?.response?.data || error);
       
-      recaptchaRef.current?.reset();
+      // MUDANÇA 3: Método de reset do hCaptcha é diferente (.resetCaptcha)
+      hcaptchaRef.current?.resetCaptcha();
       setCaptchaToken(null);
 
       if (error?.response?.status === 401) {
@@ -190,12 +191,12 @@ export function LoginForm() {
                </div>
             </div>
 
-            {/* ReCAPTCHA Centralizado */}
+            {/*Componente HCaptcha */}
             <div className="flex justify-center py-2 scale-90 origin-center">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-                onChange={(token) => setCaptchaToken(token)}
+              <HCaptcha
+                ref={hcaptchaRef}
+                sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || ""}
+                onVerify={(token) => setCaptchaToken(token)}
               />
             </div>
 

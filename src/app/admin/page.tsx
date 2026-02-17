@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Package, ShoppingBag, Wallet, Sparkles, Scissors, TrendingUp } from "lucide-react";
 
-// Tipos mantidos...
+
 type Product = { id: number; name: string; stock: number; price: number; category: string; };
 type Order = { id: number; orderNumber: string; customerName: string; status: string; totalAmount: number; orderDate: string; };
 
