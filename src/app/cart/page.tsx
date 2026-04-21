@@ -137,15 +137,23 @@ export default function CartPage() {
     return true;
   };
 
+// --- Mutaçao Padrão (Pix/Dinheiro) ---
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       const payload = buildOrderPayload();
+      
       const res = await api.post("/public/orders", payload);
-      return res.data;
+      const orderId = res.data.id || res.data.orderId;
+
+      if (paymentMethod === 'pix') {
+          const pixRes = await api.post(`/payments/pix?orderId=${orderId}`);
+          sessionStorage.setItem(`pix_${orderId}`, JSON.stringify(pixRes.data));
+      }
+
+      return orderId;
     },
-    onSuccess: (data) => {
+    onSuccess: (orderId) => {
       clearCart();
-      const orderId = data.id || data.orderId; 
       router.push(`/order/success?id=${orderId}`);
     },
     onError: (error: any) => {

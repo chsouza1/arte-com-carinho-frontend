@@ -12,14 +12,13 @@ import {
   Copy,
   Check,
   Scissors,
-  Smartphone,
   Gift
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
-// --- CONSTANTES ---
+
 const WHATSAPP_NUMBER = "5541999932625";
-const PIX_KEY = "simonearmin@hotmail.com";
+const PIX_MANUAL_FALLBACK = "simonearmin@hotmail.com";
 
 export function OrderSuccessClient() {
   const searchParams = useSearchParams();
@@ -27,8 +26,18 @@ export function OrderSuccessClient() {
   
   const orderId = searchParams.get("id") || searchParams.get("orderId");
   const { data: order } = useOrderDetail(orderId);
+  
   const [copied, setCopied] = useState(false);
+  const [pixData, setPixData] = useState<any>(null);
 
+  useEffect(() => {
+    if (orderId) {
+      const savedPix = sessionStorage.getItem(`pix_${orderId}`);
+      if (savedPix) {
+        setPixData(JSON.parse(savedPix));
+      }
+    }
+  }, [orderId]);
   
   useEffect(() => {
     if (order) {
@@ -48,7 +57,9 @@ export function OrderSuccessClient() {
   }, [order]);
 
   const handleCopyPix = () => {
-    navigator.clipboard.writeText(PIX_KEY);
+    
+    const textToCopy = pixData?.qrCode || PIX_MANUAL_FALLBACK;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -73,28 +84,24 @@ Acabei de fazer o pedido *#${order.code || order.id}* no site.
 ${itemsList}
 
 *💰 Total:* ${totalValue}
-*💳 Pagamento:* ${order.paymentMethod === 'PIX' ? 'Pix' : 'A Combinar'}
+*💳 Pagamento:* ${order.paymentMethod === 'PIX' ? 'Pix' : 'Cartão/Outro'}
 
 *📝 Detalhes do Pedido:*
 ${order.notes || "Sem observações extras."}
 
 *⚠️ Comprovante:*
-Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
+Estou enviando o comprovante do pagamento para iniciar a produção! 👇`;
 
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   };
 
   return (
-    // FUNDO CREME
     <div className="min-h-screen bg-[#FAF7F5] flex items-center justify-center p-4 sm:p-6 font-sans text-[#5D4037]">
       
-      {/* CARTÃO PRINCIPAL ESTILO PAPELARIA */}
       <div className="w-full max-w-lg bg-white relative rounded-sm shadow-xl border border-[#D7CCC8] overflow-hidden">
         
-        {/* Detalhe Superior (Fita/Costura) */}
         <div className="h-2 bg-[#E53935] w-full border-b border-dashed border-[#B71C1C]/30"></div>
 
-        {/* CABEÇALHO */}
         <div className="text-center pt-10 pb-6 px-8 bg-[url('/paper-texture.png')]">
             <div className="relative inline-block mb-6">
                 <div className="absolute inset-0 bg-[#FFEBEE] rounded-full animate-ping opacity-75"></div>
@@ -111,14 +118,11 @@ Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
             </p>
         </div>
 
-        {/* CONTEÚDO PRINCIPAL */}
         <div className="px-8 pb-10 space-y-8">
             
             {order ? (
                 <>
-                    {/* CARTÃO DE PEDIDO (TICKET) */}
                     <div className="bg-[#FAF7F5] border-2 border-dashed border-[#D7CCC8] p-6 rounded-sm text-center relative">
-                        {/* Recorte decorativo */}
                         <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-r border-[#D7CCC8]"></div>
                         <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-l border-[#D7CCC8]"></div>
 
@@ -126,44 +130,57 @@ Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
                         <p className="text-3xl font-serif font-bold text-[#5D4037] tracking-tight">#{order.code ?? order.id}</p>
                     </div>
 
-                    {/* ÁREA DE PAGAMENTO (PIX) */}
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-3 bg-[#FFF8E1] p-4 rounded-sm border border-[#FFE0B2]">
-                            <div className="bg-[#FFECB3] p-2 rounded-full text-[#F57F17]">
-                                <Scissors size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-[#5D4037] mb-1">Para iniciar a produção...</h3>
-                                <p className="text-xs text-[#8D6E63] leading-relaxed">
-                                    Como são peças personalizadas, preciso da confirmação de <strong>50% do valor</strong> para comprar os materiais e começar a bordar.
-                                </p>
-                            </div>
-                        </div>
+                    {order.paymentMethod === 'PIX' && (
+                      <div className="space-y-4">
+                          <div className="flex items-start gap-3 bg-[#FFF8E1] p-4 rounded-sm border border-[#FFE0B2]">
+                              <div className="bg-[#FFECB3] p-2 rounded-full text-[#F57F17]">
+                                  <Scissors size={20} />
+                              </div>
+                              <div>
+                                  <h3 className="text-sm font-bold text-[#5D4037] mb-1">Para iniciar a produção...</h3>
+                                  <p className="text-xs text-[#8D6E63] leading-relaxed">
+                                      Como são peças personalizadas, preciso da confirmação do pagamento para comprar os materiais e começar a bordar.
+                                  </p>
+                              </div>
+                          </div>
 
-                        {/* Caixa do Pix */}
-                        <div className="border border-[#D7CCC8] rounded-sm p-4 bg-white shadow-sm">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider flex items-center gap-1">
+                          <div className="border border-[#D7CCC8] rounded-sm p-4 bg-white shadow-sm flex flex-col items-center">
+                              
+                              {/* SE TEM PIX DO MERCADO PAGO, MOSTRA A IMAGEM E O COPIA/COLA */}
+                              {pixData ? (
+                                <>
+                                  <span className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider mb-3">
+                                      Escaneie o QR Code
+                                  </span>
+                                  {/* A API do MP retorna o base64 puro, adicionamos o prefixo data:image para exibir */}
+                                  <img 
+                                    src={`data:image/png;base64,${pixData.qrCodeBase64}`} 
+                                    alt="QR Code PIX" 
+                                    className="w-48 h-48 border border-neutral-200 rounded-lg shadow-sm mb-4"
+                                  />
+                                  <span className="text-xs text-[#8D6E63] mb-2">Ou use o código Pix Copia e Cola abaixo:</span>
+                                </>
+                              ) : (
+                                <span className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider mb-3 flex items-center gap-1">
                                     <Gift size={12} /> Chave Pix (E-mail)
                                 </span>
-                                {copied && <span className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 size={12} /> Copiado!</span>}
-                            </div>
-                            
-                            <div className="flex gap-2">
-                                <div className="flex-1 bg-[#FAF7F5] border border-[#EFEBE9] p-3 rounded-sm font-mono text-sm text-[#5D4037] truncate font-bold select-all">
-                                    {PIX_KEY}
-                                </div>
-                                <Button 
-                                    onClick={handleCopyPix}
-                                    className="bg-[#5D4037] hover:bg-[#3E2723] text-white px-4 rounded-sm"
-                                >
-                                    <Copy size={16} />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+                              )}
 
-                    {/* BOTÃO WHATSAPP (AÇÃO PRINCIPAL) */}
+                              <div className="flex w-full gap-2 mt-2">
+                                  <div className="flex-1 bg-[#FAF7F5] border border-[#EFEBE9] p-3 rounded-sm font-mono text-[10px] sm:text-xs text-[#5D4037] truncate font-bold select-all">
+                                      {pixData ? pixData.qrCode : PIX_MANUAL_FALLBACK}
+                                  </div>
+                                  <Button 
+                                      onClick={handleCopyPix}
+                                      className="bg-[#5D4037] hover:bg-[#3E2723] text-white px-4 rounded-sm transition-all"
+                                  >
+                                      {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                                  </Button>
+                              </div>
+                          </div>
+                      </div>
+                    )}
+
                     <a 
                         href={getWhatsAppLink()} 
                         target="_blank" 
@@ -186,7 +203,6 @@ Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
                 </div>
             )}
 
-            {/* AÇÕES SECUNDÁRIAS */}
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dashed border-[#D7CCC8]">
                 <Button
                     variant="outline"
@@ -207,7 +223,6 @@ Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
             </div>
         </div>
 
-        {/* Rodapé Decorativo */}
         <div className="bg-[#FAF7F5] py-3 text-center border-t border-[#D7CCC8]">
             <p className="text-[10px] text-[#A1887F] font-serif italic">
                 Feito à mão com amor em cada ponto.
@@ -222,7 +237,7 @@ Estou enviando o comprovante dos 50% para iniciar a produção! 👇`;
   );
 }
 
-// Componente Loader2 manual caso não tenha no lucide-react importado
+
 function Loader2({ className }: { className?: string }) {
     return (
         <svg 
