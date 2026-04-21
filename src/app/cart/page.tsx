@@ -140,7 +140,7 @@ export default function CartPage() {
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       const payload = buildOrderPayload();
-      const res = await api.post("/api/public/orders", payload);
+      const res = await api.post("/public/orders", payload);
       return res.data;
     },
     onSuccess: (data) => {
@@ -161,6 +161,7 @@ export default function CartPage() {
     checkoutMutation.mutate();
   }
 
+  // --- Lógica do Mercado Pago (Cartão Online) ---
   const onMercadoPagoSubmit = async (formData: any) => {
     return new Promise<void>(async (resolve, reject) => {
       setFormError(null);
@@ -171,14 +172,14 @@ export default function CartPage() {
 
       try {
         const orderPayload = buildOrderPayload();
-        orderPayload.paymentMethod = "CARD"; 
+        orderPayload.paymentMethod = "cartao"; 
         
-        const orderRes = await api.post("/api/public/orders", orderPayload);
+        const orderRes = await api.post("/public/orders", orderPayload);
         const orderId = orderRes.data.id || orderRes.data.orderId;
+
         const { token, payment_method_id, installments, issuer_id, payer } = formData;
 
-
-        await api.post("/api/payments/card", {
+        await api.post("/payments/card", {
           orderId: orderId,
           token: token,
           paymentMethodId: payment_method_id,
