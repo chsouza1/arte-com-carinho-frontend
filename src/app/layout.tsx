@@ -36,6 +36,7 @@ export default function RootLayout({
           </NotificationsProvider>
         </ReactQueryProvider>
       </body>
+      <script src="https://sdk.mercadopago.com/js/v2"></script>
     </html>
   );
 }

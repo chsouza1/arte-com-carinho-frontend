@@ -14,6 +14,11 @@ import {
   Palette, Type, Scissors, Shapes, PaintBucket, Baby
 } from "lucide-react";
 
+import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
+
+initMercadoPago(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || "", {
+  locale: "pt-BR",
+});
 
 const COLORS = ["Branco", "Creme", "Rosa Bebê", "Azul Bebê", "Verde Água", "Lilás", "Cinza", "Outra (Definir no Whats)"];
 const THREAD_COLORS = ["Dourado", "Prateado", "Rosa", "Azul Marinho", "Azul Claro", "Preto", "Branco", "Cinza", "Marrom", "Bege", "Outra (Definir no Whats)"];
@@ -28,7 +33,6 @@ const EMBROIDERY_TYPES = [
 export default function CartPage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
-
 
   const { items, updateQuantity, removeItem, updateItem, clearCart } = useCartStore();
 
@@ -54,60 +58,89 @@ export default function CartPage() {
     [items]
   );
 
-  // Função helper para atualizar personalização
   function handleCustomize(id: number, field: keyof CartItem, value: string) {
     updateItem(id, { [field]: value });
   }
 
+  const buildOrderPayload = () => {
+    let customizationReport = "";
+    items.forEach((item) => {
+      const embType = item.embroideryType || "nome";
+      const gender = item.gender || "Unissex / Neutro";
+      const color = item.selectedColor || "Branco";
+      const thread = item.embroideryColor || "Dourado";
+
+      if (embType !== "sem_bordado") {
+        customizationReport += `\n[${item.name.toUpperCase()}]\n`;
+        customizationReport += `- Para: ${gender}\n`;
+        customizationReport += `- Cor da Peça: ${color}\n`;
+        
+        const typeLabel = EMBROIDERY_TYPES.find(t => t.value === embType)?.label;
+        customizationReport += `- Tipo: ${typeLabel}\n`;
+        
+        if (embType === "nome" || embType === "nome_desenho") {
+            customizationReport += `- Nome: "${item.customText || '(Não informado)'}"\n`;
+            customizationReport += `- Cor do Nome: ${thread}\n`;
+        }
+        if (embType === "desenho" || embType === "nome_desenho") {
+            customizationReport += `- Desenho: "${item.designDescription || '(Não informado)'}"\n`;
+        }
+        customizationReport += "----------------\n";
+      }
+    });
+
+    const finalNotes = `${notes}\n\n=== DETALHES DE PERSONALIZAÇÃO ===${customizationReport}`;
+
+    return {
+      customer: {
+          name: session?.name || "Cliente",
+          email: session?.email,
+          phone: phone 
+      },
+      items: items.map((i) => ({
+        productId: i.id,
+        quantity: i.quantity,
+      })),
+      notes: finalNotes,
+      paymentMethod: paymentMethod.toUpperCase(),
+    };
+  };
+
+  const validateCart = () => {
+    if (!session) {
+      router.push("/auth/login?redirect=/cart");
+      return false;
+    }
+    if (!phone) {
+      setFormError("Por favor, informe um telefone para contato.");
+      return false;
+    }
+
+    const missingName = items.find(i => {
+       const type = i.embroideryType || "nome";
+       return (type === 'nome' || type === 'nome_desenho') && !i.customText?.trim()
+    });
+    if (missingName) {
+        setFormError(`Por favor, informe o nome para bordar no item: ${missingName.name}`);
+        return false;
+    }
+
+    const missingDesign = items.find(i => {
+        const type = i.embroideryType || "nome";
+        return (type === 'desenho' || type === 'nome_desenho') && !i.designDescription?.trim()
+    });
+    if (missingDesign) {
+        setFormError(`Por favor, descreva qual desenho você quer no item: ${missingDesign.name}`);
+        return false;
+    }
+    
+    return true;
+  };
+
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      let customizationReport = "";
-      
-      items.forEach((item) => {
-        // Valores default para campos não preenchidos
-        const embType = item.embroideryType || "nome";
-        const gender = item.gender || "Unissex / Neutro";
-        const color = item.selectedColor || "Branco";
-        const thread = item.embroideryColor || "Dourado";
-
-        if (embType !== "sem_bordado") {
-            customizationReport += `\n[${item.name.toUpperCase()}]\n`;
-            customizationReport += `- Para: ${gender}\n`;
-            customizationReport += `- Cor da Peça: ${color}\n`;
-            
-            const typeLabel = EMBROIDERY_TYPES.find(t => t.value === embType)?.label;
-            customizationReport += `- Tipo: ${typeLabel}\n`;
-            
-            if (embType === "nome" || embType === "nome_desenho") {
-                customizationReport += `- Nome: "${item.customText || '(Não informado)'}"\n`;
-                customizationReport += `- Cor do Nome: ${thread}\n`;
-            }
-
-            if (embType === "desenho" || embType === "nome_desenho") {
-                customizationReport += `- Desenho: "${item.designDescription || '(Não informado)'}"\n`;
-            }
-            
-            customizationReport += "----------------\n";
-        }
-      });
-
-      const finalNotes = `${notes}\n\n=== DETALHES DE PERSONALIZAÇÃO ===${customizationReport}`;
-
-      const payload = {
-        customer: {
-            name: session?.name || "Cliente",
-            email: session?.email,
-            phone: phone 
-        },
-        items: items.map((i) => ({
-          productId: i.id,
-          quantity: i.quantity,
-        })),
-        notes: finalNotes,
-        paymentMethod: paymentMethod.toUpperCase(),
-      };
-
-      const res = await api.post("/public/orders", payload);
+      const payload = buildOrderPayload();
+      const res = await api.post("/api/public/orders", payload);
       return res.data;
     },
     onSuccess: (data) => {
@@ -124,43 +157,47 @@ export default function CartPage() {
 
   function handleCheckout() {
     setFormError(null);
-
-    if (!session) {
-      router.push("/auth/login?redirect=/cart");
-      return;
-    }
-
-    if (!phone) {
-      setFormError("Por favor, informe um telefone para contato.");
-      return;
-    }
-
-    const missingName = items.find(
-        i => {
-           const type = i.embroideryType || "nome";
-           return (type === 'nome' || type === 'nome_desenho') && !i.customText?.trim()
-        }
-    );
-
-    if (missingName) {
-        setFormError(`Por favor, informe o nome para bordar no item: ${missingName.name}`);
-        return;
-    }
-
-    const missingDesign = items.find(
-        i => {
-            const type = i.embroideryType || "nome";
-            return (type === 'desenho' || type === 'nome_desenho') && !i.designDescription?.trim()
-        }
-    );
-
-    if (missingDesign) {
-        setFormError(`Por favor, descreva qual desenho você quer no item: ${missingDesign.name}`);
-        return;
-    }
-
+    if (!validateCart()) return;
     checkoutMutation.mutate();
   }
+
+  const onMercadoPagoSubmit = async (formData: any) => {
+    return new Promise<void>(async (resolve, reject) => {
+      setFormError(null);
+      if (!validateCart()) {
+        reject();
+        return;
+      }
+
+      try {
+        const orderPayload = buildOrderPayload();
+        orderPayload.paymentMethod = "CARD"; 
+        
+        const orderRes = await api.post("/api/public/orders", orderPayload);
+        const orderId = orderRes.data.id || orderRes.data.orderId;
+        const { token, payment_method_id, installments, issuer_id, payer } = formData;
+
+
+        await api.post("/api/payments/card", {
+          orderId: orderId,
+          token: token,
+          paymentMethodId: payment_method_id,
+          installments: installments,
+          issuerId: issuer_id,
+          email: payer.email || session?.email || "cliente@artecomcarinho.com"
+        });
+
+        clearCart();
+        router.push(`/order/success?id=${orderId}`);
+        resolve();
+
+      } catch (error: any) {
+        console.error("Erro no processamento do cartão:", error);
+        setFormError("Erro ao processar o cartão. Verifique os dados ou tente outro.");
+        reject();
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50">
@@ -212,6 +249,7 @@ export default function CartPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-5">
+              {/* teste */}
               {items.map((item) => {
                 const image = resolveImage(item);
                 const embType = item.embroideryType || "nome";
@@ -230,47 +268,24 @@ export default function CartPage() {
                     <div className="flex gap-4">
                         <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 flex-shrink-0 shadow-md">
                         {image ? (
-                            <img
-                            src={image}
-                            alt={item.name}
-                            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
+                            <img src={image} alt={item.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
                         ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-slate-400 font-medium">
-                            Sem imagem
-                            </div>
+                            <div className="flex h-full items-center justify-center text-xs text-slate-400 font-medium">Sem imagem</div>
                         )}
                         </div>
 
                         <div className="flex flex-col justify-between">
                             <div>
-                                <p className="text-base font-bold text-neutral-800 group-hover:text-rose-600 transition-colors">
-                                {item.name}
-                                </p>
+                                <p className="text-base font-bold text-neutral-800 group-hover:text-rose-600 transition-colors">{item.name}</p>
                                 <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 mt-1">
-                                {item.price.toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                })}
+                                {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                                 </p>
                             </div>
 
                             <div className="mt-2 flex items-center gap-3 rounded-full border-2 border-rose-200 bg-white px-3 py-1.5 text-sm font-bold shadow-sm w-fit">
-                                <button 
-                                    onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)}
-                                    className="text-rose-500 hover:text-rose-700"
-                                >
-                                    <Minus size={14} />
-                                </button>
-                                <span className="min-w-[20px] text-center text-neutral-800">
-                                    {item.quantity}
-                                </span >
-                                <button 
-                                    onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)}
-                                    className="text-rose-500 hover:text-rose-700"
-                                >
-                                    <Plus size={14} />
-                                </button>
+                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)} className="text-rose-500 hover:text-rose-700"><Minus size={14} /></button>
+                                <span className="min-w-[20px] text-center text-neutral-800">{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)} className="text-rose-500 hover:text-rose-700"><Plus size={14} /></button>
                             </div>
                         </div>
                     </div>
@@ -282,40 +297,22 @@ export default function CartPage() {
                         
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="sm:col-span-1">
-                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1">
-                                    <Baby size={10} /> Para quem é?
-                                </label>
-                                <select 
-                                    value={gender}
-                                    onChange={(e) => handleCustomize(item.id, "gender", e.target.value)}
-                                    className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
-                                >
+                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1"><Baby size={10} /> Para quem é?</label>
+                                <select value={gender} onChange={(e) => handleCustomize(item.id, "gender", e.target.value)} className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50">
                                     {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
                             </div>
 
                             <div className="sm:col-span-1">
-                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1">
-                                    <Palette size={10} /> Cor da Peça
-                                </label>
-                                <select 
-                                    value={selectedColor}
-                                    onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)}
-                                    className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
-                                >
+                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1"><Palette size={10} /> Cor da Peça</label>
+                                <select value={selectedColor} onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)} className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50">
                                     {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
 
                             <div className="sm:col-span-1">
-                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1">
-                                    <Type size={10} /> Tipo de Bordado
-                                </label>
-                                <select 
-                                    value={embType}
-                                    onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)}
-                                    className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50"
-                                >
+                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1"><Type size={10} /> Tipo de Bordado</label>
+                                <select value={embType} onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)} className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50">
                                     {EMBROIDERY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
                             </div>
@@ -324,25 +321,12 @@ export default function CartPage() {
                         {showNameInput && (
                             <div className="animate-in fade-in slide-in-from-top-2 grid grid-cols-3 gap-2">
                                 <div className="col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">
-                                        Nome para bordar:
-                                    </label>
-                                    <Input 
-                                        placeholder="Ex: Maria Eduarda"
-                                        value={item.customText || ""}
-                                        onChange={(e) => handleCustomize(item.id, "customText", e.target.value)}
-                                        className="h-8 text-xs border-rose-200 focus:border-rose-400"
-                                    />
+                                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">Nome para bordar:</label>
+                                    <Input placeholder="Ex: Maria Eduarda" value={item.customText || ""} onChange={(e) => handleCustomize(item.id, "customText", e.target.value)} className="h-8 text-xs border-rose-200 focus:border-rose-400" />
                                 </div>
                                 <div className="col-span-1">
-                                    <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1">
-                                        <PaintBucket size={10} /> Cor do Nome
-                                    </label>
-                                    <select 
-                                        value={embroideryColor}
-                                        onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)}
-                                        className="w-full h-8 rounded-lg border border-rose-200 text-[10px] px-1 focus:border-rose-400 outline-none bg-slate-50"
-                                    >
+                                    <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1"><PaintBucket size={10} /> Cor</label>
+                                    <select value={embroideryColor} onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)} className="w-full h-8 rounded-lg border border-rose-200 text-[10px] px-1 focus:border-rose-400 outline-none bg-slate-50">
                                         {THREAD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
@@ -351,24 +335,13 @@ export default function CartPage() {
 
                         {showDesignInput && (
                             <div className="animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1">
-                                    <Shapes size={10} /> Qual desenho você quer?
-                                </label>
-                                <Input 
-                                    placeholder="Ex: Ursinho príncipe, Flor, Leão..."
-                                    value={item.designDescription || ""}
-                                    onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)}
-                                    className="h-8 text-xs border-rose-200 focus:border-rose-400"
-                                />
+                                <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1"><Shapes size={10} /> Qual desenho você quer?</label>
+                                <Input placeholder="Ex: Ursinho príncipe, Flor, Leão..." value={item.designDescription || ""} onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)} className="h-8 text-xs border-rose-200 focus:border-rose-400" />
                             </div>
                         )}
                     </div>
 
-                    <button
-                        onClick={() => removeItem(item.id)}
-                        className="absolute top-4 right-4 text-rose-300 hover:text-rose-500 transition-colors"
-                        title="Remover item"
-                    >
+                    <button onClick={() => removeItem(item.id)} className="absolute top-4 right-4 text-rose-300 hover:text-rose-500 transition-colors" title="Remover item">
                         <Trash2 size={18} />
                     </button>
                   </div>
@@ -407,18 +380,24 @@ export default function CartPage() {
                     Forma de pagamento
                   </p>
                   
-                  {['pix', 'card', 'cash'].map((method) => (
-                     <label key={method} className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
+                  {/* opção de Cartão Online */}
+                  {[
+                    { id: 'pix', label: 'Pix (Rápido e Prático)' },
+                    { id: 'card_online', label: 'Cartão de Crédito/Débito (Seguro)' },
+                    { id: 'card_delivery', label: 'Cartão na entrega' },
+                    { id: 'cash', label: 'Dinheiro na entrega' }
+                  ].map((method) => (
+                     <label key={method.id} className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
                         <input
                         type="radio"
                         name="payment"
-                        value={method}
-                        checked={paymentMethod === method}
-                        onChange={() => setPaymentMethod(method)}
+                        value={method.id}
+                        checked={paymentMethod === method.id}
+                        onChange={() => setPaymentMethod(method.id)}
                         className="accent-rose-500"
                         />
                         <span className="text-sm font-medium text-neutral-800">
-                        {method === 'pix' ? 'Pix' : method === 'card' ? 'Cartão na entrega' : 'Dinheiro'}
+                           {method.label}
                         </span>
                     </label>
                   ))}
@@ -441,18 +420,30 @@ export default function CartPage() {
                     </span>
                   </div>
 
-                  <Button
-                    onClick={handleCheckout}
-                    disabled={checkoutMutation.isPending}
-                    className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-7 text-base font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
-                  >
-                    {checkoutMutation.isPending ? (
-                        <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Enviando pedido...
-                        </>
-                    ) : "Finalizar pedido"}
-                  </Button>
+                  {/* Renderização Condicional: Botão Padrão OU Formulário do Mercado Pago */}
+                  {paymentMethod === 'card_online' ? (
+                    <div className="mt-4 bg-white rounded-2xl p-4 border border-rose-200 shadow-sm">
+                      <p className="text-xs font-semibold text-slate-500 mb-2 text-center">Pagamento Seguro pelo Mercado Pago</p>
+                      <Payment
+                        initialization={{ amount: totalAmount }}
+                        customization={{ paymentMethods: { creditCard: "all", debitCard: "all" } }}
+                        onSubmit={onMercadoPagoSubmit}
+                      />
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleCheckout}
+                      disabled={checkoutMutation.isPending}
+                      className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-7 text-base font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+                    >
+                      {checkoutMutation.isPending ? (
+                          <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Enviando pedido...
+                          </>
+                      ) : "Finalizar pedido"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

@@ -18,7 +18,7 @@ import {
 import confetti from "canvas-confetti";
 
 // --- CONSTANTES ---
-const WHATSAPP_NUMBER = "5541999932625"; // Atualizado conforme seu contexto
+const WHATSAPP_NUMBER = "5541999932625";
 const PIX_KEY = "simonearmin@hotmail.com";
 
 export function OrderSuccessClient() {
@@ -29,7 +29,7 @@ export function OrderSuccessClient() {
   const { data: order } = useOrderDetail(orderId);
   const [copied, setCopied] = useState(false);
 
-  // Efeito de Confete (Mantido, pois celebra a compra)
+  
   useEffect(() => {
     if (order) {
       const duration = 3000;
@@ -41,7 +41,6 @@ export function OrderSuccessClient() {
         const timeLeft = animationEnd - Date.now();
         if (timeLeft <= 0) return clearInterval(interval);
         const particleCount = 50 * (timeLeft / duration);
-        // Cores personalizadas: Vermelho, Dourado e Creme
         confetti({ ...defaults, particleCount, colors: ['#E53935', '#FFD700', '#FAF7F5'], origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, colors: ['#E53935', '#FFD700', '#FAF7F5'], origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
@@ -57,7 +56,6 @@ export function OrderSuccessClient() {
   const getWhatsAppLink = () => {
     if (!order) return "#";
     
-    // Formatação da Mensagem para o WhatsApp
     const itemsList = order.items
       ?.map((item: any) => `• ${item.quantity}x ${item.productName || "Peça Personalizada"}`)
       .join("\n") || "";

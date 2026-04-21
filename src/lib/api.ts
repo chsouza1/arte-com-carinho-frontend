@@ -14,6 +14,21 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+export const paymentsApi = {
+  // ... outras funções (pix, etc)
+  createCardPayment: async (paymentData: {
+    orderId: number;
+    token: string;
+    paymentMethodId: string;
+    installments: number;
+    issuerId: string;
+    email: string;
+  }) => {
+    const response = await api.post('/api/payments/card', paymentData);
+    return response.data;
+  }
+};
+
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined" && !config.headers.Authorization) {
     try {
