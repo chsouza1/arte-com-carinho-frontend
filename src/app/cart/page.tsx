@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Loader2,
-  Palette, Type, Scissors, Shapes, PaintBucket, Baby
+  Palette, Type, Scissors, Shapes, PaintBucket, Baby,
+  MapPin, Truck, Search
 } from "lucide-react";
 
 import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
@@ -30,6 +31,8 @@ const EMBROIDERY_TYPES = [
   { value: "sem_bordado", label: "Sem Bordado" }
 ];
 
+const PICKUP_ADDRESS = "Av. Brasil, 270 - Centro, Mandirituba - PR, 83800-000, Loja fashion kids";
+
 export default function CartPage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? api.defaults.baseURL;
@@ -42,6 +45,12 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [deliveryType, setDeliveryType] = useState<"pickup" | "shipping">("pickup");
+  const [cep, setCep] = useState("");
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+
   useEffect(() => {
     setSession(getAuthSession());
   }, []);
@@ -53,14 +62,45 @@ export default function CartPage() {
     return `${API_URL}${img}`;
   };
 
-  const totalAmount = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * (item.quantity ?? 1), 0),
-    [items]
-  );
+  // Cálculo do Total (Produtos + Frete Selecionado)
+  const totalAmount = useMemo(() => {
+    const productsTotal = items.reduce((sum, item) => sum + item.price * (item.quantity ?? 1), 0);
+    const shippingTotal = (deliveryType === "shipping" && selectedShipping) ? Number(selectedShipping.price) : 0;
+    return productsTotal + shippingTotal;
+  }, [items, deliveryType, selectedShipping]);
 
   function handleCustomize(id: number, field: keyof CartItem, value: string) {
     updateItem(id, { [field]: value });
   }
+
+  const handleCalculateShipping = async () => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length !== 8) {
+      setFormError("Informe um CEP válido com 8 dígitos.");
+      return;
+    }
+
+    setIsCalculating(true);
+    setFormError(null);
+
+    try {
+      const payload = {
+        zipCode: cleanCep,
+        items: items.map(item => ({
+          productId: item.id,
+          quantity: item.quantity
+        }))
+      };
+
+      const { data } = await api.post("/shipping/calculate", payload);
+      setShippingOptions(data);
+    } catch (error: any) {
+      console.error("Erro ao calcular frete:", error);
+      setFormError(error.response?.data?.message || "Não foi possível calcular o frete. Verifique o CEP e tente novamente.");
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   const buildOrderPayload = () => {
     let customizationReport = "";
@@ -89,7 +129,15 @@ export default function CartPage() {
       }
     });
 
-    const finalNotes = `${notes}\n\n=== DETALHES DE PERSONALIZAÇÃO ===${customizationReport}`;
+
+    let deliveryInfo = "";
+    if (deliveryType === "pickup") {
+      deliveryInfo = `=== INFORMAÇÕES DE ENTREGA ===\nTipo: RETIRADA NO LOCAL\nEndereço: ${PICKUP_ADDRESS}\n\n`;
+    } else {
+      deliveryInfo = `=== INFORMAÇÕES DE FRETE ===\nTipo: ENVIO\nCEP: ${cep}\nTransportadora: ${selectedShipping?.name}\nPrazo: ${selectedShipping?.delivery_time} dias úteis\nValor do Frete: R$ ${selectedShipping?.price}\n\n`;
+    }
+
+    const finalNotes = `${deliveryInfo}${notes ? `=== OBSERVAÇÕES DO CLIENTE ===\n${notes}\n\n` : ''}=== DETALHES DE PERSONALIZAÇÃO ===${customizationReport}`;
 
     return {
       customer: {
@@ -103,6 +151,7 @@ export default function CartPage() {
       })),
       notes: finalNotes,
       paymentMethod: paymentMethod.toUpperCase(),
+      shippingCost: (deliveryType === "shipping" && selectedShipping) ? Number(selectedShipping.price) : 0
     };
   };
 
@@ -113,6 +162,12 @@ export default function CartPage() {
     }
     if (!phone) {
       setFormError("Por favor, informe um telefone para contato.");
+      return false;
+    }
+    
+    // Validação de Frete
+    if (deliveryType === "shipping" && !selectedShipping) {
+      setFormError("Por favor, calcule e selecione uma opção de frete para envio.");
       return false;
     }
 
@@ -137,7 +192,7 @@ export default function CartPage() {
     return true;
   };
 
-// --- Mutaçao Padrão (Pix/Dinheiro) ---
+  // --- Mutaçao Padrão (Pix/Dinheiro) ---
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       const payload = buildOrderPayload();
@@ -192,7 +247,8 @@ export default function CartPage() {
           token: token,
           paymentMethodId: payment_method_id,
           installments: installments,
-          issuerId: issuer_id,
+          issuer_id: issuer_id, // Enviando formato cobrado pelo backend
+          issuerId: issuer_id,  // Duplicado por segurança de compatibilidade
           email: payer.email || session?.email || "cliente@artecomcarinho.com"
         });
 
@@ -258,7 +314,6 @@ export default function CartPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-5">
-              {/* teste */}
               {items.map((item) => {
                 const image = resolveImage(item);
                 const embType = item.embroideryType || "nome";
@@ -384,12 +439,88 @@ export default function CartPage() {
                     />
                   </div>
 
+                  {/* === SEÇÃO DE ENTREGA / FRETE === */}
+                  <div className="space-y-4 py-4 border-y border-rose-200/50">
+                    <p className="text-sm font-bold text-neutral-700">Forma de Entrega</p>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      {/* Opção: Retirada */}
+                      <div 
+                        onClick={() => { setDeliveryType("pickup"); setSelectedShipping(null); }}
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${deliveryType === 'pickup' ? 'border-rose-500 bg-white shadow-sm' : 'border-rose-100 bg-white/50 hover:border-rose-300'}`}
+                      >
+                        <div className="flex gap-3">
+                          <MapPin className={deliveryType === 'pickup' ? 'text-rose-500' : 'text-slate-400'} />
+                          <div>
+                            <p className="text-sm font-bold text-neutral-800">Retirada no Local</p>
+                            <p className="text-[10px] font-medium text-slate-500 leading-tight mt-1">{PICKUP_ADDRESS}</p>
+                            <p className="text-xs font-bold text-green-600 mt-1">Grátis</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Opção: Envio */}
+                      <div 
+                        onClick={() => setDeliveryType("shipping")}
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${deliveryType === 'shipping' ? 'border-rose-500 bg-white shadow-sm' : 'border-rose-100 bg-white/50 hover:border-rose-300'}`}
+                      >
+                        <div className="flex gap-3">
+                          <Truck className={deliveryType === 'shipping' ? 'text-rose-500' : 'text-slate-400'} />
+                          <div>
+                            <p className="text-sm font-bold text-neutral-800">Envio por Transportadora</p>
+                            <p className="text-[10px] font-medium text-slate-500 mt-1">Cálculo via Melhor Envio</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Campos do Melhor Envio */}
+                    {deliveryType === 'shipping' && (
+                      <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex gap-2">
+                          <Input 
+                            placeholder="Seu CEP (00000-000)" 
+                            value={cep}
+                            onChange={(e) => setCep(e.target.value)}
+                            maxLength={9}
+                            className="rounded-xl border-2 border-rose-200 bg-white"
+                          />
+                          <Button 
+                            onClick={handleCalculateShipping}
+                            disabled={isCalculating}
+                            className="bg-rose-500 hover:bg-rose-600 text-white rounded-xl shadow-md"
+                          >
+                            {isCalculating ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {shippingOptions.map((option: any) => (
+                            <div 
+                              key={option.id}
+                              onClick={() => setSelectedShipping(option)}
+                              className={`flex justify-between items-center p-3 border-2 rounded-xl cursor-pointer transition-all ${selectedShipping?.id === option.id ? 'border-rose-500 bg-rose-50' : 'border-slate-100 bg-white hover:border-rose-200'}`}
+                            >
+                              <div className="text-xs">
+                                <p className="font-bold text-neutral-800">{option.name}</p>
+                                <p className="text-slate-500 font-medium">{option.delivery_time} dias úteis</p>
+                              </div>
+                              <p className="text-sm font-bold text-rose-600">
+                                {Number(option.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {/* === FIM SEÇÃO DE ENTREGA === */}
+
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-neutral-700">
                     Forma de pagamento
                   </p>
                   
-                  {/* opção de Cartão Online */}
                   {[
                     { id: 'pix', label: 'Pix (Rápido e Prático)' },
                     { id: 'card_online', label: 'Cartão de Crédito/Débito (Seguro)' },
@@ -429,7 +560,6 @@ export default function CartPage() {
                     </span>
                   </div>
 
-                  {/* Renderização Condicional: Botão Padrão OU Formulário do Mercado Pago */}
                   {paymentMethod === 'card_online' ? (
                     <div className="mt-4 bg-white rounded-2xl p-4 border border-rose-200 shadow-sm">
                       <p className="text-xs font-semibold text-slate-500 mb-2 text-center">Pagamento Seguro pelo Mercado Pago</p>

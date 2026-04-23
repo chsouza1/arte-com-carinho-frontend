@@ -26,6 +26,7 @@ export function OrderSuccessClient() {
   
   const orderId = searchParams.get("id") || searchParams.get("orderId");
   
+
   const { data: order, refetch } = useOrderDetail(orderId);
   
   const [copied, setCopied] = useState(false);
