@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useOrderDetail } from "@/lib/orders";
-import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { 
   CheckCircle2, 
@@ -27,7 +26,7 @@ export function OrderSuccessClient() {
   
   const orderId = searchParams.get("id") || searchParams.get("orderId");
   
-  const { data: order } = useOrderDetail(orderId);
+  const { data: order, refetch } = useOrderDetail(orderId);
   
   const [copied, setCopied] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
@@ -42,26 +41,28 @@ export function OrderSuccessClient() {
   }, [orderId]);
 
   useEffect(() => {
-    if (!orderId || !order || order.paymentStatus === 'PAID') return;
+    if (!orderId || !order || order.paymentStatus === 'PAID' || order.status === 'IN_PRODUCTION') return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await api.get(`/public/orders/${orderId}`); 
+        const result = await refetch();
+        const updatedOrder = result.data;
         
-        if (res.data.paymentStatus === 'PAID' || res.data.status === 'IN_PRODUCTION') {
+        if (updatedOrder && (updatedOrder.paymentStatus === 'PAID' || updatedOrder.status === 'IN_PRODUCTION')) {
           sessionStorage.removeItem(`pix_${orderId}`);
-          window.location.reload(); 
         }
       } catch (error) {
         console.error("Erro ao verificar status do pedido", error);
       }
-    }, 5000); // 5000ms = 5 segundos
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [orderId, order]);
+  }, [orderId, order?.paymentStatus, order?.status, refetch]);
   
+  // Efeito dos Confettis
   useEffect(() => {
-    if (order) {
+
+    if (order && (order.paymentStatus === 'PAID' || order.status === 'IN_PRODUCTION' || order.paymentMethod !== 'PIX')) {
       const duration = 3000;
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
@@ -75,7 +76,7 @@ export function OrderSuccessClient() {
         confetti({ ...defaults, particleCount, colors: ['#E53935', '#FFD700', '#FAF7F5'], origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
     }
-  }, [order]);
+  }, [order?.paymentStatus, order?.status, order?.paymentMethod]);
 
   const handleCopyPix = () => {
     const textToCopy = pixData?.qrCode || PIX_MANUAL_FALLBACK;
@@ -151,18 +152,18 @@ Estou enviando o comprovante do pagamento para iniciar a produção! 👇`;
                     </div>
 
                     {/* MOSTRA SUCESSO SE JÁ ESTIVER PAGO */}
-                    {order.paymentStatus === 'PAID' && (
-                        <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-sm text-center flex flex-col items-center gap-3">
+                    {(order.paymentStatus === 'PAID' || order.status === 'IN_PRODUCTION') && (
+                        <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-sm text-center flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-500">
                             <CheckCircle2 className="text-green-500 w-12 h-12" />
                             <div>
                                 <h3 className="font-bold text-lg">Pagamento Confirmado!</h3>
-                                <p className="text-sm mt-1 opacity-90">Seu pedido já foi encaminhado para a produção.</p>
+                                <p className="text-sm mt-1 opacity-90">O seu pedido já foi encaminhado para a produção.</p>
                             </div>
                         </div>
                     )}
 
                     {/* MOSTRA O QR CODE APENAS SE FOR PIX E NÃO ESTIVER PAGO AINDA */}
-                    {order.paymentMethod === 'PIX' && order.paymentStatus !== 'PAID' && (
+                    {order.paymentMethod === 'PIX' && order.paymentStatus !== 'PAID' && order.status !== 'IN_PRODUCTION' && (
                       <div className="space-y-4">
                           <div className="flex items-start gap-3 bg-[#FFF8E1] p-4 rounded-sm border border-[#FFE0B2]">
                               <div className="bg-[#FFECB3] p-2 rounded-full text-[#F57F17]">
@@ -219,7 +220,7 @@ Estou enviando o comprovante do pagamento para iniciar a produção! 👇`;
                     >
                         <div className="flex items-center justify-center gap-2 text-lg font-bold uppercase tracking-wide">
                             <MessageCircle size={24} className="group-hover:animate-bounce" />
-                            Enviar Comprovante
+                            Dúvidas? Fale Conosco
                         </div>
                         <span className="text-[10px] font-medium opacity-90 block mt-1">
                             Vou te atender pessoalmente no WhatsApp!
@@ -229,7 +230,7 @@ Estou enviando o comprovante do pagamento para iniciar a produção! 👇`;
             ) : (
                 <div className="text-center py-10">
                     <Loader2 className="h-8 w-8 text-[#D7CCC8] animate-spin mx-auto mb-4" />
-                    <p className="text-[#8D6E63]">Buscando seu pedido no ateliê...</p>
+                    <p className="text-[#8D6E63]">Buscando o seu pedido no ateliê...</p>
                 </div>
             )}
 
@@ -266,7 +267,6 @@ Estou enviando o comprovante do pagamento para iniciar a produção! 👇`;
     </div>
   );
 }
-
 
 function Loader2({ className }: { className?: string }) {
     return (
