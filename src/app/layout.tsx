@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/ui/layout/site-footer";
 import { SessionActivityWatcher } from "@/components/ui/session-activity-watcher";
 import { NotificationsProvider } from "@/components/ui/notifications";
 import { OrderStatusWatcher } from "@/components/ui/order-status-watcher";
+import { CookieConsent } from "@/components/ui/cookie-consent";
 
 export const metadata: Metadata = {
   title: "Arte com Carinho",
@@ -29,6 +30,7 @@ export default function RootLayout({
               <main className="flex-1">
                 <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-10">
                   {children}
+                  <CookieConsent />
                 </div>
               </main>
               <SiteFooter />
