@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useOrderDetail } from "@/lib/orders";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { 
   CheckCircle2, 
@@ -25,6 +26,7 @@ export function OrderSuccessClient() {
   const router = useRouter();
   
   const orderId = searchParams.get("id") || searchParams.get("orderId");
+  
   const { data: order } = useOrderDetail(orderId);
   
   const [copied, setCopied] = useState(false);
@@ -38,6 +40,25 @@ export function OrderSuccessClient() {
       }
     }
   }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId || !order || order.paymentStatus === 'PAID') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/public/orders/${orderId}`); 
+        
+        if (res.data.paymentStatus === 'PAID' || res.data.status === 'IN_PRODUCTION') {
+          sessionStorage.removeItem(`pix_${orderId}`);
+          window.location.reload(); 
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status do pedido", error);
+      }
+    }, 5000); // 5000ms = 5 segundos
+
+    return () => clearInterval(interval);
+  }, [orderId, order]);
   
   useEffect(() => {
     if (order) {
@@ -57,7 +78,6 @@ export function OrderSuccessClient() {
   }, [order]);
 
   const handleCopyPix = () => {
-    
     const textToCopy = pixData?.qrCode || PIX_MANUAL_FALLBACK;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
@@ -130,29 +150,39 @@ Estou enviando o comprovante do pagamento para iniciar a produção! 👇`;
                         <p className="text-3xl font-serif font-bold text-[#5D4037] tracking-tight">#{order.code ?? order.id}</p>
                     </div>
 
-                    {order.paymentMethod === 'PIX' && (
+                    {/* MOSTRA SUCESSO SE JÁ ESTIVER PAGO */}
+                    {order.paymentStatus === 'PAID' && (
+                        <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-sm text-center flex flex-col items-center gap-3">
+                            <CheckCircle2 className="text-green-500 w-12 h-12" />
+                            <div>
+                                <h3 className="font-bold text-lg">Pagamento Confirmado!</h3>
+                                <p className="text-sm mt-1 opacity-90">Seu pedido já foi encaminhado para a produção.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MOSTRA O QR CODE APENAS SE FOR PIX E NÃO ESTIVER PAGO AINDA */}
+                    {order.paymentMethod === 'PIX' && order.paymentStatus !== 'PAID' && (
                       <div className="space-y-4">
                           <div className="flex items-start gap-3 bg-[#FFF8E1] p-4 rounded-sm border border-[#FFE0B2]">
                               <div className="bg-[#FFECB3] p-2 rounded-full text-[#F57F17]">
                                   <Scissors size={20} />
                               </div>
                               <div>
-                                  <h3 className="text-sm font-bold text-[#5D4037] mb-1">Para iniciar a produção...</h3>
+                                  <h3 className="text-sm font-bold text-[#5D4037] mb-1">Aguardando Pagamento</h3>
                                   <p className="text-xs text-[#8D6E63] leading-relaxed">
-                                      Como são peças personalizadas, preciso da confirmação do pagamento para comprar os materiais e começar a bordar.
+                                      Realize o pagamento do PIX abaixo para iniciarmos a produção. Esta página irá atualizar sozinha quando o pagamento for identificado.
                                   </p>
                               </div>
                           </div>
 
                           <div className="border border-[#D7CCC8] rounded-sm p-4 bg-white shadow-sm flex flex-col items-center">
                               
-                              {/* SE TEM PIX DO MERCADO PAGO, MOSTRA A IMAGEM E O COPIA/COLA */}
                               {pixData ? (
                                 <>
                                   <span className="text-xs font-bold text-[#8D6E63] uppercase tracking-wider mb-3">
                                       Escaneie o QR Code
                                   </span>
-                                  {/* A API do MP retorna o base64 puro, adicionamos o prefixo data:image para exibir */}
                                   <img 
                                     src={`data:image/png;base64,${pixData.qrCodeBase64}`} 
                                     alt="QR Code PIX" 

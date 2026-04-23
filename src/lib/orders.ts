@@ -44,11 +44,14 @@ export type OrderDetail = OrderSummary & {
   items: OrderItem[];
   total: number;
   paymentMethod: string;
+  paymentStatus?: "PENDING" | "PAID" | "REFUNDED" | "CANCELLED" | string;
   notes?: string | null;
   customerPhone?: string;
   user?: { name: string; phone: string };
   customer?: { name: string; phone: string };
 };
+
+
 
 type PageResponse<T> = {
   content: T[];
