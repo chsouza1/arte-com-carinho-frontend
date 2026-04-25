@@ -92,7 +92,7 @@ export default function CartPage() {
         }))
       };
 
-      const { data } = await api.post("/shipping/calculate", payload);
+      const { data } = await api.post("/public/shipping/calculate", payload);
       setShippingOptions(data);
     } catch (error: any) {
       console.error("Erro ao calcular frete:", error);
