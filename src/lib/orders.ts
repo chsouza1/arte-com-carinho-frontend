@@ -88,5 +88,6 @@ export function useMyOrders(page: number = 0) {
       return data;
     },
     retry: false,
+    enabled: typeof window !== 'undefined' && !!localStorage.getItem("token")
   });
 }
