@@ -9,10 +9,16 @@ import { OrderStatusWatcher } from "@/components/ui/order-status-watcher";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 
 export const metadata: Metadata = {
-  title: "Arte com Carinho",
-  description: "Adicionar a descricao depois...",
+  title: "Arte com Carinho | Moda e Conjuntos Infantis",
+  description: "Ateliê de costura peças feita sob medida e com muito amor. Atendimento em Mandirituba e envios para todo o país.",
+  keywords: ["roupa infantil", "ateliê de costura", "conjuntos infantis", "moda infantil", "Curitiba", "São José dos Pinhais", "Brasil", "FRG", "Fazenda Rio Grande", "artesanato", "Toalhas", "Maternidade", "Hoffmann", "Areia Branca Dos Assis", "Mandirituba", "Fashion Kids"],
+  openGraph: {
+    title: "Arte com Carinho",
+    description: "Peças exclusivas e feitas sob medida.",
+    type: "website",
+    locale: "pt_BR",
+  }
 };
-
 export default function RootLayout({
   children,
 }: {
