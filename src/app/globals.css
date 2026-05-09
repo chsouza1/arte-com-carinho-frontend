@@ -3,6 +3,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 15% 25%;
+    --radius: 0.2rem;
+  }
+  .dark {
+    --background: 20 15% 10%; 
+    --foreground: 30 20% 95%;
+    --border: 20 15% 20%;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
