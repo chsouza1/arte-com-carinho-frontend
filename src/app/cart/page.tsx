@@ -409,7 +409,7 @@ export default function CartPage() {
             </div>
 
             <div className="lg:sticky lg:top-8 h-fit">
-              <div className="relative rounded-[2rem] bg-white p-8 shadow-sm border border-[#D7CCC8] overflow-hidden">
+              <div className="relative rounded-[2rem] bg-white p-4 sm:p-8 shadow-sm border border-[#D7CCC8] overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#E53935]/5 rounded-full blur-2xl"></div>
                 
                 <div className="relative z-10 space-y-5">
@@ -550,14 +550,17 @@ export default function CartPage() {
                     </span>
                   </div>
 
+                  {/* BLOCO ATUALIZADO PARA CORRIGIR O LAYOUT DO MERCADO PAGO */}
                   {paymentMethod === 'card_online' ? (
-                    <div className="mt-4 bg-[#FAF7F5] rounded-xl p-4 border border-[#D7CCC8] shadow-sm">
-                      <p className="text-xs font-semibold text-[#8D6E63] mb-2 text-center">Pagamento Seguro pelo Mercado Pago</p>
-                      <Payment
-                        initialization={{ amount: totalAmount }}
-                        customization={{ paymentMethods: { creditCard: "all", debitCard: "all" } }}
-                        onSubmit={onMercadoPagoSubmit}
-                      />
+                    <div className="mt-4 bg-white rounded-xl p-1 sm:p-4 border border-[#D7CCC8] shadow-sm w-full overflow-hidden">
+                      <p className="text-xs font-semibold text-[#8D6E63] mb-4 text-center">Pagamento Seguro pelo Mercado Pago</p>
+                      <div className="w-full overflow-x-auto overflow-y-hidden md:overflow-hidden pb-4 [&>div]:w-full">
+                        <Payment
+                          initialization={{ amount: totalAmount }}
+                          customization={{ paymentMethods: { creditCard: "all", debitCard: "all" } }}
+                          onSubmit={onMercadoPagoSubmit}
+                        />
+                      </div>
                     </div>
                   ) : (
                     <Button
