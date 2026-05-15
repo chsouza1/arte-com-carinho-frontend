@@ -51,8 +51,12 @@ export default function CartPage() {
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastCalculatedRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSession(getAuthSession());
@@ -75,33 +79,60 @@ export default function CartPage() {
     updateItem(id, { [field]: value });
   }
 
-  const handleCalculateShipping = async () => {
+  const handleCalculateShipping = () => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8) {
       setFormError("Informe um CEP válido com 8 dígitos.");
       return;
     }
 
+    // Cria uma string de estado para saber se o CEP ou Carrinho mudaram
+    const currentState = JSON.stringify({
+      cep: cleanCep,
+      items: items.map(item => ({
+        productId: item.id,
+        quantity: Math.max(1, Math.floor(item.quantity ?? 1))
+      }))
+    });
+
+    // Se já calculou EXATAMENTE isto, não vai à API
+    if (lastCalculatedRef.current === currentState) {
+      return;
+    }
+
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
     setIsCalculating(true);
     setFormError(null);
 
-    try {
-      const payload = {
-        zipCode: cleanCep,
-        items: items.map(item => ({
-          productId: item.id,
-          quantity: Math.max(1, Math.floor(item.quantity ?? 1))
-        }))
-      };
+    // Debounce de 600ms para evitar chamadas seguidas
+    debounceTimeout.current = setTimeout(async () => {
+      try {
+        const payload = {
+          zipCode: cleanCep,
+          items: items.map(item => ({
+            productId: item.id,
+            quantity: Math.max(1, Math.floor(item.quantity ?? 1))
+          }))
+        };
 
-      const { data } = await api.post("/public/shipping/calculate", payload);
-      setShippingOptions(data);
-    } catch (error: any) {
-      console.error("Erro ao calcular frete:", error);
-      setFormError(error.response?.data?.message || "Não foi possível calcular o frete. Verifique o CEP e tente novamente.");
-    } finally {
-      setIsCalculating(false);
-    }
+        const { data } = await api.post("/public/shipping/calculate", payload);
+        setShippingOptions(data);
+        lastCalculatedRef.current = currentState;
+      } catch (error: any) {
+        console.error("Erro ao calcular frete:", error);
+        
+        if (error.response?.status === 429) {
+          setFormError(error.response.data.message);
+        } else {
+          setFormError(error.response?.data?.message || "Não foi possível calcular o frete. Verifique o CEP e tente novamente.");
+        }
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 600);
   };
 
   const buildOrderPayload = () => {
@@ -218,17 +249,21 @@ export default function CartPage() {
     },
     onError: (error: any) => {
       console.error("Erro no checkout:", error);
-      
       turnstileRef.current?.reset();
       setCaptchaToken(null);
       
-      const serverMsg = error.response?.data?.message;
-      setFormError(serverMsg || "Ocorreu um erro ao processar o pedido. Tente novamente.");
+      if (error?.response?.status === 429) {
+        setFormError(error.response.data.message);
+      } else {
+        const serverMsg = error.response?.data?.message;
+        setFormError(serverMsg || "Ocorreu um erro ao processar o pedido. Tente novamente.");
+      }
     },
   });
 
   function handleCheckout() {
     setFormError(null);
+    if (checkoutMutation.isPending) return;
     if (!validateCart()) return;
     checkoutMutation.mutate();
   }
@@ -266,11 +301,14 @@ export default function CartPage() {
 
       } catch (error: any) {
         console.error("Erro no processamento do cartão:", error);
-        
         turnstileRef.current?.reset();
         setCaptchaToken(null);
         
-        setFormError("Erro ao processar o cartão. Verifique os dados ou tente outro.");
+        if (error?.response?.status === 429) {
+          setFormError(error.response.data.message);
+        } else {
+          setFormError("Erro ao processar o cartão. Verifique os dados ou tente outro.");
+        }
         reject();
       }
     });
@@ -567,7 +605,6 @@ export default function CartPage() {
                     </span>
                   </div>
 
-                  {/*Componente do Turnstile para Checkout */}
                   <div className="flex justify-center py-2">
                     <Turnstile
                         ref={turnstileRef}

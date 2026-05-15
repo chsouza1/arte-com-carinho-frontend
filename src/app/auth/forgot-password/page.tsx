@@ -17,35 +17,33 @@ export default function ForgotPasswordPage() {
   const mutation = useMutation({
     mutationFn: async (emailToRecover: string) => {
       setErrorMsg(null);
-      // Pequeno delay artificial para UX (feedback de "processando")
-      await new Promise(r => setTimeout(r, 500));
       await api.post("/auth/forgot-password", { email: emailToRecover });
     },
     onSuccess: () => {
       setIsSent(true);
     },
     onError: (error: any) => {
-      setErrorMsg(error?.response?.data?.message || "Não encontramos este e-mail.");
+      // NOVO: Tratamento do 429
+      if (error?.response?.status === 429) {
+        setErrorMsg(error.response.data.message);
+      } else {
+        setErrorMsg(error?.response?.data?.message || "Não encontramos este e-mail.");
+      }
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || mutation.isPending) return;
     mutation.mutate(email);
   };
 
   return (
-    // Fundo Creme
     <div className="flex min-h-screen items-center justify-center bg-[#FAF7F5] px-4 py-12 font-sans text-[#5D4037]">
-      
-      {/* Cartão Estilo Papelaria */}
       <div className="w-full max-w-md bg-white border border-[#D7CCC8] shadow-xl rounded-sm relative overflow-hidden">
         
-        {/* Faixa Decorativa Superior */}
         <div className="h-1 bg-[#E53935] w-full absolute top-0 left-0"></div>
 
-        {/* Cabeçalho */}
         <div className="text-center pt-10 pb-6 px-8 border-b border-dashed border-[#D7CCC8]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF7F5] border border-[#EFEBE9] shadow-sm">
                 <KeyRound className="h-7 w-7 text-[#E53935]" />
@@ -64,7 +62,6 @@ export default function ForgotPasswordPage() {
 
         <div className="p-8">
           {isSent ? (
-            // Estado: E-mail Enviado
             <div className="space-y-6 animate-in fade-in zoom-in duration-300">
               <div className="flex flex-col items-center justify-center text-center space-y-3 bg-[#E8F5E9] border border-[#C8E6C9] p-6 rounded-sm">
                 <div className="bg-white p-2 rounded-full border border-[#C8E6C9]">
@@ -92,7 +89,6 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
           ) : (
-            // Estado: Formulário
             <form onSubmit={handleSubmit} className="space-y-6">
               
               <div className="space-y-1.5">

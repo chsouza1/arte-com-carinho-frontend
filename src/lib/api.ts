@@ -27,7 +27,6 @@ export const paymentsApi = {
   }
 };
 
-
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined" && !config.headers.Authorization) {
     try {
@@ -43,15 +42,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      console.warn("Sessão inválida ou expirada. Redirecionando para login...");
-      localStorage.removeItem("auth-session");
-      setAuthToken(null);
-      window.location.href = "/auth/login?timeout=1";
+    if (typeof window !== "undefined") {
+      if (error.response?.status === 401) {
+        console.warn("Sessão inválida ou expirada. Redirecionando para login...");
+        localStorage.removeItem("auth-session");
+        setAuthToken(null);
+        window.location.href = "/auth/login?timeout=1";
+      }
+
+      // Tratamento Global para Rate Limit (Too Many Requests)
+      if (error.response?.status === 429) {
+        if (!error.response.data) error.response.data = {};
+        error.response.data.message = error.response.data.message || "Muitas tentativas. Aguarde um pouco e tente novamente.";
+      }
     }
     return Promise.reject(error);
   }

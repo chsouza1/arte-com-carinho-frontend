@@ -61,6 +61,7 @@ export default function RegisterForm() {
   const strength = getPasswordStrength(passwordValue);
 
   async function onSubmit(data: RegisterFormValues) {
+    if (isLoading) return;
     setIsLoading(true);
     setError("");
 
@@ -74,7 +75,9 @@ export default function RegisterForm() {
       });
       router.push("/auth/login?registered=true");
     } catch (err: any) {
-      if (err.response?.status === 409) {
+      if (err.response?.status === 429) {
+        setError(err.response.data.message);
+      } else if (err.response?.status === 409) {
         setError("Este e-mail já está cadastrado.");
       } else {
         setError("Ocorreu um erro ao criar a conta. Tente novamente.");

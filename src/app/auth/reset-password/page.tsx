@@ -18,15 +18,11 @@ function ResetPasswordForm() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Mutation para enviar a nova senha
   const mutation = useMutation({
     mutationFn: async () => {
       setErrorMsg(null);
       if (!token) throw new Error("Token de segurança inválido.");
       
-      // Simulação de delay para UX
-      await new Promise(resolve => setTimeout(resolve, 800));
-
       await api.post("/auth/reset-password", { 
         token, 
         newPassword: password 
@@ -37,13 +33,20 @@ function ResetPasswordForm() {
       setTimeout(() => router.push("/auth/login"), 3000);
     },
     onError: (error: any) => {
-      const msg = error?.response?.data?.message || "Não foi possível redefinir a senha.";
-      setErrorMsg(msg);
+      // NOVO: Tratamento do 429
+      if (error?.response?.status === 429) {
+        setErrorMsg(error.response.data.message);
+      } else {
+        const msg = error?.response?.data?.message || "Não foi possível redefinir a senha.";
+        setErrorMsg(msg);
+      }
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (mutation.isPending) return;
+
     if (password.length < 6) {
         setErrorMsg("A senha deve ter no mínimo 6 caracteres.");
         return;
@@ -55,7 +58,6 @@ function ResetPasswordForm() {
     mutation.mutate();
   };
 
-  // Estado de Token Inválido
   if (!token) {
     return (
       <div className="w-full max-w-md bg-white border-2 border-dashed border-[#D7CCC8] p-8 text-center rounded-sm">
@@ -78,15 +80,12 @@ function ResetPasswordForm() {
 
   return (
     <div className="w-full max-w-md relative">
-      {/* Decoração de fundo (Papel) */}
       <div className="absolute top-2 left-2 w-full h-full border-2 border-[#D7CCC8] rounded-sm bg-[#EFEBE9] -z-10"></div>
 
       <div className="bg-white border border-[#D7CCC8] shadow-lg rounded-sm overflow-hidden">
         
-        {/* Faixa decorativa superior */}
         <div className="h-1 bg-[#E53935] w-full"></div>
 
-        {/* Cabeçalho */}
         <div className="px-8 pt-10 pb-6 text-center border-b border-dashed border-[#D7CCC8]">
             <div className="mx-auto w-14 h-14 bg-[#FAF7F5] rounded-full flex items-center justify-center mb-4 border border-[#EFEBE9]">
                 <KeyRound className="h-7 w-7 text-[#5D4037]" />
@@ -97,10 +96,8 @@ function ResetPasswordForm() {
             </p>
         </div>
 
-        {/* Conteúdo */}
         <div className="p-8">
             {isSuccess ? (
-                // Estado de Sucesso
                 <div className="text-center py-6 animate-in fade-in zoom-in duration-300">
                     <div className="mx-auto w-16 h-16 bg-[#E8F5E9] rounded-full flex items-center justify-center mb-4 border border-[#C8E6C9]">
                         <CheckCircle2 size={32} className="text-[#2E7D32]" />
@@ -110,7 +107,6 @@ function ResetPasswordForm() {
                     <p className="text-[#8D6E63] text-xs italic">Redirecionando para o login...</p>
                 </div>
             ) : (
-                // Formulário
                 <form onSubmit={handleSubmit} className="space-y-6">
                     
                     <div className="space-y-4">
@@ -171,7 +167,6 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    // Fundo Creme
     <div className="flex min-h-screen items-center justify-center bg-[#FAF7F5] px-4 py-12 font-sans text-[#5D4037]">
       <Suspense fallback={
         <div className="flex flex-col items-center gap-3">
