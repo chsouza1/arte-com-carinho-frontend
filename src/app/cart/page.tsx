@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useCartStore, type CartItem } from "@/lib/cart";
@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import {
   ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Loader2,
   Palette, Type, Scissors, Shapes, PaintBucket, Baby,
@@ -50,6 +51,8 @@ export default function CartPage() {
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   useEffect(() => {
     setSession(getAuthSession());
@@ -87,7 +90,7 @@ export default function CartPage() {
         zipCode: cleanCep,
         items: items.map(item => ({
           productId: item.id,
-          quantity: item.quantity
+          quantity: Math.max(1, Math.floor(item.quantity ?? 1))
         }))
       };
 
@@ -132,7 +135,7 @@ export default function CartPage() {
     if (deliveryType === "pickup") {
       deliveryInfo = `=== INFORMAÇÕES DE ENTREGA ===\nTipo: RETIRADA NO LOCAL\nEndereço: ${PICKUP_ADDRESS}\n\n`;
     } else {
-      deliveryInfo = `=== INFORMAÇÕES DE FRETE ===\nTipo: ENVIO\nCEP: ${cep}\nTransportadora: ${selectedShipping?.name}\nPrazo: ${selectedShipping?.delivery_time} dias úteis\nValor do Frete: R$ ${selectedShipping?.price}\n\n`;
+      deliveryInfo = `=== INFORMAÇÕES DE FRETE ===\nTipo: ENVIO\nCEP: ${cep.replace(/\D/g, "")}\nTransportadora: ${selectedShipping?.name}\nPrazo: ${selectedShipping?.delivery_time} dias úteis\nValor do Frete: R$ ${selectedShipping?.price}\n\n`;
     }
 
     const finalNotes = `${deliveryInfo}${notes ? `=== OBSERVAÇÕES DO CLIENTE ===\n${notes}\n\n` : ''}=== DETALHES DE PERSONALIZAÇÃO ===${customizationReport}`;
@@ -145,8 +148,9 @@ export default function CartPage() {
       },
       items: items.map((i) => ({
         productId: i.id,
-        quantity: i.quantity,
+        quantity: Math.max(1, Math.floor(i.quantity ?? 1)),
       })),
+      captchaToken,
       notes: finalNotes,
       paymentMethod: paymentMethod.toUpperCase(),
       shippingCost: (deliveryType === "shipping" && selectedShipping) ? Number(selectedShipping.price) : 0
@@ -165,6 +169,11 @@ export default function CartPage() {
     
     if (deliveryType === "shipping" && !selectedShipping) {
       setFormError("Por favor, calcule e selecione uma opção de frete para envio.");
+      return false;
+    }
+    
+    if (!captchaToken) {
+      setFormError("Aguarde a verificação de segurança (Cloudflare) antes de finalizar.");
       return false;
     }
 
@@ -209,8 +218,12 @@ export default function CartPage() {
     },
     onError: (error: any) => {
       console.error("Erro no checkout:", error);
+      
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
+      
       const serverMsg = error.response?.data?.message;
-      setFormError(serverMsg || "Ocorreu um erro ao processar o pedido.");
+      setFormError(serverMsg || "Ocorreu um erro ao processar o pedido. Tente novamente.");
     },
   });
 
@@ -253,6 +266,10 @@ export default function CartPage() {
 
       } catch (error: any) {
         console.error("Erro no processamento do cartão:", error);
+        
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
+        
         setFormError("Erro ao processar o cartão. Verifique os dados ou tente outro.");
         reject();
       }
@@ -550,9 +567,20 @@ export default function CartPage() {
                     </span>
                   </div>
 
-                  {/* BLOCO ATUALIZADO PARA CORRIGIR O LAYOUT DO MERCADO PAGO */}
+                  {/*Componente do Turnstile para Checkout */}
+                  <div className="flex justify-center py-2">
+                    <Turnstile
+                        ref={turnstileRef}
+                        siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ""}
+                        onSuccess={(token) => setCaptchaToken(token)}
+                        onError={() => setCaptchaToken(null)}
+                        onExpire={() => setCaptchaToken(null)}
+                        options={{ theme: 'light', size: 'normal' }}
+                    />
+                  </div>
+
                   {paymentMethod === 'card_online' ? (
-                    <div className="mt-4 bg-white rounded-xl p-1 sm:p-4 border border-[#D7CCC8] shadow-sm w-full overflow-hidden">
+                    <div className="mt-2 bg-white rounded-xl p-1 sm:p-4 border border-[#D7CCC8] shadow-sm w-full overflow-hidden">
                       <p className="text-xs font-semibold text-[#8D6E63] mb-4 text-center">Pagamento Seguro pelo Mercado Pago</p>
                       <div className="w-full overflow-x-auto overflow-y-hidden md:overflow-hidden pb-4 [&>div]:w-full">
                         <Payment
@@ -565,8 +593,8 @@ export default function CartPage() {
                   ) : (
                     <Button
                       onClick={handleCheckout}
-                      disabled={checkoutMutation.isPending}
-                      className="w-full rounded-xl bg-[#E53935] text-white py-6 text-sm font-bold hover:bg-[#C62828] transition-all shadow-sm disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest"
+                      disabled={checkoutMutation.isPending || !captchaToken}
+                      className="w-full rounded-xl bg-[#E53935] text-white py-6 text-sm font-bold hover:bg-[#C62828] transition-all shadow-sm disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest mt-2"
                     >
                       {checkoutMutation.isPending ? (
                           <>

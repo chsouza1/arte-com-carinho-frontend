@@ -1,4 +1,3 @@
-// src/lib/api.ts
 import axios from "axios";
 import { getSession } from "@/lib/auth";
 
@@ -15,7 +14,6 @@ export function setAuthToken(token: string | null) {
 }
 
 export const paymentsApi = {
-  // ... outras funções (pix, etc)
   createCardPayment: async (paymentData: {
     orderId: number;
     token: string;
@@ -24,10 +22,11 @@ export const paymentsApi = {
     issuerId: string;
     email: string;
   }) => {
-    const response = await api.post('/api/payments/card', paymentData);
+    const response = await api.post('/payments/card', paymentData);
     return response.data;
   }
 };
+
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined" && !config.headers.Authorization) {
@@ -43,6 +42,20 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      console.warn("Sessão inválida ou expirada. Redirecionando para login...");
+      localStorage.removeItem("auth-session");
+      setAuthToken(null);
+      window.location.href = "/auth/login?timeout=1";
+    }
+    return Promise.reject(error);
+  }
+);
 
 export function applyAuthFromStorage() {
   if (typeof window === "undefined") return;
