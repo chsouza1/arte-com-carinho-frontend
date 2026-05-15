@@ -266,7 +266,7 @@ export default function CartPage() {
           <div>
             <button
               onClick={() => router.push("/")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#5D4037] hover:text-[#F9A8D4] transition-colors mb-3 group"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#5D4037] hover:text-[#E53935] transition-colors mb-3 group"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               Continuar comprando
@@ -278,7 +278,7 @@ export default function CartPage() {
           
           {items.length > 0 && (
             <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-3 shadow-sm border border-[#D7CCC8]">
-              <ShoppingBag size={20} className="text-[#F9A8D4]" />
+              <ShoppingBag size={20} className="text-[#E53935]" />
               <span className="text-sm font-bold text-[#5D4037]">
                 {items.length} {items.length === 1 ? "item" : "itens"}
               </span>
@@ -288,19 +288,19 @@ export default function CartPage() {
 
         {items.length === 0 ? (
           <div className="relative rounded-[2rem] bg-white p-16 shadow-sm border border-[#D7CCC8] overflow-hidden text-center">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-[#FBCFE8]/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#F9A8D4]/10 rounded-full blur-2xl"></div>
+             <div className="absolute top-0 right-0 w-64 h-64 bg-[#E53935]/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#E53935]/5 rounded-full blur-2xl"></div>
             
             <div className="relative z-10">
               <div className="mx-auto w-24 h-24 rounded-full bg-[#FAF7F5] border border-[#EFEBE9] flex items-center justify-center mb-6">
-                <ShoppingBag size={40} className="text-[#F9A8D4]" />
+                <ShoppingBag size={40} className="text-[#E53935]" />
               </div>
               <p className="text-lg font-serif font-semibold text-[#5D4037] mb-2">
                 Sua sacola está vazia
               </p>
               <Button 
                 onClick={() => router.push("/")}
-                className="mt-4 rounded-xl bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] px-8 py-6 text-sm font-bold transition-all shadow-sm"
+                className="mt-4 rounded-xl bg-[#E53935] hover:bg-[#C62828] text-white px-8 py-6 text-sm font-bold transition-all shadow-sm"
               >
                 Ver produtos
               </Button>
@@ -322,7 +322,7 @@ export default function CartPage() {
                 return (
                   <div
                     key={item.id}
-                    className="group relative flex flex-col md:flex-row gap-5 rounded-2xl border border-[#D7CCC8] bg-white p-6 shadow-sm hover:shadow-md hover:border-[#F9A8D4] transition-all duration-300"
+                    className="group relative flex flex-col md:flex-row gap-5 rounded-2xl border border-[#D7CCC8] bg-white p-6 shadow-sm hover:shadow-md hover:border-[#E53935] transition-all duration-300"
                   >
                     <div className="flex gap-4">
                         <div className="relative h-28 w-28 rounded-xl overflow-hidden bg-[#FAF7F5] border border-[#EFEBE9] flex-shrink-0">
@@ -335,43 +335,43 @@ export default function CartPage() {
 
                         <div className="flex flex-col justify-between">
                             <div>
-                                <p className="text-base font-serif font-bold text-[#5D4037] group-hover:text-[#F9A8D4] transition-colors">{item.name}</p>
+                                <p className="text-base font-serif font-bold text-[#5D4037] group-hover:text-[#E53935] transition-colors">{item.name}</p>
                                 <p className="text-sm font-bold text-[#5D4037] mt-1">
                                 {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                                 </p>
                             </div>
 
                             <div className="mt-2 flex items-center gap-3 rounded-full border border-[#D7CCC8] bg-[#FAF7F5] px-3 py-1.5 text-sm font-bold shadow-sm w-fit">
-                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)} className="text-[#5D4037] hover:text-[#F9A8D4]"><Minus size={14} /></button>
+                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)} className="text-[#5D4037] hover:text-[#E53935]"><Minus size={14} /></button>
                                 <span className="min-w-[20px] text-center text-[#5D4037]">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)} className="text-[#5D4037] hover:text-[#F9A8D4]"><Plus size={14} /></button>
+                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)} className="text-[#5D4037] hover:text-[#E53935]"><Plus size={14} /></button>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex-1 border-t md:border-t-0 md:border-l border-dashed border-[#D7CCC8] pt-4 md:pt-0 md:pl-5 space-y-3">
                         <h4 className="text-xs font-bold text-[#5D4037] uppercase tracking-wider flex items-center gap-1">
-                            <Scissors size={12} className="text-[#F9A8D4]" /> Personalização
+                            <Scissors size={12} className="text-[#E53935]" /> Personalização
                         </h4>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="sm:col-span-1">
                                 <label className="text-[10px] font-bold text-[#8D6E63] flex items-center gap-1 mb-1"><Baby size={10} /> Para quem é?</label>
-                                <select value={gender} onChange={(e) => handleCustomize(item.id, "gender", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
+                                <select value={gender} onChange={(e) => handleCustomize(item.id, "gender", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#E53935] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                     {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
                             </div>
 
                             <div className="sm:col-span-1">
                                 <label className="text-[10px] font-bold text-[#8D6E63] flex items-center gap-1 mb-1"><Palette size={10} /> Cor da Peça</label>
-                                <select value={selectedColor} onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
+                                <select value={selectedColor} onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#E53935] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                     {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
 
                             <div className="sm:col-span-1">
                                 <label className="text-[10px] font-bold text-[#8D6E63] flex items-center gap-1 mb-1"><Type size={10} /> Tipo de Bordado</label>
-                                <select value={embType} onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
+                                <select value={embType} onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#E53935] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                     {EMBROIDERY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
                             </div>
@@ -381,11 +381,11 @@ export default function CartPage() {
                             <div className="animate-in fade-in slide-in-from-top-2 grid grid-cols-3 gap-2">
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-bold text-[#8D6E63] mb-1 block">Nome para bordar:</label>
-                                    <Input placeholder="Ex: Maria Eduarda" value={item.customText || ""} onChange={(e) => handleCustomize(item.id, "customText", e.target.value)} className="h-8 text-xs border-[#D7CCC8] focus:border-[#F9A8D4] bg-[#FAF7F5] text-[#5D4037]" />
+                                    <Input placeholder="Ex: Maria Eduarda" value={item.customText || ""} onChange={(e) => handleCustomize(item.id, "customText", e.target.value)} className="h-8 text-xs border-[#D7CCC8] focus:border-[#E53935] bg-[#FAF7F5] text-[#5D4037]" />
                                 </div>
                                 <div className="col-span-1">
                                     <label className="text-[10px] font-bold text-[#8D6E63] mb-1 flex items-center gap-1"><PaintBucket size={10} /> Cor</label>
-                                    <select value={embroideryColor} onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)} className="w-full h-8 rounded-md border border-[#D7CCC8] text-[10px] px-1 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
+                                    <select value={embroideryColor} onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)} className="w-full h-8 rounded-md border border-[#D7CCC8] text-[10px] px-1 focus:border-[#E53935] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                         {THREAD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
@@ -395,12 +395,12 @@ export default function CartPage() {
                         {showDesignInput && (
                             <div className="animate-in fade-in slide-in-from-top-2">
                                 <label className="text-[10px] font-bold text-[#8D6E63] mb-1 flex items-center gap-1"><Shapes size={10} /> Qual desenho você quer?</label>
-                                <Input placeholder="Ex: Ursinho príncipe, Flor, Leão..." value={item.designDescription || ""} onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)} className="h-8 text-xs border-[#D7CCC8] focus:border-[#F9A8D4] bg-[#FAF7F5] text-[#5D4037]" />
+                                <Input placeholder="Ex: Ursinho príncipe, Flor, Leão..." value={item.designDescription || ""} onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)} className="h-8 text-xs border-[#D7CCC8] focus:border-[#E53935] bg-[#FAF7F5] text-[#5D4037]" />
                             </div>
                         )}
                     </div>
 
-                    <button onClick={() => removeItem(item.id)} className="absolute top-4 right-4 text-[#A1887F] hover:text-red-500 transition-colors" title="Remover item">
+                    <button onClick={() => removeItem(item.id)} className="absolute top-4 right-4 text-[#A1887F] hover:text-[#E53935] transition-colors" title="Remover item">
                         <Trash2 size={18} />
                     </button>
                   </div>
@@ -410,7 +410,7 @@ export default function CartPage() {
 
             <div className="lg:sticky lg:top-8 h-fit">
               <div className="relative rounded-[2rem] bg-white p-8 shadow-sm border border-[#D7CCC8] overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FBCFE8]/20 rounded-full blur-2xl"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#E53935]/5 rounded-full blur-2xl"></div>
                 
                 <div className="relative z-10 space-y-5">
                   <h2 className="text-xl font-serif font-black text-[#5D4037] mb-6">
@@ -422,7 +422,7 @@ export default function CartPage() {
                       placeholder="Telefone / WhatsApp (Obrigatório)"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="rounded-xl border border-[#D7CCC8] px-4 py-6 bg-[#FAF7F5] focus:border-[#F9A8D4] text-[#5D4037] font-medium"
+                      className="rounded-xl border border-[#D7CCC8] px-4 py-6 bg-[#FAF7F5] focus:border-[#E53935] text-[#5D4037] font-medium"
                     />
 
                     <Textarea
@@ -430,7 +430,7 @@ export default function CartPage() {
                       placeholder="Observações adicionais (opcional)"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="rounded-xl border border-[#D7CCC8] px-4 py-4 bg-[#FAF7F5] focus:border-[#F9A8D4] text-[#5D4037] font-medium resize-none"
+                      className="rounded-xl border border-[#D7CCC8] px-4 py-4 bg-[#FAF7F5] focus:border-[#E53935] text-[#5D4037] font-medium resize-none"
                     />
                   </div>
 
@@ -440,10 +440,10 @@ export default function CartPage() {
                     <div className="grid grid-cols-1 gap-3">
                       <div 
                         onClick={() => { setDeliveryType("pickup"); setSelectedShipping(null); }}
-                        className={`p-4 rounded-xl border cursor-pointer transition-all ${deliveryType === 'pickup' ? 'border-[#F9A8D4] bg-[#FBCFE8]/10 shadow-sm' : 'border-[#D7CCC8] bg-[#FAF7F5] hover:border-[#F9A8D4]'}`}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${deliveryType === 'pickup' ? 'border-[#E53935] bg-[#E53935]/5 shadow-sm' : 'border-[#D7CCC8] bg-[#FAF7F5] hover:border-[#E53935]'}`}
                       >
                         <div className="flex gap-3">
-                          <MapPin className={deliveryType === 'pickup' ? 'text-[#F9A8D4]' : 'text-[#A1887F]'} />
+                          <MapPin className={deliveryType === 'pickup' ? 'text-[#E53935]' : 'text-[#A1887F]'} />
                           <div>
                             <p className="text-sm font-bold text-[#5D4037]">Retirada no Local</p>
                             <p className="text-[10px] font-medium text-[#8D6E63] leading-tight mt-1">{PICKUP_ADDRESS}</p>
@@ -454,10 +454,10 @@ export default function CartPage() {
 
                       <div 
                         onClick={() => setDeliveryType("shipping")}
-                        className={`p-4 rounded-xl border cursor-pointer transition-all ${deliveryType === 'shipping' ? 'border-[#F9A8D4] bg-[#FBCFE8]/10 shadow-sm' : 'border-[#D7CCC8] bg-[#FAF7F5] hover:border-[#F9A8D4]'}`}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${deliveryType === 'shipping' ? 'border-[#E53935] bg-[#E53935]/5 shadow-sm' : 'border-[#D7CCC8] bg-[#FAF7F5] hover:border-[#E53935]'}`}
                       >
                         <div className="flex gap-3">
-                          <Truck className={deliveryType === 'shipping' ? 'text-[#F9A8D4]' : 'text-[#A1887F]'} />
+                          <Truck className={deliveryType === 'shipping' ? 'text-[#E53935]' : 'text-[#A1887F]'} />
                           <div>
                             <p className="text-sm font-bold text-[#5D4037]">Envio por Transportadora</p>
                             <p className="text-[10px] font-medium text-[#8D6E63] mt-1">Cálculo via Melhor Envio</p>
@@ -474,12 +474,12 @@ export default function CartPage() {
                             value={cep}
                             onChange={(e) => setCep(e.target.value)}
                             maxLength={9}
-                            className="rounded-xl border border-[#D7CCC8] bg-[#FAF7F5] focus:border-[#F9A8D4]"
+                            className="rounded-xl border border-[#D7CCC8] bg-[#FAF7F5] focus:border-[#E53935]"
                           />
                           <Button 
                             onClick={handleCalculateShipping}
                             disabled={isCalculating}
-                            className="bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] rounded-xl shadow-sm"
+                            className="bg-[#E53935] hover:bg-[#C62828] text-white rounded-xl shadow-sm"
                           >
                             {isCalculating ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
                           </Button>
@@ -490,7 +490,7 @@ export default function CartPage() {
                             <div 
                               key={option.id}
                               onClick={() => setSelectedShipping(option)}
-                              className={`flex justify-between items-center p-3 border rounded-xl cursor-pointer transition-all ${selectedShipping?.id === option.id ? 'border-[#F9A8D4] bg-[#FBCFE8]/20' : 'border-[#D7CCC8] bg-white hover:border-[#F9A8D4]'}`}
+                              className={`flex justify-between items-center p-3 border rounded-xl cursor-pointer transition-all ${selectedShipping?.id === option.id ? 'border-[#E53935] bg-[#E53935]/10' : 'border-[#D7CCC8] bg-white hover:border-[#E53935]'}`}
                             >
                               <div className="text-xs">
                                 <p className="font-bold text-[#5D4037]">{option.name}</p>
@@ -517,14 +517,14 @@ export default function CartPage() {
                     { id: 'card_delivery', label: 'Cartão na entrega' },
                     { id: 'cash', label: 'Dinheiro na entrega' }
                   ].map((method) => (
-                     <label key={method.id} className="flex items-center gap-3 rounded-xl border border-[#D7CCC8] bg-[#FAF7F5] px-4 py-3 cursor-pointer hover:border-[#F9A8D4] transition-colors">
+                     <label key={method.id} className="flex items-center gap-3 rounded-xl border border-[#D7CCC8] bg-[#FAF7F5] px-4 py-3 cursor-pointer hover:border-[#E53935] transition-colors">
                         <input
                         type="radio"
                         name="payment"
                         value={method.id}
                         checked={paymentMethod === method.id}
                         onChange={() => setPaymentMethod(method.id)}
-                        className="accent-[#F9A8D4]"
+                        className="accent-[#E53935]"
                         />
                         <span className="text-sm font-medium text-[#5D4037]">
                            {method.label}
@@ -563,11 +563,11 @@ export default function CartPage() {
                     <Button
                       onClick={handleCheckout}
                       disabled={checkoutMutation.isPending}
-                      className="w-full rounded-xl bg-[#FBCFE8] text-[#5D4037] py-6 text-sm font-bold hover:bg-[#F9A8D4] transition-all shadow-sm disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest"
+                      className="w-full rounded-xl bg-[#E53935] text-white py-6 text-sm font-bold hover:bg-[#C62828] transition-all shadow-sm disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest"
                     >
                       {checkoutMutation.isPending ? (
                           <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#5D4037]" />
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin text-white" />
                               Enviando pedido...
                           </>
                       ) : "Finalizar pedido"}

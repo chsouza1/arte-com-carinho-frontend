@@ -106,11 +106,11 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-[#FAF7F5] px-4 py-12 font-sans text-[#5D4037]">
       <div className="w-full max-w-md bg-white border border-[#D7CCC8] shadow-xl rounded-sm relative overflow-hidden">
         
-        <div className="h-1 bg-[#FBCFE8] w-full absolute top-0 left-0"></div>
+        <div className="h-1 bg-[#E53935] w-full absolute top-0 left-0"></div>
 
         <div className="text-center pt-10 pb-6 px-8 bg-[url('/paper-texture.png')] border-b border-dashed border-[#D7CCC8]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF7F5] border border-[#EFEBE9] shadow-sm">
-                <Heart className="h-7 w-7 text-[#F9A8D4] fill-current" />
+                <Heart className="h-7 w-7 text-[#E53935] fill-current" />
             </div>
 
             <h1 className="text-2xl font-serif font-bold text-[#5D4037]">
@@ -152,7 +152,7 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="h-11 rounded-sm bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4]"
+                className="h-11 rounded-sm bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935]"
                 required
               />
             </div>
@@ -168,14 +168,14 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
-                className="h-11 rounded-sm bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4]"
+                className="h-11 rounded-sm bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935]"
                 required
               />
               <div className="flex justify-end pt-1">
                 <button 
                     type="button"
                     onClick={() => router.push("/auth/forgot-password")}
-                    className="text-[10px] font-bold text-[#5D4037] hover:text-[#F9A8D4] hover:underline uppercase tracking-wide"
+                    className="text-[10px] font-bold text-[#5D4037] hover:text-[#E53935] hover:underline uppercase tracking-wide"
                 >
                     Esqueci minha senha
                 </button>
@@ -205,7 +205,7 @@ export function LoginForm() {
 
             <Button
               type="submit"
-              className="h-12 w-full bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] font-bold uppercase tracking-widest text-xs rounded-sm shadow-md transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0"
+              className="h-12 w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest text-xs rounded-sm shadow-md transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? "Entrando..." : "Acessar Conta"}
@@ -249,7 +249,7 @@ export function LoginForm() {
             </p>
             <Button
               variant="outline"
-              className="w-full h-10 rounded-sm border-2 border-[#FBCFE8] text-xs font-bold text-[#5D4037] hover:bg-[#FBCFE8] hover:text-[#5D4037] uppercase tracking-widest transition-all"
+              className="w-full h-10 rounded-sm border-2 border-[#E53935] text-xs font-bold text-[#E53935] hover:bg-[#E53935] hover:text-white uppercase tracking-widest transition-all"
               onClick={() => router.push("/auth/register")}
             >
               Criar Conta Grátis

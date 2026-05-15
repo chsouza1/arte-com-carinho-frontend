@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Store, UserCircle2, ShoppingBag, Menu, X, LogOut, Heart, Scissors } from "lucide-react";
+import { Store, ShoppingBag, Menu, LogOut, Heart } from "lucide-react";
 
 import type { AuthSession } from "@/lib/auth";
 import { getAuthSession, clearAuthSession, isAdmin } from "@/lib/auth";
@@ -51,9 +51,8 @@ export function MainNav() {
     <header className="sticky top-0 z-50 bg-[#FAF7F5]/90 backdrop-blur-md border-b-2 border-dashed border-[#D7CCC8]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3">
         
-        {/* LOGO E IDENTIDADE */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative p-1 border border-[#D7CCC8] rounded-full bg-white group-hover:border-[#F9A8D4] transition-colors">
+          <div className="relative p-1 border border-[#D7CCC8] rounded-full bg-white group-hover:border-[#E53935] transition-colors">
             <Image
               src="/logo.jpg" 
               alt="Arte com Carinho"
@@ -64,16 +63,15 @@ export function MainNav() {
             />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-xl font-serif font-bold text-[#5D4037] tracking-tight group-hover:text-[#F9A8D4] transition-colors">
+            <span className="text-xl font-serif font-bold text-[#5D4037] tracking-tight group-hover:text-[#E53935] transition-colors">
               Arte com Carinho
             </span>
             <span className="text-xs font-medium text-[#8D6E63] italic flex items-center gap-1">
-              By Simone <Heart className="h-2 w-2 fill-[#F9A8D4] text-[#F9A8D4]" />
+              By Simone <Heart className="h-2 w-2 fill-[#E53935] text-[#E53935]" />
             </span>
           </div>
         </Link>
 
-        {/* NAVEGAÇÃO DESKTOP */}
         <nav className="hidden items-center gap-6 lg:flex">
           {navItems.map((item) => {
             const active = pathname === item.href;
@@ -84,13 +82,13 @@ export function MainNav() {
                 className={cn(
                   "relative px-2 py-1 text-sm font-medium transition-all group",
                   active
-                    ? "text-[#F9A8D4] font-bold"
-                    : "text-[#5D4037] hover:text-[#F9A8D4]"
+                    ? "text-[#E53935] font-bold"
+                    : "text-[#5D4037] hover:text-[#E53935]"
                 )}
               >
                 {item.label}
                 <span className={cn(
-                  "absolute bottom-0 left-0 h-[2px] w-full border-b-2 border-dashed border-[#F9A8D4] transition-all duration-300",
+                  "absolute bottom-0 left-0 h-[2px] w-full border-b-2 border-dashed border-[#E53935] transition-all duration-300",
                   active ? "opacity-100" : "opacity-0 group-hover:opacity-50"
                 )}></span>
               </Link>
@@ -113,24 +111,20 @@ export function MainNav() {
           )}
         </nav>
 
-        {/* ÍCONES E AÇÕES */}
         <div className="flex items-center gap-4">
-          
-          {/* Carrinho de Compras */}
           <button
-            className="relative p-2 text-[#5D4037] hover:text-[#F9A8D4] transition-colors group"
+            className="relative p-2 text-[#5D4037] hover:text-[#E53935] transition-colors group"
             onClick={() => router.push("/cart")}
             aria-label="Carrinho"
           >
             <ShoppingBag className="h-6 w-6 stroke-[1.5px]" />
             {cartCount > 0 && (
-              <span className="absolute top-0 right-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FBCFE8] px-1 text-[10px] font-bold text-[#5D4037] shadow-sm group-hover:scale-110 transition-transform">
+              <span className="absolute top-0 right-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#E53935] px-1 text-[10px] font-bold text-white shadow-sm group-hover:scale-110 transition-transform">
                 {cartCount}
               </span>
             )}
           </button>
 
-          {/* Usuário Desktop */}
           <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-dashed border-[#D7CCC8]">
             {session ? (
               <>
@@ -152,7 +146,7 @@ export function MainNav() {
             ) : (
               <Button
                 size="sm"
-                className="h-9 rounded-full bg-[#5D4037] px-6 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#FBCFE8] hover:text-[#5D4037] transition-colors shadow-sm"
+                className="h-9 rounded-full bg-[#5D4037] px-6 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#E53935] hover:text-white transition-colors shadow-sm"
                 onClick={() => router.push("/auth/login")}
               >
                 Entrar
@@ -160,18 +154,13 @@ export function MainNav() {
             )}
           </div>
 
-          {/* MENU MOBILE */}
           <div className="lg:hidden">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <button
-                  className="p-2 text-[#5D4037] hover:bg-[#EFEBE9] rounded-md transition-colors"
-                  aria-label="Abrir menu"
-                >
+                <button className="p-2 text-[#5D4037] hover:bg-[#EFEBE9] rounded-md transition-colors">
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
-
               <SheetContent side="right" className="w-[300px] bg-[#FAF7F5] border-l border-[#D7CCC8] p-0">
                 <div className="flex flex-col h-full">
                     <div className="p-6 border-b border-dashed border-[#D7CCC8] bg-[#F5F5F5]">
@@ -184,22 +173,7 @@ export function MainNav() {
                                 <p className="text-xs text-[#8D6E63]">Ateliê & Enxoval</p>
                             </div>
                         </div>
-                        {session && (
-                            <div className="bg-white p-3 rounded-lg border border-[#EFEBE9]">
-                                <p className="text-sm font-bold text-[#5D4037] truncate">{session.name}</p>
-                                <p className="text-xs text-[#A1887F] truncate mb-2">{session.email}</p>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="w-full text-xs h-7 border-[#D7CCC8] text-[#5D4037]"
-                                    onClick={() => go("/account/orders")}
-                                >
-                                    Meus Pedidos
-                                </Button>
-                            </div>
-                        )}
                     </div>
-
                     <div className="flex-1 p-6 space-y-2">
                         {navItems.map((item) => (
                             <button
@@ -208,7 +182,7 @@ export function MainNav() {
                                 className={cn(
                                     "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-colors border",
                                     pathname === item.href
-                                        ? "bg-white border-[#F9A8D4] text-[#F9A8D4] font-bold shadow-sm"
+                                        ? "bg-white border-[#E53935] text-[#E53935] font-bold shadow-sm"
                                         : "bg-transparent border-transparent text-[#5D4037] hover:bg-white hover:border-[#D7CCC8]"
                                 )}
                             >
@@ -216,28 +190,11 @@ export function MainNav() {
                                 {pathname === item.href && <Heart className="h-3 w-3 fill-current" />}
                             </button>
                         ))}
-
-                        {admin && (
-                             <button
-                                onClick={() => go("/admin")}
-                                className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-sm bg-[#5D4037] text-white mt-4"
-                             >
-                                <Store className="h-4 w-4" /> Painel do Ateliê
-                             </button>
-                        )}
                     </div>
-
                     <div className="p-6 border-t border-dashed border-[#D7CCC8]">
-                        {session ? (
-                            <button 
-                                onClick={handleLogout}
-                                className="flex items-center gap-2 text-sm text-[#5D4037] font-bold hover:text-[#F9A8D4] transition-colors"
-                            >
-                                <LogOut className="h-4 w-4" /> Sair da conta
-                            </button>
-                        ) : (
+                        {!session && (
                             <Button
-                                className="w-full bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] font-bold"
+                                className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold"
                                 onClick={() => go("/auth/login")}
                             >
                                 Entrar / Cadastrar
