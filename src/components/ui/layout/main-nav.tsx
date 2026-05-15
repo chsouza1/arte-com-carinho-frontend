@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navItems = [
   { href: "/", label: "Início" },
-  { href: "/products", label: "Peças" }, // Mudado de "Produtos" para "Peças" (mais artesanal)
+  { href: "/products", label: "Peças" },
 ];
 
 export function MainNav() {
@@ -48,15 +48,14 @@ export function MainNav() {
   };
 
   return (
-    // HEADER: Fundo Creme (#FAF7F5) com borda pontilhada imitando costura
     <header className="sticky top-0 z-50 bg-[#FAF7F5]/90 backdrop-blur-md border-b-2 border-dashed border-[#D7CCC8]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3">
         
         {/* LOGO E IDENTIDADE */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative p-1 border border-[#D7CCC8] rounded-full bg-white group-hover:border-[#E53935] transition-colors">
+          <div className="relative p-1 border border-[#D7CCC8] rounded-full bg-white group-hover:border-[#F9A8D4] transition-colors">
             <Image
-              src="/logo.jpg" // Certifique-se que o logo existe ou use um placeholder
+              src="/logo.jpg" 
               alt="Arte com Carinho"
               width={42}
               height={42}
@@ -65,11 +64,11 @@ export function MainNav() {
             />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-xl font-serif font-bold text-[#5D4037] tracking-tight group-hover:text-[#E53935] transition-colors">
+            <span className="text-xl font-serif font-bold text-[#5D4037] tracking-tight group-hover:text-[#F9A8D4] transition-colors">
               Arte com Carinho
             </span>
             <span className="text-xs font-medium text-[#8D6E63] italic flex items-center gap-1">
-              By Simone <Heart className="h-2 w-2 fill-[#E53935] text-[#E53935]" />
+              By Simone <Heart className="h-2 w-2 fill-[#F9A8D4] text-[#F9A8D4]" />
             </span>
           </div>
         </Link>
@@ -85,14 +84,13 @@ export function MainNav() {
                 className={cn(
                   "relative px-2 py-1 text-sm font-medium transition-all group",
                   active
-                    ? "text-[#E53935] font-bold"
-                    : "text-[#5D4037] hover:text-[#E53935]"
+                    ? "text-[#F9A8D4] font-bold"
+                    : "text-[#5D4037] hover:text-[#F9A8D4]"
                 )}
               >
                 {item.label}
-                {/* Linha pontilhada animada no hover ou active */}
                 <span className={cn(
-                  "absolute bottom-0 left-0 h-[2px] w-full border-b-2 border-dashed border-[#E53935] transition-all duration-300",
+                  "absolute bottom-0 left-0 h-[2px] w-full border-b-2 border-dashed border-[#F9A8D4] transition-all duration-300",
                   active ? "opacity-100" : "opacity-0 group-hover:opacity-50"
                 )}></span>
               </Link>
@@ -120,13 +118,13 @@ export function MainNav() {
           
           {/* Carrinho de Compras */}
           <button
-            className="relative p-2 text-[#5D4037] hover:text-[#E53935] transition-colors group"
+            className="relative p-2 text-[#5D4037] hover:text-[#F9A8D4] transition-colors group"
             onClick={() => router.push("/cart")}
             aria-label="Carrinho"
           >
             <ShoppingBag className="h-6 w-6 stroke-[1.5px]" />
             {cartCount > 0 && (
-              <span className="absolute top-0 right-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#E53935] px-1 text-[10px] font-bold text-white shadow-sm group-hover:scale-110 transition-transform">
+              <span className="absolute top-0 right-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FBCFE8] px-1 text-[10px] font-bold text-[#5D4037] shadow-sm group-hover:scale-110 transition-transform">
                 {cartCount}
               </span>
             )}
@@ -154,7 +152,7 @@ export function MainNav() {
             ) : (
               <Button
                 size="sm"
-                className="h-9 rounded-full bg-[#5D4037] px-6 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#E53935] transition-colors shadow-sm"
+                className="h-9 rounded-full bg-[#5D4037] px-6 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#FBCFE8] hover:text-[#5D4037] transition-colors shadow-sm"
                 onClick={() => router.push("/auth/login")}
               >
                 Entrar
@@ -176,7 +174,6 @@ export function MainNav() {
 
               <SheetContent side="right" className="w-[300px] bg-[#FAF7F5] border-l border-[#D7CCC8] p-0">
                 <div className="flex flex-col h-full">
-                    {/* Header do Menu */}
                     <div className="p-6 border-b border-dashed border-[#D7CCC8] bg-[#F5F5F5]">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="h-10 w-10 rounded-full bg-white border border-[#D7CCC8] overflow-hidden p-0.5">
@@ -203,7 +200,6 @@ export function MainNav() {
                         )}
                     </div>
 
-                    {/* Links */}
                     <div className="flex-1 p-6 space-y-2">
                         {navItems.map((item) => (
                             <button
@@ -212,7 +208,7 @@ export function MainNav() {
                                 className={cn(
                                     "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-colors border",
                                     pathname === item.href
-                                        ? "bg-white border-[#E53935] text-[#E53935] font-bold shadow-sm"
+                                        ? "bg-white border-[#F9A8D4] text-[#F9A8D4] font-bold shadow-sm"
                                         : "bg-transparent border-transparent text-[#5D4037] hover:bg-white hover:border-[#D7CCC8]"
                                 )}
                             >
@@ -231,18 +227,17 @@ export function MainNav() {
                         )}
                     </div>
 
-                    {/* Footer / Logout */}
                     <div className="p-6 border-t border-dashed border-[#D7CCC8]">
                         {session ? (
                             <button 
                                 onClick={handleLogout}
-                                className="flex items-center gap-2 text-sm text-[#E53935] font-bold hover:underline"
+                                className="flex items-center gap-2 text-sm text-[#5D4037] font-bold hover:text-[#F9A8D4] transition-colors"
                             >
                                 <LogOut className="h-4 w-4" /> Sair da conta
                             </button>
                         ) : (
                             <Button
-                                className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold"
+                                className="w-full bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] font-bold"
                                 onClick={() => go("/auth/login")}
                             >
                                 Entrar / Cadastrar

@@ -25,7 +25,6 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-
 const getPasswordStrength = (pass: string) => {
   if (!pass) return { label: "", color: "bg-[#EFEBE9]", w: "w-0", textColor: "text-transparent" };
   
@@ -35,9 +34,9 @@ const getPasswordStrength = (pass: string) => {
   if (/[^A-Za-z0-9]/.test(pass)) score += 1;
   if (pass.length >= 10) score += 1;
 
-  if (score <= 1) return { label: "Fraca", color: "bg-[#E53935]", w: "w-1/3", textColor: "text-[#E53935]" };
-  if (score === 2) return { label: "Média", color: "bg-yellow-500", w: "w-2/3", textColor: "text-yellow-600" };
-  return { label: "Forte", color: "bg-green-500", w: "w-full", textColor: "text-green-600" };
+  if (score <= 1) return { label: "Fraca", color: "bg-red-400", w: "w-1/3", textColor: "text-red-500" };
+  if (score === 2) return { label: "Média", color: "bg-yellow-400", w: "w-2/3", textColor: "text-yellow-600" };
+  return { label: "Forte", color: "bg-green-400", w: "w-full", textColor: "text-green-600" };
 };
 
 export default function RegisterForm() {
@@ -94,12 +93,13 @@ export default function RegisterForm() {
   return (
     <div className="w-full max-w-md bg-white border border-[#D7CCC8] shadow-xl rounded-sm relative overflow-hidden">
         
-        <div className="h-1 bg-[#E53935] w-full absolute top-0 left-0"></div>
+        {/* Topo com o Rosa Pastel Principal */}
+        <div className="h-1 bg-[#FBCFE8] w-full absolute top-0 left-0"></div>
 
         <div className="p-8">
             <div className="text-center mb-8">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF7F5] border border-[#EFEBE9]">
-                    <Sparkles className="h-6 w-6 text-[#E53935]" />
+                    <Sparkles className="h-6 w-6 text-[#F9A8D4]" />
                 </div>
                 <h1 className="text-3xl font-serif font-bold text-[#5D4037]">
                     Bem-vindo(a)!
@@ -119,10 +119,10 @@ export default function RegisterForm() {
                             id="name"
                             placeholder="Seu nome"
                             {...register("name")}
-                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.name ? "border-[#E53935]" : ""}`}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4] rounded-sm h-11 ${errors.name ? "border-red-400" : ""}`}
                         />
                     </div>
-                    {errors.name && <p className="text-[10px] text-[#E53935] font-bold">{errors.name.message}</p>}
+                    {errors.name && <p className="text-[10px] text-red-500 font-bold">{errors.name.message}</p>}
                 </div>
 
                 <div className="space-y-1.5">
@@ -134,10 +134,10 @@ export default function RegisterForm() {
                             type="email"
                             placeholder="seu@email.com"
                             {...register("email")}
-                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.email ? "border-[#E53935]" : ""}`}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4] rounded-sm h-11 ${errors.email ? "border-red-400" : ""}`}
                         />
                     </div>
-                    {errors.email && <p className="text-[10px] text-[#E53935] font-bold">{errors.email.message}</p>}
+                    {errors.email && <p className="text-[10px] text-red-500 font-bold">{errors.email.message}</p>}
                 </div>
 
                 <div className="space-y-1.5">
@@ -153,10 +153,10 @@ export default function RegisterForm() {
                                 register("phone").onChange(e);
                                 handlePhoneChange(e);
                             }}
-                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.phone ? "border-[#E53935]" : ""}`}
+                            className={`pl-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4] rounded-sm h-11 ${errors.phone ? "border-red-400" : ""}`}
                         />
                     </div>
-                    {errors.phone && <p className="text-[10px] text-[#E53935] font-bold">{errors.phone.message}</p>}
+                    {errors.phone && <p className="text-[10px] text-red-500 font-bold">{errors.phone.message}</p>}
                 </div>
 
                 {/* SENHA */}
@@ -169,7 +169,7 @@ export default function RegisterForm() {
                             type={showPassword ? "text" : "password"}
                             placeholder="Mínimo 6 caracteres"
                             {...register("password")}
-                            className={`pl-10 pr-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.password ? "border-[#E53935]" : ""}`}
+                            className={`pl-10 pr-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4] rounded-sm h-11 ${errors.password ? "border-red-400" : ""}`}
                         />
                         <button 
                             type="button"
@@ -191,7 +191,7 @@ export default function RegisterForm() {
                         </div>
                     )}
                     
-                    {errors.password && <p className="text-[10px] text-[#E53935] font-bold">{errors.password.message}</p>}
+                    {errors.password && <p className="text-[10px] text-red-500 font-bold">{errors.password.message}</p>}
                 </div>
 
                 {/* CONFIRMAR SENHA */}
@@ -204,7 +204,7 @@ export default function RegisterForm() {
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder="Repita a sua senha"
                             {...register("confirmPassword")}
-                            className={`pl-10 pr-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-11 ${errors.confirmPassword ? "border-[#E53935]" : ""}`}
+                            className={`pl-10 pr-10 bg-[#FAF7F5] border-[#D7CCC8] text-[#5D4037] focus:border-[#F9A8D4] rounded-sm h-11 ${errors.confirmPassword ? "border-red-400" : ""}`}
                         />
                         <button 
                             type="button"
@@ -215,7 +215,7 @@ export default function RegisterForm() {
                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                     </div>
-                    {errors.confirmPassword && <p className="text-[10px] text-[#E53935] font-bold">{errors.confirmPassword.message}</p>}
+                    {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold">{errors.confirmPassword.message}</p>}
                 </div>
 
                 {error && (
@@ -226,12 +226,12 @@ export default function RegisterForm() {
 
                 <Button 
                     type="submit" 
-                    className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest h-12 rounded-sm shadow-md transition-all hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0" 
+                    className="w-full bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] font-bold uppercase tracking-widest h-12 rounded-sm shadow-md transition-all hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0" 
                     disabled={isLoading}
                 >
                     {isLoading ? (
                         <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Costurando cadastro...
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#5D4037]" /> Costurando cadastro...
                         </>
                     ) : (
                         "Criar minha conta"
@@ -241,7 +241,7 @@ export default function RegisterForm() {
 
             <div className="mt-8 pt-6 border-t border-dashed border-[#D7CCC8] text-center text-sm">
                 <p className="text-[#8D6E63] mb-2">Já faz parte do nosso ateliê?</p>
-                <Link href="/auth/login" className="font-bold text-[#5D4037] hover:text-[#E53935] uppercase text-xs tracking-widest border-b-2 border-[#E53935] pb-0.5 transition-colors">
+                <Link href="/auth/login" className="font-bold text-[#5D4037] hover:text-[#F9A8D4] uppercase text-xs tracking-widest border-b-2 border-[#F9A8D4] pb-0.5 transition-colors">
                     Fazer Login
                 </Link>
             </div>

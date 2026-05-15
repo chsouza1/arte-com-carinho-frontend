@@ -62,7 +62,6 @@ export default function CartPage() {
     return `${API_URL}${img}`;
   };
 
-  // Cálculo do Total (Produtos + Frete Selecionado)
   const totalAmount = useMemo(() => {
     const productsTotal = items.reduce((sum, item) => sum + item.price * (item.quantity ?? 1), 0);
     const shippingTotal = (deliveryType === "shipping" && selectedShipping) ? Number(selectedShipping.price) : 0;
@@ -129,7 +128,6 @@ export default function CartPage() {
       }
     });
 
-
     let deliveryInfo = "";
     if (deliveryType === "pickup") {
       deliveryInfo = `=== INFORMAÇÕES DE ENTREGA ===\nTipo: RETIRADA NO LOCAL\nEndereço: ${PICKUP_ADDRESS}\n\n`;
@@ -165,7 +163,6 @@ export default function CartPage() {
       return false;
     }
     
-    // Validação de Frete
     if (deliveryType === "shipping" && !selectedShipping) {
       setFormError("Por favor, calcule e selecione uma opção de frete para envio.");
       return false;
@@ -192,7 +189,6 @@ export default function CartPage() {
     return true;
   };
 
-  // --- Mutaçao Padrão (Pix/Dinheiro) ---
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       const payload = buildOrderPayload();
@@ -224,7 +220,6 @@ export default function CartPage() {
     checkoutMutation.mutate();
   }
 
-  // --- Lógica do Mercado Pago (Cartão Online) ---
   const onMercadoPagoSubmit = async (formData: any) => {
     return new Promise<void>(async (resolve, reject) => {
       setFormError(null);
@@ -247,8 +242,8 @@ export default function CartPage() {
           token: token,
           paymentMethodId: payment_method_id,
           installments: installments,
-          issuer_id: issuer_id, // Enviando formato cobrado pelo backend
-          issuerId: issuer_id,  // Duplicado por segurança de compatibilidade
+          issuer_id: issuer_id, 
+          issuerId: issuer_id,  
           email: payer.email || session?.email || "cliente@artecomcarinho.com"
         });
 
@@ -265,26 +260,26 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50">
+    <div className="min-h-screen bg-[#FAF7F5]">
       <div className="mx-auto max-w-6xl px-4 py-12">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <button
               onClick={() => router.push("/")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 hover:text-rose-700 transition-colors mb-3 group"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#5D4037] hover:text-[#F9A8D4] transition-colors mb-3 group"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               Continuar comprando
             </button>
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-orange-500">
+            <h1 className="text-4xl font-serif font-black text-[#5D4037]">
               Sua Sacola
             </h1>
           </div>
           
           {items.length > 0 && (
-            <div className="flex items-center gap-3 rounded-2xl bg-white/80 backdrop-blur-sm px-6 py-3 shadow-lg border-2 border-rose-200">
-              <ShoppingBag size={20} className="text-rose-500" />
-              <span className="text-sm font-bold text-neutral-800">
+            <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-3 shadow-sm border border-[#D7CCC8]">
+              <ShoppingBag size={20} className="text-[#F9A8D4]" />
+              <span className="text-sm font-bold text-[#5D4037]">
                 {items.length} {items.length === 1 ? "item" : "itens"}
               </span>
             </div>
@@ -292,20 +287,20 @@ export default function CartPage() {
         </div>
 
         {items.length === 0 ? (
-          <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-16 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden text-center">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-200/20 to-transparent rounded-full blur-2xl"></div>
+          <div className="relative rounded-[2rem] bg-white p-16 shadow-sm border border-[#D7CCC8] overflow-hidden text-center">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-[#FBCFE8]/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#F9A8D4]/10 rounded-full blur-2xl"></div>
             
             <div className="relative z-10">
-              <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center mb-6">
-                <ShoppingBag size={40} className="text-rose-400" />
+              <div className="mx-auto w-24 h-24 rounded-full bg-[#FAF7F5] border border-[#EFEBE9] flex items-center justify-center mb-6">
+                <ShoppingBag size={40} className="text-[#F9A8D4]" />
               </div>
-              <p className="text-lg font-semibold text-neutral-700 mb-2">
+              <p className="text-lg font-serif font-semibold text-[#5D4037] mb-2">
                 Sua sacola está vazia
               </p>
               <Button 
                 onClick={() => router.push("/")}
-                className="rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white px-8 py-6 text-sm font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30"
+                className="mt-4 rounded-xl bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] px-8 py-6 text-sm font-bold transition-all shadow-sm"
               >
                 Ver produtos
               </Button>
@@ -327,56 +322,56 @@ export default function CartPage() {
                 return (
                   <div
                     key={item.id}
-                    className="group relative flex flex-col md:flex-row gap-5 rounded-3xl border-2 border-transparent bg-white p-6 shadow-lg hover:shadow-xl hover:border-rose-200 transition-all duration-300"
+                    className="group relative flex flex-col md:flex-row gap-5 rounded-2xl border border-[#D7CCC8] bg-white p-6 shadow-sm hover:shadow-md hover:border-[#F9A8D4] transition-all duration-300"
                   >
                     <div className="flex gap-4">
-                        <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 flex-shrink-0 shadow-md">
+                        <div className="relative h-28 w-28 rounded-xl overflow-hidden bg-[#FAF7F5] border border-[#EFEBE9] flex-shrink-0">
                         {image ? (
-                            <img src={image} alt={item.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <img src={image} alt={item.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-slate-400 font-medium">Sem imagem</div>
+                            <div className="flex h-full items-center justify-center text-xs text-[#A1887F] font-medium">Sem imagem</div>
                         )}
                         </div>
 
                         <div className="flex flex-col justify-between">
                             <div>
-                                <p className="text-base font-bold text-neutral-800 group-hover:text-rose-600 transition-colors">{item.name}</p>
-                                <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 mt-1">
+                                <p className="text-base font-serif font-bold text-[#5D4037] group-hover:text-[#F9A8D4] transition-colors">{item.name}</p>
+                                <p className="text-sm font-bold text-[#5D4037] mt-1">
                                 {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                                 </p>
                             </div>
 
-                            <div className="mt-2 flex items-center gap-3 rounded-full border-2 border-rose-200 bg-white px-3 py-1.5 text-sm font-bold shadow-sm w-fit">
-                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)} className="text-rose-500 hover:text-rose-700"><Minus size={14} /></button>
-                                <span className="min-w-[20px] text-center text-neutral-800">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)} className="text-rose-500 hover:text-rose-700"><Plus size={14} /></button>
+                            <div className="mt-2 flex items-center gap-3 rounded-full border border-[#D7CCC8] bg-[#FAF7F5] px-3 py-1.5 text-sm font-bold shadow-sm w-fit">
+                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) - 1)} className="text-[#5D4037] hover:text-[#F9A8D4]"><Minus size={14} /></button>
+                                <span className="min-w-[20px] text-center text-[#5D4037]">{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item.id, (item.quantity ?? 1) + 1)} className="text-[#5D4037] hover:text-[#F9A8D4]"><Plus size={14} /></button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex-1 border-t md:border-t-0 md:border-l border-rose-100 pt-4 md:pt-0 md:pl-5 space-y-3">
-                        <h4 className="text-xs font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1">
-                            <Scissors size={12} /> Personalização
+                    <div className="flex-1 border-t md:border-t-0 md:border-l border-dashed border-[#D7CCC8] pt-4 md:pt-0 md:pl-5 space-y-3">
+                        <h4 className="text-xs font-bold text-[#5D4037] uppercase tracking-wider flex items-center gap-1">
+                            <Scissors size={12} className="text-[#F9A8D4]" /> Personalização
                         </h4>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="sm:col-span-1">
-                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1"><Baby size={10} /> Para quem é?</label>
-                                <select value={gender} onChange={(e) => handleCustomize(item.id, "gender", e.target.value)} className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50">
+                                <label className="text-[10px] font-bold text-[#8D6E63] flex items-center gap-1 mb-1"><Baby size={10} /> Para quem é?</label>
+                                <select value={gender} onChange={(e) => handleCustomize(item.id, "gender", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                     {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                                 </select>
                             </div>
 
                             <div className="sm:col-span-1">
-                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1"><Palette size={10} /> Cor da Peça</label>
-                                <select value={selectedColor} onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)} className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50">
+                                <label className="text-[10px] font-bold text-[#8D6E63] flex items-center gap-1 mb-1"><Palette size={10} /> Cor da Peça</label>
+                                <select value={selectedColor} onChange={(e) => handleCustomize(item.id, "selectedColor", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                     {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
 
                             <div className="sm:col-span-1">
-                                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mb-1"><Type size={10} /> Tipo de Bordado</label>
-                                <select value={embType} onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)} className="w-full rounded-lg border border-rose-200 text-xs px-2 py-1.5 focus:border-rose-400 outline-none bg-slate-50">
+                                <label className="text-[10px] font-bold text-[#8D6E63] flex items-center gap-1 mb-1"><Type size={10} /> Tipo de Bordado</label>
+                                <select value={embType} onChange={(e) => handleCustomize(item.id, "embroideryType", e.target.value)} className="w-full rounded-md border border-[#D7CCC8] text-xs px-2 py-1.5 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                     {EMBROIDERY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
                             </div>
@@ -385,12 +380,12 @@ export default function CartPage() {
                         {showNameInput && (
                             <div className="animate-in fade-in slide-in-from-top-2 grid grid-cols-3 gap-2">
                                 <div className="col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">Nome para bordar:</label>
-                                    <Input placeholder="Ex: Maria Eduarda" value={item.customText || ""} onChange={(e) => handleCustomize(item.id, "customText", e.target.value)} className="h-8 text-xs border-rose-200 focus:border-rose-400" />
+                                    <label className="text-[10px] font-bold text-[#8D6E63] mb-1 block">Nome para bordar:</label>
+                                    <Input placeholder="Ex: Maria Eduarda" value={item.customText || ""} onChange={(e) => handleCustomize(item.id, "customText", e.target.value)} className="h-8 text-xs border-[#D7CCC8] focus:border-[#F9A8D4] bg-[#FAF7F5] text-[#5D4037]" />
                                 </div>
                                 <div className="col-span-1">
-                                    <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1"><PaintBucket size={10} /> Cor</label>
-                                    <select value={embroideryColor} onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)} className="w-full h-8 rounded-lg border border-rose-200 text-[10px] px-1 focus:border-rose-400 outline-none bg-slate-50">
+                                    <label className="text-[10px] font-bold text-[#8D6E63] mb-1 flex items-center gap-1"><PaintBucket size={10} /> Cor</label>
+                                    <select value={embroideryColor} onChange={(e) => handleCustomize(item.id, "embroideryColor", e.target.value)} className="w-full h-8 rounded-md border border-[#D7CCC8] text-[10px] px-1 focus:border-[#F9A8D4] outline-none bg-[#FAF7F5] text-[#5D4037]">
                                         {THREAD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
@@ -399,13 +394,13 @@ export default function CartPage() {
 
                         {showDesignInput && (
                             <div className="animate-in fade-in slide-in-from-top-2">
-                                <label className="text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1"><Shapes size={10} /> Qual desenho você quer?</label>
-                                <Input placeholder="Ex: Ursinho príncipe, Flor, Leão..." value={item.designDescription || ""} onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)} className="h-8 text-xs border-rose-200 focus:border-rose-400" />
+                                <label className="text-[10px] font-bold text-[#8D6E63] mb-1 flex items-center gap-1"><Shapes size={10} /> Qual desenho você quer?</label>
+                                <Input placeholder="Ex: Ursinho príncipe, Flor, Leão..." value={item.designDescription || ""} onChange={(e) => handleCustomize(item.id, "designDescription", e.target.value)} className="h-8 text-xs border-[#D7CCC8] focus:border-[#F9A8D4] bg-[#FAF7F5] text-[#5D4037]" />
                             </div>
                         )}
                     </div>
 
-                    <button onClick={() => removeItem(item.id)} className="absolute top-4 right-4 text-rose-300 hover:text-rose-500 transition-colors" title="Remover item">
+                    <button onClick={() => removeItem(item.id)} className="absolute top-4 right-4 text-[#A1887F] hover:text-red-500 transition-colors" title="Remover item">
                         <Trash2 size={18} />
                     </button>
                   </div>
@@ -414,11 +409,11 @@ export default function CartPage() {
             </div>
 
             <div className="lg:sticky lg:top-8 h-fit">
-              <div className="relative rounded-[2rem] bg-gradient-to-br from-white to-rose-50/50 p-8 shadow-xl backdrop-blur-sm border border-white/50 overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl"></div>
+              <div className="relative rounded-[2rem] bg-white p-8 shadow-sm border border-[#D7CCC8] overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FBCFE8]/20 rounded-full blur-2xl"></div>
                 
                 <div className="relative z-10 space-y-5">
-                  <h2 className="text-xl font-black text-neutral-800 mb-6">
+                  <h2 className="text-xl font-serif font-black text-[#5D4037] mb-6">
                     Resumo do Pedido
                   </h2>
 
@@ -427,7 +422,7 @@ export default function CartPage() {
                       placeholder="Telefone / WhatsApp (Obrigatório)"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="rounded-2xl border-2 border-rose-200 px-5 py-6 bg-white/80 backdrop-blur-sm shadow-sm hover:border-rose-300 transition-colors font-medium"
+                      className="rounded-xl border border-[#D7CCC8] px-4 py-6 bg-[#FAF7F5] focus:border-[#F9A8D4] text-[#5D4037] font-medium"
                     />
 
                     <Textarea
@@ -435,46 +430,42 @@ export default function CartPage() {
                       placeholder="Observações adicionais (opcional)"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="rounded-2xl border-2 border-rose-200 px-5 py-4 bg-white/80 backdrop-blur-sm shadow-sm hover:border-rose-300 transition-colors font-medium resize-none"
+                      className="rounded-xl border border-[#D7CCC8] px-4 py-4 bg-[#FAF7F5] focus:border-[#F9A8D4] text-[#5D4037] font-medium resize-none"
                     />
                   </div>
 
-                  {/* === SEÇÃO DE ENTREGA / FRETE === */}
-                  <div className="space-y-4 py-4 border-y border-rose-200/50">
-                    <p className="text-sm font-bold text-neutral-700">Forma de Entrega</p>
+                  <div className="space-y-4 py-4 border-y border-dashed border-[#D7CCC8]">
+                    <p className="text-sm font-bold text-[#5D4037]">Forma de Entrega</p>
                     
                     <div className="grid grid-cols-1 gap-3">
-                      {/* Opção: Retirada */}
                       <div 
                         onClick={() => { setDeliveryType("pickup"); setSelectedShipping(null); }}
-                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${deliveryType === 'pickup' ? 'border-rose-500 bg-white shadow-sm' : 'border-rose-100 bg-white/50 hover:border-rose-300'}`}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${deliveryType === 'pickup' ? 'border-[#F9A8D4] bg-[#FBCFE8]/10 shadow-sm' : 'border-[#D7CCC8] bg-[#FAF7F5] hover:border-[#F9A8D4]'}`}
                       >
                         <div className="flex gap-3">
-                          <MapPin className={deliveryType === 'pickup' ? 'text-rose-500' : 'text-slate-400'} />
+                          <MapPin className={deliveryType === 'pickup' ? 'text-[#F9A8D4]' : 'text-[#A1887F]'} />
                           <div>
-                            <p className="text-sm font-bold text-neutral-800">Retirada no Local</p>
-                            <p className="text-[10px] font-medium text-slate-500 leading-tight mt-1">{PICKUP_ADDRESS}</p>
+                            <p className="text-sm font-bold text-[#5D4037]">Retirada no Local</p>
+                            <p className="text-[10px] font-medium text-[#8D6E63] leading-tight mt-1">{PICKUP_ADDRESS}</p>
                             <p className="text-xs font-bold text-green-600 mt-1">Grátis</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Opção: Envio */}
                       <div 
                         onClick={() => setDeliveryType("shipping")}
-                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${deliveryType === 'shipping' ? 'border-rose-500 bg-white shadow-sm' : 'border-rose-100 bg-white/50 hover:border-rose-300'}`}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${deliveryType === 'shipping' ? 'border-[#F9A8D4] bg-[#FBCFE8]/10 shadow-sm' : 'border-[#D7CCC8] bg-[#FAF7F5] hover:border-[#F9A8D4]'}`}
                       >
                         <div className="flex gap-3">
-                          <Truck className={deliveryType === 'shipping' ? 'text-rose-500' : 'text-slate-400'} />
+                          <Truck className={deliveryType === 'shipping' ? 'text-[#F9A8D4]' : 'text-[#A1887F]'} />
                           <div>
-                            <p className="text-sm font-bold text-neutral-800">Envio por Transportadora</p>
-                            <p className="text-[10px] font-medium text-slate-500 mt-1">Cálculo via Melhor Envio</p>
+                            <p className="text-sm font-bold text-[#5D4037]">Envio por Transportadora</p>
+                            <p className="text-[10px] font-medium text-[#8D6E63] mt-1">Cálculo via Melhor Envio</p>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Campos do Melhor Envio */}
                     {deliveryType === 'shipping' && (
                       <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2">
                         <div className="flex gap-2">
@@ -483,12 +474,12 @@ export default function CartPage() {
                             value={cep}
                             onChange={(e) => setCep(e.target.value)}
                             maxLength={9}
-                            className="rounded-xl border-2 border-rose-200 bg-white"
+                            className="rounded-xl border border-[#D7CCC8] bg-[#FAF7F5] focus:border-[#F9A8D4]"
                           />
                           <Button 
                             onClick={handleCalculateShipping}
                             disabled={isCalculating}
-                            className="bg-rose-500 hover:bg-rose-600 text-white rounded-xl shadow-md"
+                            className="bg-[#FBCFE8] hover:bg-[#F9A8D4] text-[#5D4037] rounded-xl shadow-sm"
                           >
                             {isCalculating ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
                           </Button>
@@ -499,13 +490,13 @@ export default function CartPage() {
                             <div 
                               key={option.id}
                               onClick={() => setSelectedShipping(option)}
-                              className={`flex justify-between items-center p-3 border-2 rounded-xl cursor-pointer transition-all ${selectedShipping?.id === option.id ? 'border-rose-500 bg-rose-50' : 'border-slate-100 bg-white hover:border-rose-200'}`}
+                              className={`flex justify-between items-center p-3 border rounded-xl cursor-pointer transition-all ${selectedShipping?.id === option.id ? 'border-[#F9A8D4] bg-[#FBCFE8]/20' : 'border-[#D7CCC8] bg-white hover:border-[#F9A8D4]'}`}
                             >
                               <div className="text-xs">
-                                <p className="font-bold text-neutral-800">{option.name}</p>
-                                <p className="text-slate-500 font-medium">{option.delivery_time} dias úteis</p>
+                                <p className="font-bold text-[#5D4037]">{option.name}</p>
+                                <p className="text-[#8D6E63] font-medium">{option.delivery_time} dias úteis</p>
                               </div>
-                              <p className="text-sm font-bold text-rose-600">
+                              <p className="text-sm font-bold text-[#5D4037]">
                                 {Number(option.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                               </p>
                             </div>
@@ -514,10 +505,9 @@ export default function CartPage() {
                       </div>
                     )}
                   </div>
-                  {/* === FIM SEÇÃO DE ENTREGA === */}
 
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-neutral-700">
+                  <p className="text-sm font-bold text-[#5D4037]">
                     Forma de pagamento
                   </p>
                   
@@ -527,16 +517,16 @@ export default function CartPage() {
                     { id: 'card_delivery', label: 'Cartão na entrega' },
                     { id: 'cash', label: 'Dinheiro na entrega' }
                   ].map((method) => (
-                     <label key={method.id} className="flex items-center gap-3 rounded-2xl border-2 border-rose-200 bg-white/80 px-4 py-3 cursor-pointer hover:border-rose-300 transition-colors">
+                     <label key={method.id} className="flex items-center gap-3 rounded-xl border border-[#D7CCC8] bg-[#FAF7F5] px-4 py-3 cursor-pointer hover:border-[#F9A8D4] transition-colors">
                         <input
                         type="radio"
                         name="payment"
                         value={method.id}
                         checked={paymentMethod === method.id}
                         onChange={() => setPaymentMethod(method.id)}
-                        className="accent-rose-500"
+                        className="accent-[#F9A8D4]"
                         />
-                        <span className="text-sm font-medium text-neutral-800">
+                        <span className="text-sm font-medium text-[#5D4037]">
                            {method.label}
                         </span>
                     </label>
@@ -544,15 +534,15 @@ export default function CartPage() {
                 </div>
 
                 {formError && (
-                    <div className="p-3 bg-rose-100 text-rose-700 text-sm font-bold rounded-xl border border-rose-200 flex items-start gap-2">
+                    <div className="p-3 bg-[#FFEBEE] text-[#C62828] text-sm font-bold rounded-xl border border-[#FFCDD2] flex items-start gap-2">
                         <span className="mt-0.5 text-xs">⚠️</span>
                         {formError}
                     </div>
                 )}
 
-                  <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 p-6 flex justify-between items-center shadow-md border-2 border-rose-200">
-                    <span className="text-sm font-bold text-neutral-700">Total</span>
-                    <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600">
+                  <div className="rounded-xl bg-[#FAF7F5] border border-[#D7CCC8] p-6 flex justify-between items-center shadow-sm">
+                    <span className="text-sm font-bold text-[#5D4037]">Total</span>
+                    <span className="text-2xl font-serif font-black text-[#5D4037]">
                       {totalAmount.toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
@@ -561,8 +551,8 @@ export default function CartPage() {
                   </div>
 
                   {paymentMethod === 'card_online' ? (
-                    <div className="mt-4 bg-white rounded-2xl p-4 border border-rose-200 shadow-sm">
-                      <p className="text-xs font-semibold text-slate-500 mb-2 text-center">Pagamento Seguro pelo Mercado Pago</p>
+                    <div className="mt-4 bg-[#FAF7F5] rounded-xl p-4 border border-[#D7CCC8] shadow-sm">
+                      <p className="text-xs font-semibold text-[#8D6E63] mb-2 text-center">Pagamento Seguro pelo Mercado Pago</p>
                       <Payment
                         initialization={{ amount: totalAmount }}
                         customization={{ paymentMethods: { creditCard: "all", debitCard: "all" } }}
@@ -573,11 +563,11 @@ export default function CartPage() {
                     <Button
                       onClick={handleCheckout}
                       disabled={checkoutMutation.isPending}
-                      className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white py-7 text-base font-bold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+                      className="w-full rounded-xl bg-[#FBCFE8] text-[#5D4037] py-6 text-sm font-bold hover:bg-[#F9A8D4] transition-all shadow-sm disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest"
                     >
                       {checkoutMutation.isPending ? (
                           <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#5D4037]" />
                               Enviando pedido...
                           </>
                       ) : "Finalizar pedido"}
