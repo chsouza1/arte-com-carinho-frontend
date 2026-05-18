@@ -46,14 +46,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== "undefined") {
+
       if (error.response?.status === 401) {
-        console.warn("Sessão inválida ou expirada. Redirecionando para login...");
+        console.warn("Sessão inválida ou expirada. Limpando sessão local...");
+        
         localStorage.removeItem("auth-session");
         setAuthToken(null);
-        window.location.href = "/auth/login?timeout=1";
+        
+        if (!window.location.pathname.includes('/auth/login')) {
+          window.location.href = "/auth/login?timeout=1";
+        }
       }
 
-      // Tratamento Global para Rate Limit (Too Many Requests)
+
       if (error.response?.status === 429) {
         if (!error.response.data) error.response.data = {};
         error.response.data.message = error.response.data.message || "Muitas tentativas. Aguarde um pouco e tente novamente.";
