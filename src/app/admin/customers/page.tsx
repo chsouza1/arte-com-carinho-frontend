@@ -22,25 +22,16 @@ type Customer = {
   role?: string;
 };
 
-type PageResponse<T> = {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-};
-
 type CustomerFormData = {
   name: string;
   email: string;
   phone: string;
-  password: string; // Necessário para a criação segura do usuário
+  password: string;
 };
 
-async function fetchCustomers(): Promise<PageResponse<Customer>> {
-  // Busca a lista de clientes cadastrados no sistema
-  const res = await api.get<PageResponse<Customer>>("/customers", {
-    params: { page: 0, size: 200, sort: "id,desc" },
-  });
+async function fetchCustomers(): Promise<Customer[]> {
+  // Chamando o UserController (/api/users) que devolve a lista direta (List<UserDTO>) com as Roles
+  const res = await api.get<Customer[]>("/users");
   return res.data;
 }
 
@@ -62,7 +53,8 @@ export default function AdminCustomersPage() {
     queryFn: fetchCustomers,
   });
 
-  const customers = useMemo(() => data?.content ?? [], [data]);
+  // Como agora é uma lista direta, usamos data direto ou array vazio
+  const customers = useMemo(() => data ?? [], [data]);
 
   const filteredCustomers = useMemo(() => {
     if (!searchTerm) return customers;
@@ -83,7 +75,6 @@ export default function AdminCustomersPage() {
         email: form.email,
         phone: form.phone,
         password: form.password,
-        role: "CUSTOMER", 
       };
       await api.post("/auth/register", payload);
     },
@@ -282,7 +273,7 @@ export default function AdminCustomersPage() {
               <div className="bg-[#E3F2FD] border border-[#BBDEFB] p-3 rounded-sm flex items-start gap-2 text-xs text-[#1565C0] font-medium leading-relaxed">
                 <UserCheck size={16} className="shrink-0 mt-0.5" />
                 <span>
-                  Por motivos de segurança, contas criadas por esta tela recebem a função padrão de <strong>Cliente</strong>. Permissões de administrador devem ser alteradas diretamente no banco de dados.
+                  Contas criadas por esta tela recebem a função de <strong>Cliente</strong> por segurança.
                 </span>
               </div>
 
