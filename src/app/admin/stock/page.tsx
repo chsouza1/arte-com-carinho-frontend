@@ -14,31 +14,16 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Product = {
+type UnifiedItem = {
   id: number;
   name: string;
-  description?: string;
-  price?: number;
-  stock?: number;
+  stock: number;
+  type: "PRODUCT" | "MATERIAL";
   category?: string;
   active?: boolean;
-  featured?: boolean;
-  customizable?: boolean;
   images?: string[];
-  [key: string]: any;
+  originalData: any;
 };
-
-type PageResponse<T> = {
-  content: T[];
-  totalElements: number;
-};
-
-async function fetchInventory(): Promise<Product[]> {
-  const res = await api.get<PageResponse<Product>>("/products", {
-    params: { page: 0, size: 500, sort: "name,asc" },
-  });
-  return res.data.content ?? [];
-}
 
 export default function AdminStockPage() {
   const queryClient = useQueryClient();
@@ -46,20 +31,59 @@ export default function AdminStockPage() {
   const [filterType, setFilterType] = useState<"ALL" | "STORE" | "INTERNAL" | "CRITICAL">("ALL");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     name: "",
     stockQuantity: "",
     costPrice: "",
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "stock"],
-    queryFn: fetchInventory,
+  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
+    queryKey: ["admin", "products-stock"],
+    queryFn: async () => {
+      const res = await api.get("/products", { params: { page: 0, size: 500 } });
+      return res.data.content ?? [];
+    },
   });
 
-  const inventory = useMemo(() => data ?? [], [data]);
+  const { data: materialsData, isLoading: isLoadingMaterials } = useQuery({
+    queryKey: ["admin", "materials"],
+    queryFn: async () => {
+      const res = await api.get("/materials");
+      return res.data ?? [];
+    },
+  });
 
+  const isLoading = isLoadingProducts || isLoadingMaterials;
+
+  // 3. Unifica as duas listas para a tabela
+  const inventory = useMemo(() => {
+    const prods: UnifiedItem[] = (productsData || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      stock: p.stock ?? 0,
+      type: "PRODUCT",
+      category: p.category,
+      active: p.active,
+      images: p.images,
+      originalData: p,
+    }));
+
+    const mats: UnifiedItem[] = (materialsData || []).map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      stock: m.stockQuantity ?? 0,
+      type: "MATERIAL",
+      category: "INSUMO",
+      active: false,
+      originalData: m,
+    }));
+
+    return [...prods, ...mats].sort((a, b) => a.name.localeCompare(b.name));
+  }, [productsData, materialsData]);
+
+  // Filtros aplicados
   const filteredInventory = useMemo(() => {
     let list = inventory;
 
@@ -69,80 +93,61 @@ export default function AdminStockPage() {
     }
 
     if (filterType === "STORE") {
-      list = list.filter((item) => item.active === true);
+      list = list.filter((item) => item.type === "PRODUCT");
     } else if (filterType === "INTERNAL") {
-      list = list.filter((item) => item.active === false);
+      list = list.filter((item) => item.type === "MATERIAL");
     } else if (filterType === "CRITICAL") {
-      list = list.filter((item) => (item.stock ?? 0) <= 3);
+      list = list.filter((item) => item.stock <= 3);
     }
 
     return list;
   }, [inventory, searchTerm, filterType]);
 
   const updateStockMutation = useMutation({
-    mutationFn: async ({ product, newStock }: { product: Product; newStock: number }) => {
-      setProcessingId(product.id);
+    mutationFn: async ({ item, newStock }: { item: UnifiedItem; newStock: number }) => {
+      setProcessingId(`${item.type}-${item.id}`);
       
-      const payload = {
-        name: product.name,
-        description: product.description || null,
-        price: product.price || 0,
-        stock: newStock,
-        category: product.category || "OUTROS",
-        active: product.active ?? false,
-        featured: product.featured ?? false,
-        customizable: product.customizable ?? false,
-        images: product.images ?? [],
-        sizes: [],
-        colors: [],
-      };
-
-      await api.put(`/products/${product.id}`, payload);
+      if (item.type === "PRODUCT") {
+        const payload = { ...item.originalData, stock: newStock };
+        await api.put(`/products/${item.id}`, payload);
+      } else {
+        await api.put(`/materials/${item.id}/stock?newStock=${newStock}`);
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "stock"] });
+    onSuccess: (_, variables) => {
+      if (variables.item.type === "PRODUCT") {
+        queryClient.invalidateQueries({ queryKey: ["admin", "products-stock"] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["admin", "materials"] });
+      }
     },
-    onSettled: () => {
-      setProcessingId(null);
-    }
+    onSettled: () => setProcessingId(null)
   });
 
+  // Mutação para Cadastrar Novo Insumo/Material
   const createMaterialMutation = useMutation({
     mutationFn: async () => {
       setErrorMsg(null);
-      
       const payload = {
         name: form.name,
-        description: "Material/Insumo de uso interno",
-        price: form.costPrice ? Number(form.costPrice) : 0,
-        stock: form.stockQuantity ? Number(form.stockQuantity) : 0,
-        category: "OUTROS",
-        active: false,
-        featured: false,
-        customizable: false,
-        images: [],
-        sizes: [],
-        colors: [],
+        stockQuantity: form.stockQuantity ? Number(form.stockQuantity) : 0,
+        costPrice: form.costPrice ? Number(form.costPrice) : 0,
+        description: "Material/Insumo interno"
       };
-
-      await api.post("/products", payload);
+      await api.post("/materials", payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "stock"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "materials"] });
       setIsSheetOpen(false);
       setForm({ name: "", stockQuantity: "", costPrice: "" });
     },
-    onError: () => {
-      setErrorMsg("Erro ao cadastrar material. Verifique as informações.");
-    }
+    onError: () => setErrorMsg("Erro ao cadastrar material. Verifique as informações.")
   });
 
-  const handleQuickStockUpdate = (product: Product, change: number) => {
-    const currentStock = product.stock ?? 0;
-    const newStock = currentStock + change;
-    if (newStock < 0) return; // Não permite estoque negativo
-    
-    updateStockMutation.mutate({ product, newStock });
+  const handleQuickStockUpdate = (item: UnifiedItem, change: number) => {
+    const newStock = item.stock + change;
+    if (newStock < 0) return; 
+    updateStockMutation.mutate({ item, newStock });
   };
 
   const handleCreateMaterial = (e: React.FormEvent) => {
@@ -157,14 +162,13 @@ export default function AdminStockPage() {
   return (
     <div className="space-y-6 pb-20">
       
-      {/* --- BARRA SUPERIOR --- */}
       <div className="bg-white border border-[#D7CCC8] p-5 rounded-sm shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-[#FAF7F5] rounded-full border border-[#D7CCC8]">
             <Archive size={24} className="text-[#5D4037]" />
           </div>
           <div>
-            <h2 className="text-2xl font-serif font-bold text-[#5D4037]">Inventário e Insumos</h2>
+            <h2 className="text-2xl font-serif font-bold text-[#5D4037]">Inventário Global</h2>
             <p className="text-xs text-[#8D6E63] mt-1">Gerencie produtos da loja e materiais do ateliê (linhas, tecidos, etc).</p>
           </div>
         </div>
@@ -188,36 +192,13 @@ export default function AdminStockPage() {
         </div>
       </div>
 
-      {/* --- FILTROS RÁPIDOS --- */}
       <div className="flex flex-wrap gap-2">
-        <FilterButton 
-            active={filterType === "ALL"} 
-            onClick={() => setFilterType("ALL")} 
-            label="Todos os Itens" 
-            icon={<Package size={14} />} 
-        />
-        <FilterButton 
-            active={filterType === "STORE"} 
-            onClick={() => setFilterType("STORE")} 
-            label="Peças na Loja" 
-            icon={<Store size={14} />} 
-        />
-        <FilterButton 
-            active={filterType === "INTERNAL"} 
-            onClick={() => setFilterType("INTERNAL")} 
-            label="Insumos (Interno)" 
-            icon={<Scissors size={14} />} 
-        />
-        <FilterButton 
-            active={filterType === "CRITICAL"} 
-            onClick={() => setFilterType("CRITICAL")} 
-            label="Estoque Baixo (≤3)" 
-            icon={<AlertTriangle size={14} />} 
-            isWarning
-        />
+        <FilterButton active={filterType === "ALL"} onClick={() => setFilterType("ALL")} label="Todos os Itens" icon={<Package size={14} />} />
+        <FilterButton active={filterType === "STORE"} onClick={() => setFilterType("STORE")} label="Peças na Loja" icon={<Store size={14} />} />
+        <FilterButton active={filterType === "INTERNAL"} onClick={() => setFilterType("INTERNAL")} label="Insumos (Interno)" icon={<Scissors size={14} />} />
+        <FilterButton active={filterType === "CRITICAL"} onClick={() => setFilterType("CRITICAL")} label="Estoque Baixo (≤3)" icon={<AlertTriangle size={14} />} isWarning />
       </div>
 
-      {/* --- TABELA DE INVENTÁRIO --- */}
       <div className="bg-white border border-[#D7CCC8] rounded-sm shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-4">
@@ -229,7 +210,6 @@ export default function AdminStockPage() {
           <div className="p-16 text-center bg-[#FAF7F5]">
             <Archive className="mx-auto h-12 w-12 text-[#D7CCC8] mb-4" />
             <p className="text-lg font-serif text-[#5D4037]">Nenhum item encontrado</p>
-            <p className="text-sm text-[#8D6E63] mt-1">O seu inventário para esta categoria está vazio.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -237,19 +217,19 @@ export default function AdminStockPage() {
               <thead className="bg-[#FAF7F5] border-b border-[#D7CCC8] text-xs uppercase tracking-wider text-[#8D6E63]">
                 <tr>
                   <th className="px-6 py-4 font-bold">Nome do Item</th>
-                  <th className="px-6 py-4 font-bold">Tipo / Visibilidade</th>
+                  <th className="px-6 py-4 font-bold">Tipo / Categoria</th>
                   <th className="px-6 py-4 font-bold text-center">Quantidade Atual</th>
                   <th className="px-6 py-4 font-bold text-center">Ajuste Rápido</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EFEBE9]">
                 {filteredInventory.map((item) => {
-                  const isMaterial = item.active === false;
-                  const isCritical = (item.stock ?? 0) <= 3;
-                  const isProcessing = processingId === item.id;
+                  const isMaterial = item.type === "MATERIAL";
+                  const isCritical = item.stock <= 3;
+                  const isProcessing = processingId === `${item.type}-${item.id}`;
 
                   return (
-                    <tr key={item.id} className="hover:bg-[#FAF7F5] transition-colors group">
+                    <tr key={`${item.type}-${item.id}`} className="hover:bg-[#FAF7F5] transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 bg-white border border-[#D7CCC8] rounded-sm overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -269,11 +249,11 @@ export default function AdminStockPage() {
                       <td className="px-6 py-4">
                         {isMaterial ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-sm border bg-[#EFEBE9] text-[#5D4037] border-[#D7CCC8] uppercase">
-                                <EyeOff size={12} /> Uso Interno
+                                <EyeOff size={12} /> Insumo / Material
                             </span>
                         ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-sm border bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9] uppercase">
-                                <Store size={12} /> Loja Online
+                                <Store size={12} /> Produto da Loja
                             </span>
                         )}
                       </td>
@@ -281,11 +261,9 @@ export default function AdminStockPage() {
                       <td className="px-6 py-4 text-center">
                         <div className={cn(
                             "inline-flex items-center justify-center min-w-[3rem] px-3 py-1.5 rounded-sm border font-bold text-base",
-                            isCritical 
-                                ? "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]" 
-                                : "bg-white text-[#5D4037] border-[#D7CCC8]"
+                            isCritical ? "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]" : "bg-white text-[#5D4037] border-[#D7CCC8]"
                         )}>
-                            {isProcessing ? <Loader2 size={16} className="animate-spin" /> : (item.stock ?? 0)}
+                            {isProcessing ? <Loader2 size={16} className="animate-spin" /> : item.stock}
                         </div>
                       </td>
 
@@ -293,9 +271,8 @@ export default function AdminStockPage() {
                         <div className="flex items-center justify-center gap-2">
                             <button 
                                 onClick={() => handleQuickStockUpdate(item, -1)}
-                                disabled={isProcessing || (item.stock ?? 0) <= 0}
+                                disabled={isProcessing || item.stock <= 0}
                                 className="h-8 w-8 rounded-sm bg-white border border-[#D7CCC8] text-[#5D4037] flex items-center justify-center hover:bg-[#FFEBEE] hover:text-[#C62828] hover:border-[#FFCDD2] disabled:opacity-50 transition-colors"
-                                title="Diminuir 1"
                             >
                                 <Minus size={16} />
                             </button>
@@ -303,7 +280,6 @@ export default function AdminStockPage() {
                                 onClick={() => handleQuickStockUpdate(item, 1)}
                                 disabled={isProcessing}
                                 className="h-8 w-8 rounded-sm bg-white border border-[#D7CCC8] text-[#5D4037] flex items-center justify-center hover:bg-[#E8F5E9] hover:text-[#2E7D32] hover:border-[#C8E6C9] disabled:opacity-50 transition-colors"
-                                title="Aumentar 1"
                             >
                                 <Plus size={16} />
                             </button>
@@ -318,30 +294,29 @@ export default function AdminStockPage() {
         )}
       </div>
 
-      {/* --- GAVETA: ADICIONAR MATERIAL INTERNO --- */}
+      {/* --- GAVETA DE MATERIAL --- */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md bg-[#FAF7F5] border-l-4 border-l-[#E53935] p-0 flex flex-col h-full">
           
           <div className="p-6 bg-white border-b border-[#D7CCC8] shadow-sm sticky top-0 z-10">
             <h2 className="text-lg font-serif font-bold text-[#5D4037] flex items-center gap-2">
               <Scissors size={20} className="text-[#E53935]" />
-              Cadastrar Material/Insumo
+              Cadastrar Material Interno
             </h2>
             <p className="text-xs text-[#8D6E63] mt-1 leading-relaxed">
-              Itens cadastrados aqui ficam <strong>ocultos na loja</strong> e servem apenas para o seu controle de ateliê.
+              Itens cadastrados aqui são salvos em um banco de dados próprio e ficam ocultos na loja.
             </p>
           </div>
 
           <div className="p-6 flex-1 overflow-y-auto space-y-6">
             <form id="material-form" onSubmit={handleCreateMaterial} className="space-y-5">
-              
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Nome do Material</Label>
                 <Input 
                   value={form.name} 
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))} 
                   className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-11 rounded-sm shadow-sm"
-                  placeholder="Ex: Linha de Costura Branca, Tecido Algodão 1m..."
+                  placeholder="Ex: Linha Branca, Tecido Algodão..."
                   required
                 />
               </div>
@@ -359,7 +334,7 @@ export default function AdminStockPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Custo / Valor Unitário (Opcional)</Label>
+                <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Custo / Valor (Opcional)</Label>
                 <Input 
                   type="number"
                   step="0.01"
@@ -386,11 +361,7 @@ export default function AdminStockPage() {
               disabled={createMaterialMutation.isPending} 
               className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest rounded-sm shadow-md h-12 transition-all text-xs"
             >
-              {createMaterialMutation.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <><Save size={18} className="mr-2"/> Adicionar ao Inventário</>
-              )}
+              {createMaterialMutation.isPending ? <Loader2 className="animate-spin" /> : <><Save size={18} className="mr-2"/> Salvar Material</>}
             </Button>
           </div>
         </SheetContent>
