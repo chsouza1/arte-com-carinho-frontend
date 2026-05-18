@@ -1,193 +1,316 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api, applyAuthFromStorage } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Search, 
-  Users, 
-  Mail, 
-  Phone, 
-  Shield, 
-  User as UserIcon,
-  MessageCircle,
-  ShoppingBag
+  Users, UserPlus, Search, Mail, Phone, ShieldAlert, 
+  Loader2, Save, UserCheck, Smartphone 
 } from "lucide-react";
 
-type User = {
+type Customer = {
   id: number;
   name: string;
   email: string;
   phone?: string;
-  role: "ADMIN" | "CUSTOMER" | "USER";
-  active: boolean;
   createdAt?: string;
+  role?: string;
 };
 
-// Mapeamento de Tradução
-const ROLE_MAP = {
-  ADMIN: "Administrador",
-  CUSTOMER: "Cliente",
-  USER: "Usuário"
+type PageResponse<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
 };
 
-async function fetchUsers(): Promise<User[]> {
-  try {
-    const res = await api.get("/users", {
-      params: { size: 100, sort: "id,desc" }
-    });
-    return res.data.content ?? res.data ?? [];
-  } catch (error) {
-    console.error("Erro ao buscar clientes:", error);
-    return [];
-  }
+type CustomerFormData = {
+  name: string;
+  email: string;
+  phone: string;
+  password: string; // Necessário para a criação segura do usuário
+};
+
+async function fetchCustomers(): Promise<PageResponse<Customer>> {
+  // Busca a lista de clientes cadastrados no sistema
+  const res = await api.get<PageResponse<Customer>>("/customers", {
+    params: { page: 0, size: 200, sort: "id,desc" },
+  });
+  return res.data;
 }
 
 export default function AdminCustomersPage() {
-  const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    applyAuthFromStorage();
-  }, []);
-
-  const { data: users, isLoading } = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: fetchUsers,
+  const [form, setForm] = useState<CustomerFormData>({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
   });
 
-  const filteredUsers = useMemo(() => {
-    const list = users ?? [];
-    if (!search) return list;
-    
-    const lowerSearch = search.toLowerCase();
-    return list.filter((u) => 
-      u.name.toLowerCase().includes(lowerSearch) || 
-      u.email.toLowerCase().includes(lowerSearch) ||
-      (u.phone && u.phone.includes(lowerSearch))
-    );
-  }, [users, search]);
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "customers"],
+    queryFn: fetchCustomers,
+  });
 
-  const getWhatsAppLink = (phone?: string) => {
-    if (!phone) return null;
-    const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length < 10) return null;
-    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    return `https://wa.me/${fullPhone}`;
-  };
+  const customers = useMemo(() => data?.content ?? [], [data]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!searchTerm) return customers;
+    const lower = searchTerm.toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(lower) ||
+        c.email.toLowerCase().includes(lower) ||
+        (c.phone ?? "").includes(lower)
+    );
+  }, [customers, searchTerm]);
+
+  const createCustomerMutation = useMutation({
+    mutationFn: async () => {
+      setErrorMsg(null);
+      const payload = {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        role: "CUSTOMER", 
+      };
+      await api.post("/auth/register", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "customers"] });
+      setIsSheetOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      console.error(error);
+      if (error.response?.status === 409) {
+        setErrorMsg("Este e-mail já está cadastrado no sistema.");
+      } else {
+        setErrorMsg("Erro ao cadastrar o cliente. Verifique as informações.");
+      }
+    },
+  });
+
+  function resetForm() {
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+    });
+    setErrorMsg(null);
+  }
+
+  function handleFormChange(field: keyof CustomerFormData, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleOpenSheet() {
+    resetForm();
+    setIsSheetOpen(true);
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.password) {
+      setErrorMsg("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    createCustomerMutation.mutate();
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pb-20">
       
-      {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-dashed border-[#D7CCC8] pb-6">
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-3 rounded-full border border-[#D7CCC8] shadow-sm">
-             <Users className="h-6 w-6 text-[#5D4037]" />
+      {/* --- BARRA SUPERIOR --- */}
+      <div className="bg-white border border-[#D7CCC8] p-4 rounded-sm shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#FAF7F5] rounded-full border border-[#D7CCC8]">
+            <Users size={20} className="text-[#5D4037]" />
           </div>
           <div>
-            <h1 className="text-3xl font-serif font-bold text-[#5D4037]">Fichário de Clientes</h1>
-            <p className="text-[#8D6E63] italic">Gerencie os contatos do ateliê.</p>
+            <h2 className="text-xl font-serif font-bold text-[#5D4037]">Lista de Clientes</h2>
+            <p className="text-xs text-[#8D6E63]">Consulte ou adicione compradores ao sistema.</p>
           </div>
         </div>
         
-        {/* Barra de Busca */}
-        <div className="relative w-full md:w-72">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A1887F]" />
-            <Input
-              id="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome..."
-              className="pl-9 bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] rounded-sm h-10"
+            <Input 
+              placeholder="Buscar por nome, e-mail..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-[#FAF7F5] border-[#D7CCC8] focus:border-[#E53935] rounded-sm text-sm w-full h-10"
             />
+          </div>
+          <Button 
+            onClick={handleOpenSheet}
+            className="w-full sm:w-auto bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest text-xs h-10 rounded-sm shadow-sm transition-all"
+          >
+            <UserPlus size={16} className="mr-2" /> Novo Cliente
+          </Button>
         </div>
       </div>
 
-      {/* Lista de Clientes (Grid) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* --- TABELA DE CLIENTES --- */}
+      <div className="bg-white border border-[#D7CCC8] rounded-sm shadow-sm overflow-hidden">
         {isLoading ? (
-          [...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-sm bg-[#EFEBE9]" />
-          ))
-        ) : filteredUsers.length === 0 ? (
-          <div className="col-span-full border-2 border-dashed border-[#D7CCC8] bg-[#FAF7F5] p-16 text-center rounded-sm">
+          <div className="p-6 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 bg-[#EFEBE9] w-full rounded-sm" />
+            ))}
+          </div>
+        ) : filteredCustomers.length === 0 ? (
+          <div className="p-16 text-center bg-[#FAF7F5]">
             <Users className="mx-auto h-12 w-12 text-[#D7CCC8] mb-4" />
-            <p className="text-[#5D4037] font-bold">Nenhum usuário encontrado.</p>
+            <p className="text-base font-serif text-[#5D4037]">Nenhum cliente encontrado</p>
           </div>
         ) : (
-          filteredUsers.map((user) => (
-            <Card 
-              key={user.id} 
-              className="group relative overflow-hidden rounded-sm border border-[#D7CCC8] bg-white shadow-sm hover:shadow-md transition-all duration-300"
-            >
-              {/* Faixa decorativa no topo */}
-              <div className="h-1 w-full bg-[#E53935] absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-              <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                      <Avatar className="h-12 w-12 border border-[#D7CCC8]">
-                          <AvatarFallback className="bg-[#FAF7F5] text-[#5D4037] font-serif font-bold text-lg">
-                              {user.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                      </Avatar>
-                      
-                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-sm border flex items-center gap-1 ${
-                          user.role === 'ADMIN' ? 'bg-[#F3E5F5] text-[#7B1FA2] border-[#E1BEE7]' : 
-                          user.role === 'CUSTOMER' ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]' : 
-                          'bg-[#E3F2FD] text-[#1565C0] border-[#BBDEFB]'
-                      }`}>
-                          {user.role === 'ADMIN' ? <Shield size={10}/> : 
-                           user.role === 'CUSTOMER' ? <ShoppingBag size={10}/> :
-                           <UserIcon size={10}/>}
-                          {ROLE_MAP[user.role] || user.role}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-[#FAF7F5] border-b border-[#D7CCC8] text-xs uppercase tracking-wider text-[#8D6E63]">
+                <tr>
+                  <th className="px-6 py-4 font-bold">Nome</th>
+                  <th className="px-6 py-4 font-bold">E-mail</th>
+                  <th className="px-6 py-4 font-bold">Telefone</th>
+                  <th className="px-6 py-4 font-bold text-center">Permissão</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EFEBE9]">
+                {filteredCustomers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-[#FAF7F5] transition-colors">
+                    <td className="px-6 py-4 font-bold text-[#5D4037]">
+                      {customer.name}
+                    </td>
+                    <td className="px-6 py-4 text-[#8D6E63] font-mono text-xs">
+                      {customer.email}
+                    </td>
+                    <td className="px-6 py-4 text-[#5D4037] font-medium">
+                      {customer.phone ? customer.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3") : "-"}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-sm border uppercase ${customer.role === 'ADMIN' ? 'bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]' : 'bg-[#E3F2FD] text-[#1565C0] border-[#BBDEFB]'}`}>
+                        {customer.role === 'ADMIN' ? 'Administrador' : 'Cliente'}
                       </span>
-                  </div>
-
-                  <div className="space-y-4">
-                      <div>
-                          <h3 className="text-lg font-bold text-[#5D4037] truncate" title={user.name}>
-                              {user.name}
-                          </h3>
-                      </div>
-
-                      <div className="space-y-2 text-xs text-[#8D6E63]">
-                          <div className="flex items-center gap-2 bg-[#FAF7F5] p-2 rounded-sm border border-[#EFEBE9]">
-                              <Mail size={12} className="shrink-0" />
-                              <span className="truncate" title={user.email}>{user.email}</span>
-                          </div>
-                          <div className="flex items-center gap-2 bg-[#FAF7F5] p-2 rounded-sm border border-[#EFEBE9]">
-                              <Phone size={12} className="shrink-0" />
-                              <span>{user.phone || "Sem telefone"}</span>
-                          </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-dashed border-[#D7CCC8]">
-                          {user.phone ? (
-                              <Button 
-                                  className="w-full rounded-sm bg-[#25D366] hover:bg-[#128C7E] text-white font-bold uppercase tracking-widest text-xs h-9 shadow-sm flex items-center gap-2 transition-all hover:-translate-y-0.5"
-                                  onClick={() => window.open(getWhatsAppLink(user.phone) || '#', '_blank')}
-                              >
-                                  <MessageCircle size={14} /> WhatsApp
-                              </Button>
-                          ) : (
-                              <Button variant="outline" disabled className="w-full rounded-sm border-[#D7CCC8] text-[#A1887F] bg-[#FAF7F5] text-xs uppercase tracking-widest h-9">
-                                  Sem contato
-                              </Button>
-                          )}
-                      </div>
-                  </div>
-              </CardContent>
-            </Card>
-          ))
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
+      {/* --- GAVETA DE CADASTRO (SHEET) --- */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md bg-[#FAF7F5] border-l-4 border-l-[#E53935] p-0 flex flex-col h-full">
+          
+          <div className="p-6 bg-white border-b border-[#D7CCC8] shadow-sm sticky top-0 z-10">
+            <h2 className="text-lg font-serif font-bold text-[#5D4037] flex items-center gap-2">
+              <UserPlus size={20} className="text-[#E53935]" />
+              Cadastrar Novo Cliente
+            </h2>
+          </div>
+
+          <div className="p-6 flex-1 overflow-y-auto space-y-5">
+            <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
+              
+              <div className="space-y-1">
+                <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Nome Completo</Label>
+                <Input 
+                  value={form.name} 
+                  onChange={e => handleFormChange("name", e.target.value)} 
+                  className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-11 rounded-sm shadow-sm"
+                  placeholder="Nome do cliente"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">E-mail de Acesso</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3.5 h-4 w-4 text-[#A1887F]" />
+                  <Input 
+                    type="email"
+                    value={form.email} 
+                    onChange={e => handleFormChange("email", e.target.value)} 
+                    className="pl-10 bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-11 rounded-sm shadow-sm"
+                    placeholder="cliente@email.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">WhatsApp / Celular</Label>
+                <div className="relative">
+                  <Smartphone className="absolute left-3 top-3.5 h-4 w-4 text-[#A1887F]" />
+                  <Input 
+                    type="tel"
+                    value={form.phone} 
+                    onChange={e => handleFormChange("phone", e.target.value.replace(/\D/g, ""))} 
+                    className="pl-10 bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-11 rounded-sm shadow-sm"
+                    placeholder="41999999999 (Apenas números)"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[10px] font-bold text-[#8D6E63] uppercase">Senha Provisória</Label>
+                <Input 
+                  type="password"
+                  value={form.password} 
+                  onChange={e => handleFormChange("password", e.target.value)} 
+                  className="bg-white border-[#D7CCC8] text-[#5D4037] focus:border-[#E53935] h-11 rounded-sm shadow-sm"
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                />
+              </div>
+
+              <div className="bg-[#E3F2FD] border border-[#BBDEFB] p-3 rounded-sm flex items-start gap-2 text-xs text-[#1565C0] font-medium leading-relaxed">
+                <UserCheck size={16} className="shrink-0 mt-0.5" />
+                <span>
+                  Por motivos de segurança, contas criadas por esta tela recebem a função padrão de <strong>Cliente</strong>. Permissões de administrador devem ser alteradas diretamente no banco de dados.
+                </span>
+              </div>
+
+              {errorMsg && (
+                <div className="text-xs text-[#C62828] bg-[#FFEBEE] p-3 rounded-sm border border-[#FFCDD2] flex items-start gap-2 font-bold shadow-sm">
+                  <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                  {errorMsg}
+                </div>
+              )}
+            </form>
+          </div>
+
+          <div className="p-6 bg-white border-t border-[#D7CCC8] sticky bottom-0 z-10">
+            <Button 
+              type="submit" 
+              form="customer-form"
+              disabled={createCustomerMutation.isPending} 
+              className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-bold uppercase tracking-widest rounded-sm shadow-md h-12 transition-all text-xs"
+            >
+              {createCustomerMutation.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <><Save size={18} className="mr-2"/> Salvar Cliente</>
+              )}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
