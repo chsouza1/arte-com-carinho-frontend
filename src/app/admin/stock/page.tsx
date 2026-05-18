@@ -10,7 +10,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Package, Search, Plus, Minus, Loader2, Save, 
-  Archive, AlertTriangle, Store, EyeOff, Scissors
+  Archive, AlertTriangle, Store, EyeOff, Scissors, Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,12 +33,14 @@ export default function AdminStockPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  // Formulário para novos materiais
   const [form, setForm] = useState({
     name: "",
     stockQuantity: "",
     costPrice: "",
   });
 
+  // 1. Busca os Produtos da Loja
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["admin", "products-stock"],
     queryFn: async () => {
@@ -47,6 +49,7 @@ export default function AdminStockPage() {
     },
   });
 
+  // 2. Busca os Materiais Internos
   const { data: materialsData, isLoading: isLoadingMaterials } = useQuery({
     queryKey: ["admin", "materials"],
     queryFn: async () => {
@@ -57,7 +60,7 @@ export default function AdminStockPage() {
 
   const isLoading = isLoadingProducts || isLoadingMaterials;
 
-  // 3. Unifica as duas listas para a tabela
+  // 3. Unifica as duas listas para exibição na tabela
   const inventory = useMemo(() => {
     const prods: UnifiedItem[] = (productsData || []).map((p: any) => ({
       id: p.id,
@@ -83,7 +86,7 @@ export default function AdminStockPage() {
     return [...prods, ...mats].sort((a, b) => a.name.localeCompare(b.name));
   }, [productsData, materialsData]);
 
-  // Filtros aplicados
+  // Filtros aplicados em tela
   const filteredInventory = useMemo(() => {
     let list = inventory;
 
@@ -103,6 +106,7 @@ export default function AdminStockPage() {
     return list;
   }, [inventory, searchTerm, filterType]);
 
+  // Mutação para Atualização Rápida de Estoque (+ / -)
   const updateStockMutation = useMutation({
     mutationFn: async ({ item, newStock }: { item: UnifiedItem; newStock: number }) => {
       setProcessingId(`${item.type}-${item.id}`);
@@ -124,7 +128,7 @@ export default function AdminStockPage() {
     onSettled: () => setProcessingId(null)
   });
 
-  // Mutação para Cadastrar Novo Insumo/Material
+  // Mutação para Cadastrar Novo Insumo
   const createMaterialMutation = useMutation({
     mutationFn: async () => {
       setErrorMsg(null);
@@ -144,10 +148,29 @@ export default function AdminStockPage() {
     onError: () => setErrorMsg("Erro ao cadastrar material. Verifique as informações.")
   });
 
+  // NOVA MUTACAO: Excluir Insumo Permanentemente
+  const deleteMaterialMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/materials/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "materials"] });
+    },
+    onError: () => {
+      alert("Erro ao remover o insumo. Certifique-se de que a rota DELETE existe no backend.");
+    }
+  });
+
   const handleQuickStockUpdate = (item: UnifiedItem, change: number) => {
     const newStock = item.stock + change;
     if (newStock < 0) return; 
     updateStockMutation.mutate({ item, newStock });
+  };
+
+  const handleDeleteMaterial = (id: number, name: string) => {
+    if (window.confirm(`Tem certeza de que deseja remover permanentemente o insumo "${name}" do sistema?`)) {
+      deleteMaterialMutation.mutate(id);
+    }
   };
 
   const handleCreateMaterial = (e: React.FormEvent) => {
@@ -162,6 +185,7 @@ export default function AdminStockPage() {
   return (
     <div className="space-y-6 pb-20">
       
+      {/* --- BARRA SUPERIOR --- */}
       <div className="bg-white border border-[#D7CCC8] p-5 rounded-sm shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-[#FAF7F5] rounded-full border border-[#D7CCC8]">
@@ -169,7 +193,7 @@ export default function AdminStockPage() {
           </div>
           <div>
             <h2 className="text-2xl font-serif font-bold text-[#5D4037]">Inventário Global</h2>
-            <p className="text-xs text-[#8D6E63] mt-1">Gerencie produtos da loja e materiais do ateliê (linhas, tecidos, etc).</p>
+            <p className="text-xs text-[#8D6E63] mt-1">Gerencie peças da loja e controle materiais de produção (linhas, tecidos, etc).</p>
           </div>
         </div>
         
@@ -192,6 +216,7 @@ export default function AdminStockPage() {
         </div>
       </div>
 
+      {/* --- ABAS DE FILTRO --- */}
       <div className="flex flex-wrap gap-2">
         <FilterButton active={filterType === "ALL"} onClick={() => setFilterType("ALL")} label="Todos os Itens" icon={<Package size={14} />} />
         <FilterButton active={filterType === "STORE"} onClick={() => setFilterType("STORE")} label="Peças na Loja" icon={<Store size={14} />} />
@@ -199,6 +224,7 @@ export default function AdminStockPage() {
         <FilterButton active={filterType === "CRITICAL"} onClick={() => setFilterType("CRITICAL")} label="Estoque Baixo (≤3)" icon={<AlertTriangle size={14} />} isWarning />
       </div>
 
+      {/* --- TABELA DE INVENTÁRIO --- */}
       <div className="bg-white border border-[#D7CCC8] rounded-sm shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-4">
@@ -220,13 +246,14 @@ export default function AdminStockPage() {
                   <th className="px-6 py-4 font-bold">Tipo / Categoria</th>
                   <th className="px-6 py-4 font-bold text-center">Quantidade Atual</th>
                   <th className="px-6 py-4 font-bold text-center">Ajuste Rápido</th>
+                  <th className="px-6 py-4 font-bold text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EFEBE9]">
                 {filteredInventory.map((item) => {
                   const isMaterial = item.type === "MATERIAL";
                   const isCritical = item.stock <= 3;
-                  const isProcessing = processingId === `${item.type}-${item.id}`;
+                  const isProcessing = processingId === `${item.type}-${item.id}` || deleteMaterialMutation.isPending;
 
                   return (
                     <tr key={`${item.type}-${item.id}`} className="hover:bg-[#FAF7F5] transition-colors group">
@@ -263,7 +290,7 @@ export default function AdminStockPage() {
                             "inline-flex items-center justify-center min-w-[3rem] px-3 py-1.5 rounded-sm border font-bold text-base",
                             isCritical ? "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]" : "bg-white text-[#5D4037] border-[#D7CCC8]"
                         )}>
-                            {isProcessing ? <Loader2 size={16} className="animate-spin" /> : item.stock}
+                            {isProcessing && processingId === `${item.type}-${item.id}` ? <Loader2 size={16} className="animate-spin" /> : item.stock}
                         </div>
                       </td>
 
@@ -283,6 +310,24 @@ export default function AdminStockPage() {
                             >
                                 <Plus size={16} />
                             </button>
+                        </div>
+                      </td>
+
+                      {/* COLUNA DE AÇÕES COM REMOÇÃO PARA INSUMOS */}
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center">
+                            {isMaterial ? (
+                                <button
+                                    onClick={() => handleDeleteMaterial(item.id, item.name)}
+                                    disabled={isProcessing}
+                                    className="p-2 bg-white text-[#C62828] hover:bg-[#FFEBEE] rounded-sm border border-[#FFCDD2] transition-colors disabled:opacity-50"
+                                    title="Excluir Material"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            ) : (
+                                <span className="text-[11px] text-[#A1887F] italic font-medium">Ações no catálogo</span>
+                            )}
                         </div>
                       </td>
                     </tr>
